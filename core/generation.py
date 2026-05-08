@@ -62,8 +62,9 @@ def generate_insights(summary: AnalysisSummary, all_ads=None) -> str:
     prompt = _build_prompt(summary, all_ads)
 
     try:
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         message = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=1024,
             system="Je bent een ervaren Meta Ads specialist die adverteerders helpt hun campagnes te optimaliseren.",
             messages=[{"role": "user", "content": prompt}],

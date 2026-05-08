@@ -94,6 +94,7 @@ class AnalysisSummary:
     top_ad_set: Optional[str] = None
     worst_ad: Optional[str] = None
     worst_ad_set: Optional[str] = None
+    has_click_data: bool = True
     campaigns: list = field(default_factory=list)
 
     @property

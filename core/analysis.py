@@ -145,14 +145,49 @@ def _detect_campaign_type(rows: list[dict]) -> str:
     purchases = sum(1 for i in indicators if "purchase" in i or "sale" in i)
     awareness = sum(1 for i in indicators if "thruplay" in i or "reach" in i or "impression" in i or "view" in i)
     leads = sum(1 for i in indicators if "lead" in i or "message" in i or "contact" in i or "form" in i)
-    top = max([("purchases", purchases), ("awareness", awareness), ("leads", leads)], key=lambda x: x[1])
-    return top[0] if top[1] > 0 else "leads"
+    counts = {"purchases": purchases, "awareness": awareness, "leads": leads}
+    best_count = max(counts.values())
+    if best_count == 0:
+        return "leads"
+    # Bij gelijke stand: leads > purchases > awareness
+    for preferred in ("leads", "purchases", "awareness"):
+        if counts[preferred] == best_count:
+            return preferred
+    return "leads"
+
+
+def _is_primary_result(result_indicator: str, campaign_type: str) -> bool:
+    ind = result_indicator.lower()
+    if not ind:
+        return False
+    if campaign_type == "purchases":
+        return "purchase" in ind or "sale" in ind
+    if campaign_type == "leads":
+        return any(k in ind for k in ["lead", "message", "contact", "form"])
+    if campaign_type == "awareness":
+        return any(k in ind for k in ["thruplay", "reach", "impression", "view"])
+    return True
 
 
 def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_override: str = "") -> AnalysisSummary:
     campaign_type = campaign_type_override if campaign_type_override else _detect_campaign_type(rows)
+
+    # Only count results that match the primary objective
+    primary_rows = [
+        r for r in rows
+        if _is_primary_result(str(r.get("result_indicator", "")), campaign_type)
+    ]
+
+    # Score only ads whose result type matches the campaign objective
+    primary_ad_names = {
+        r["ad_name"] for r in primary_rows
+        if float(r.get("results", 0) or 0) > 0
+    }
     all_ads = get_all_ads(campaigns)
-    scored_ads = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0]
+    scored_ads = [
+        a for a in all_ads
+        if a.ad_name in primary_ad_names and a.results > 0 and a.cost_per_result > 0
+    ]
 
     top_ad = min(scored_ads, key=lambda a: a.cost_per_result, default=None)
     worst_ad = max(scored_ads, key=lambda a: a.cost_per_result, default=None)
@@ -160,7 +195,8 @@ def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_ove
     total_spend = _sum(rows, "spend")
     total_impressions = int(_sum(rows, "impressions"))
     total_clicks = int(_sum(rows, "clicks"))
-    total_results = int(_sum(rows, "results"))
+    total_results = int(_sum(primary_rows, "results"))
+    has_click_data = any(r.get("_has_click_data", True) for r in rows)
 
     return AnalysisSummary(
         total_spend=round(total_spend, 2),
@@ -172,7 +208,7 @@ def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_ove
         avg_ctr=round(_safe_div(total_clicks, total_impressions) * 100, 2),
         avg_cpc=round(_safe_div(total_spend, total_clicks), 2),
         avg_cpm=round(_safe_div(total_spend, total_impressions) * 1000, 2),
-        avg_roas=round(_weighted_avg(rows, "roas", "spend"), 2),
+        avg_roas=round(_weighted_avg(primary_rows, "roas", "spend"), 2),
         avg_frequency=round(_mean(rows, "frequency"), 2),
         avg_cost_per_result=round(_safe_div(total_spend, total_results), 2),
         num_campaigns=len(campaigns),
@@ -183,6 +219,7 @@ def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_ove
         top_ad_set=top_ad.ad_set_name if top_ad else None,
         worst_ad=worst_ad.ad_name if worst_ad else None,
         worst_ad_set=worst_ad.ad_set_name if worst_ad else None,
+        has_click_data=has_click_data,
         campaigns=campaigns,
     )
 

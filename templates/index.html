@@ -623,7 +623,11 @@
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Gem. CTR</div>
+      {% if s.has_click_data %}
       <div class="kpi-value {% if s.avg_ctr >= 2 %}good{% elif s.avg_ctr >= 1 %}warn{% else %}bad{% endif %}">{{ "%.2f"|format(s.avg_ctr) }}%</div>
+      {% else %}
+      <div class="kpi-value" style="color:var(--muted);font-size:1.4rem;">—</div>
+      {% endif %}
       <i class="bi bi-cursor kpi-icon"></i>
     </div>
     <div class="kpi-card">
@@ -753,9 +757,9 @@
 
         <div class="row g-2">
           <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Bereik</div><div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Clicks</div><div class="stat-chip-val">{{ "{:,}".format(s.total_clicks).replace(",", ".") }}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. CPC</div><div class="stat-chip-val">€{{ "%.2f"|format(s.avg_cpc) }}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. Freq.</div><div class="stat-chip-val">{{ "%.1f"|format(s.avg_frequency) }}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Clicks</div><div class="stat-chip-val">{% if s.has_click_data %}{{ "{:,}".format(s.total_clicks).replace(",", ".") }}{% else %}—{% endif %}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. CPC</div><div class="stat-chip-val">{% if s.has_click_data %}€{{ "%.2f"|format(s.avg_cpc) }}{% else %}—{% endif %}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. Freq.</div><div class="stat-chip-val">{% if s.has_click_data %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div></div></div>
         </div>
       </div>
     </div>
@@ -845,9 +849,10 @@ if (zone) {
 }
 
 {% if result %}
-const isLeads  = {{ 'true' if result.summary.campaign_type != 'purchases' else 'false' }};
-const usesCPR  = {{ 'true' if result.summary.campaign_type != 'awareness' else 'false' }};
-const showRoas = {{ 'true' if result.summary.campaign_type == 'purchases' else 'false' }};
+const isLeads      = {{ 'true' if result.summary.campaign_type != 'purchases' else 'false' }};
+const usesCPR      = {{ 'true' if result.summary.campaign_type != 'awareness' else 'false' }};
+const showRoas     = {{ 'true' if result.summary.campaign_type == 'purchases' else 'false' }};
+const hasClickData = {{ 'true' if result.summary.has_click_data else 'false' }};
 const metricLabel = '{{ result.summary.metric_label }}';
 const resultLabel  = '{{ result.summary.result_label }}';
 const T_WIN = {{ t_win }};
@@ -887,13 +892,18 @@ Plotly.newPlot('chartMetric', [{
   textposition: 'outside', textfont: { size: 10 },
 }], layout(metricLabel + ' per advertentie'), cfg);
 
-Plotly.newPlot('chartCtr', [{
-  type: 'bar', orientation: 'h',
-  x: cd.ctr, y: cd.labels,
-  marker: { color: '#E8541A' },
-  text: cd.ctr.map(v => v.toFixed(2) + '%'),
-  textposition: 'outside', textfont: { size: 10 },
-}], layout('CTR per advertentie (%)'), cfg);
+if (hasClickData) {
+  Plotly.newPlot('chartCtr', [{
+    type: 'bar', orientation: 'h',
+    x: cd.ctr, y: cd.labels,
+    marker: { color: '#E8541A' },
+    text: cd.ctr.map(v => v.toFixed(2) + '%'),
+    textposition: 'outside', textfont: { size: 10 },
+  }], layout('CTR per advertentie (%)'), cfg);
+} else {
+  document.getElementById('chartCtr').innerHTML =
+    '<div style="height:240px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.8rem;">CTR niet beschikbaar in deze export</div>';
+}
 
 Plotly.newPlot('chartResults', [{
   type: 'bar', orientation: 'h',
@@ -987,8 +997,8 @@ function renderTable() {
       <td class="text-end">€${Math.round(ad.spend).toLocaleString('nl-NL')}</td>
       ${metricCell(ad)}
       <td class="text-end">${ad.results}</td>
-      <td class="text-end">${ad.ctr.toFixed(2)}%</td>
-      <td class="text-end">€${ad.cpc.toFixed(2)}</td>
+      <td class="text-end">${hasClickData ? ad.ctr.toFixed(2) + '%' : '<span class="text-muted">—</span>'}</td>
+      <td class="text-end">${hasClickData ? '€' + ad.cpc.toFixed(2) : '<span class="text-muted">—</span>'}</td>
       <td class="text-end">€${ad.cpm.toFixed(2)}</td>
       ${roasCell(ad)}
       <td class="text-end">${ad.impressions.toLocaleString('nl-NL')}</td>

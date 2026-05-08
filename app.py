@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import json
+import logging
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
@@ -10,6 +11,9 @@ import io
 
 load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent))
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from core.csv_parser import parse_csv, load_dummy_data, validate_csv
 from core.analysis import build_campaigns, build_summary, build_ad_chart_data, get_all_ads
@@ -90,6 +94,7 @@ def _process_df(rows: list, campaign_type_override: str = "") -> dict:
         "top_ad_set":         summary.top_ad_set,
         "worst_ad":           summary.worst_ad,
         "worst_ad_set":       summary.worst_ad_set,
+        "has_click_data":     summary.has_click_data,
     }
     session["insights"] = insights
 
@@ -187,6 +192,7 @@ def _session_to_summary(data: dict):
         top_ad_set=data.get("top_ad_set"),
         worst_ad=data.get("worst_ad"),
         worst_ad_set=data.get("worst_ad_set"),
+        has_click_data=data.get("has_click_data", True),
         campaigns=[],
     )
 
@@ -230,6 +236,11 @@ def upload():
         flash(f"Fout bij inlezen CSV: {e}", "danger")
         return redirect(url_for("index"))
 
+    max_rows = int(os.getenv("MAX_CSV_ROWS", 10000))
+    if len(rows) > max_rows:
+        flash(f"CSV bevat {len(rows):,} rijen — maximum is {max_rows:,}. Exporteer een kleinere periode.", "danger")
+        return redirect(url_for("index"))
+
     campaign_type_override = request.form.get("campaign_type_override", "")
     thresholds = _compute_thresholds(request.form)
     result = _process_df(rows, campaign_type_override=campaign_type_override)
@@ -267,6 +278,7 @@ def _load_rows_from_session() -> list | None:
     try:
         return parse_csv(Path(source))
     except Exception:
+        logger.exception("Fout bij opnieuw laden CSV uit sessie: %s", source)
         return None
 
 
@@ -311,7 +323,7 @@ def creative():
 
     rows = _load_rows_from_session()
     if rows is None:
-        flash("Sessie verlopen. Upload je CSV opnieuw.", "warning")
+        flash("Het bestand kon niet worden geladen. Upload je CSV opnieuw om verder te gaan.", "warning")
         return redirect(url_for("index"))
 
     campaigns = build_campaigns(rows)
