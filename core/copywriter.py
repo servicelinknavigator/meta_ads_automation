@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import anthropic
 from models.campaign import AnalysisSummary
@@ -15,17 +16,9 @@ def generate_copy(
     if not api_key or api_key.startswith("sk-ant-your"):
         return _fallback_copy(product, variaties)
 
-    top = next(
-        (c for c in summary.campaigns if c.campaign_name == summary.top_campaign),
-        summary.campaigns[0] if summary.campaigns else None,
-    )
-
     context = ""
-    if top:
-        context = (
-            f"\nBeste campagne ter referentie: '{top.campaign_name}' "
-            f"(ROAS {top.roas}, CTR {top.ctr}%, {top.results} conversies)"
-        )
+    if summary.top_ad:
+        context = f"\nBeste advertentie ter referentie: '{summary.top_ad}' ({summary.top_ad_set})"
 
     prompt = f"""Je bent een ervaren Meta Ads copywriter. Schrijf {variaties} advertentievariaties in het Nederlands.
 
@@ -47,22 +40,31 @@ Geef ALLEEN geldige JSON terug, geen uitleg, geen markdown:
 
     client = anthropic.Anthropic(api_key=api_key)
     try:
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         message = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=800,
             system="Je bent een Meta Ads copywriter. Je geeft altijd alleen JSON terug zonder uitleg.",
             messages=[{"role": "user", "content": prompt}],
         )
-        raw = message.content[0].text.strip()
-        # strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        variations = json.loads(raw)
+        variations = json.loads(_extract_json(message.content[0].text))
         return variations[:variaties]
     except Exception:
         return _fallback_copy(product, variaties)
+
+
+def _extract_json(text: str) -> str:
+    text = re.sub(r"```(?:json)?", "", text).strip().strip("`").strip()
+    start = text.find("[")
+    obj_start = text.find("{")
+    if start == -1 or (obj_start != -1 and obj_start < start):
+        start = obj_start
+        end = text.rfind("}")
+    else:
+        end = text.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        return text[start:end + 1]
+    return text
 
 
 def _fallback_copy(product: str, variaties: int) -> list[dict]:

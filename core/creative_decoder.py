@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import anthropic
 from models.campaign import Ad, AnalysisSummary
@@ -12,22 +13,26 @@ def _has_api() -> bool:
     return bool(k) and not k.startswith("sk-ant-your")
 
 
+def _extract_json(text: str) -> str:
+    text = re.sub(r"```(?:json)?", "", text).strip().strip("`").strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return text[start:end + 1]
+    return text
+
+
 def _call(prompt: str, max_tokens: int = 800) -> dict:
     try:
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
         msg = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=max_tokens,
             system="Je bent een ervaren Meta Ads creative strategist. Antwoord ALLEEN met geldig JSON, geen uitleg eromheen.",
             messages=[{"role": "user", "content": prompt}],
         )
-        text = msg.content[0].text.strip()
-        if "```" in text:
-            parts = text.split("```")
-            text = parts[1] if len(parts) > 1 else parts[0]
-            if text.startswith("json"):
-                text = text[4:]
-        return json.loads(text.strip())
+        return json.loads(_extract_json(msg.content[0].text))
     except Exception as e:
         return {"_error": str(e)}
 

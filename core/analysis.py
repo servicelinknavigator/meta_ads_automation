@@ -145,8 +145,15 @@ def _detect_campaign_type(rows: list[dict]) -> str:
     purchases = sum(1 for i in indicators if "purchase" in i or "sale" in i)
     awareness = sum(1 for i in indicators if "thruplay" in i or "reach" in i or "impression" in i or "view" in i)
     leads = sum(1 for i in indicators if "lead" in i or "message" in i or "contact" in i or "form" in i)
-    top = max([("purchases", purchases), ("awareness", awareness), ("leads", leads)], key=lambda x: x[1])
-    return top[0] if top[1] > 0 else "leads"
+    counts = {"purchases": purchases, "awareness": awareness, "leads": leads}
+    best_count = max(counts.values())
+    if best_count == 0:
+        return "leads"
+    # Bij gelijke stand: leads > purchases > awareness
+    for preferred in ("leads", "purchases", "awareness"):
+        if counts[preferred] == best_count:
+            return preferred
+    return "leads"
 
 
 def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_override: str = "") -> AnalysisSummary:
