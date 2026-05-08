@@ -27,13 +27,29 @@ UPLOAD_FOLDER = Path(__file__).parent / "uploads"
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 
 
-def _process_df(rows: list) -> dict:
+def _compute_thresholds(form=None) -> dict:
+    preset = (form.get("threshold_preset", "auto") if form else "auto")
+    if preset == "fit20":
+        return {"winner": 40, "mid": 60, "preset": "fit20"}
+    if preset == "belladonna":
+        return {"winner": 30, "mid": 50, "preset": "belladonna"}
+    if preset == "custom" and form:
+        try:
+            w = max(1, int(form.get("threshold_winner", 30)))
+            m = max(w + 1, int(form.get("threshold_mid", 50)))
+            return {"winner": w, "mid": m, "preset": "custom"}
+        except (ValueError, TypeError):
+            pass
+    return {"winner": 30, "mid": 50, "preset": "auto"}
+
+
+def _process_df(rows: list, campaign_type_override: str = "") -> dict:
     valid, errors = validate_csv(rows)
     if not valid:
         return {"error": "; ".join(errors)}
 
     campaigns = build_campaigns(rows)
-    summary = build_summary(rows, campaigns)
+    summary = build_summary(rows, campaigns, campaign_type_override=campaign_type_override)
     ad_chart_data = build_ad_chart_data(campaigns, summary.campaign_type)
     all_ads = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
     insights = generate_insights(summary, all_ads)
@@ -177,7 +193,7 @@ def _session_to_summary(data: dict):
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", result=None)
+    return render_template("index.html", result=None, thresholds=None)
 
 
 @app.route("/demo", methods=["GET"])
@@ -187,8 +203,10 @@ def demo():
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
+    thresholds = {"winner": 30, "mid": 50, "preset": "auto"}
     session["data_source"] = "demo"
-    return render_template("index.html", result=result, demo=True)
+    session["thresholds"] = thresholds
+    return render_template("index.html", result=result, demo=True, thresholds=thresholds)
 
 
 @app.route("/upload", methods=["POST"])
@@ -212,12 +230,15 @@ def upload():
         flash(f"Fout bij inlezen CSV: {e}", "danger")
         return redirect(url_for("index"))
 
-    result = _process_df(rows)
+    campaign_type_override = request.form.get("campaign_type_override", "")
+    thresholds = _compute_thresholds(request.form)
+    result = _process_df(rows, campaign_type_override=campaign_type_override)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
     session["data_source"] = str(save_path)
-    return render_template("index.html", result=result, demo=False)
+    session["thresholds"] = thresholds
+    return render_template("index.html", result=result, demo=False, thresholds=thresholds)
 
 
 @app.route("/export/pdf", methods=["GET"])
@@ -313,12 +334,14 @@ def creative():
 
     patterns = _extract_patterns(winner_results)
 
+    thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
     return render_template(
         "creative.html",
         summary=summary,
         winners=winner_results,
         losers=loser_results,
         patterns=patterns,
+        thresholds=thresholds,
         is_demo=session.get("data_source") == "demo",
     )
 

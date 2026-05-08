@@ -351,6 +351,41 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Campaign type toggle ── */
+    .type-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+    .type-btn {
+      flex: 1; padding: .42rem .5rem; font-size: .78rem; font-weight: 600;
+      background: var(--bg); border: none; cursor: pointer;
+      color: var(--muted); transition: all .15s;
+      border-right: 1px solid var(--border);
+    }
+    .type-btn:last-child { border-right: none; }
+    .type-btn.active { background: var(--dark); color: #fff; }
+    .type-btn:hover:not(.active) { background: #edf0f7; color: var(--text); }
+
+    /* ── Threshold presets ── */
+    .preset-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: .32rem .9rem; font-size: .76rem; font-weight: 600;
+      border: 1.5px solid var(--border); border-radius: 20px;
+      background: var(--bg); color: var(--muted); cursor: pointer; transition: all .15s;
+    }
+    .preset-btn.active { border-color: var(--accent); background: #fff4f0; color: var(--accent); }
+    .preset-btn:hover:not(.active) { border-color: var(--text); color: var(--text); }
+
+    .settings-section {
+      background: var(--bg); border-radius: 10px; padding: 1rem 1.1rem;
+      margin-bottom: 1rem; border: 1px solid var(--border);
+    }
+    .settings-label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); margin-bottom: .55rem; display: block;
+    }
+    .threshold-legend {
+      display: flex; gap: 10px; margin-top: .55rem; font-size: .74rem; flex-wrap: wrap;
+    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
     /* ── Empty state ── */
     .tbl-empty {
       text-align: center;
@@ -437,6 +472,12 @@
       <div class="upload-card">
         <h5 style="font-weight:700;margin-bottom:1.5rem;">CSV uploaden</h5>
         <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="showLoading()">
+          <!-- Hidden fields updated by JS -->
+          <input type="hidden" name="campaign_type_override" id="campaign_type_override" value="" />
+          <input type="hidden" name="threshold_preset"        id="threshold_preset_hidden" value="auto" />
+          <input type="hidden" name="threshold_winner"        id="threshold_winner_hidden" value="" />
+          <input type="hidden" name="threshold_mid"           id="threshold_mid_hidden"   value="" />
+
           <div class="upload-zone mb-3" id="uploadZone" onclick="document.getElementById('csv_file').click()">
             <div class="upload-icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
             <div style="font-weight:600;margin-bottom:.25rem;">Sleep je CSV hier of klik om te selecteren</div>
@@ -446,6 +487,70 @@
           <div id="fileName" class="d-none mb-3" style="font-size:.82rem;color:var(--muted);">
             <i class="bi bi-check-circle text-success me-1"></i><span id="fileNameText"></span>
           </div>
+
+          <!-- Campaign Type -->
+          <div class="settings-section">
+            <span class="settings-label"><i class="bi bi-target me-1"></i>Campagnetype</span>
+            <div class="type-toggle">
+              <button type="button" class="type-btn active" onclick="setType('', this)">
+                <i class="bi bi-magic me-1"></i>Auto-detect
+              </button>
+              <button type="button" class="type-btn" onclick="setType('leads', this)">
+                <i class="bi bi-person-check me-1"></i>Leads / CPL
+              </button>
+              <button type="button" class="type-btn" onclick="setType('purchases', this)">
+                <i class="bi bi-cart-check me-1"></i>E-Commerce / ROAS
+              </button>
+            </div>
+          </div>
+
+          <!-- CPL Thresholds (hidden for e-commerce) -->
+          <div class="settings-section" id="thresholdSection">
+            <span class="settings-label"><i class="bi bi-sliders me-1"></i>CPL drempelwaarden</span>
+            <div class="preset-toggle mb-2">
+              <button type="button" class="preset-btn active" onclick="setPreset('auto', this)">Auto</button>
+              <button type="button" class="preset-btn" onclick="setPreset('fit20', this)" data-win="40" data-mid="60">
+                Fit20 &nbsp;<span style="opacity:.6;font-weight:400;">&lt;€40 / €40–60 / &gt;€60</span>
+              </button>
+              <button type="button" class="preset-btn" onclick="setPreset('belladonna', this)" data-win="30" data-mid="50">
+                Belladonna &nbsp;<span style="opacity:.6;font-weight:400;">&lt;€30 / €30–50 / &gt;€50</span>
+              </button>
+              <button type="button" class="preset-btn" onclick="setPreset('custom', this)">
+                <i class="bi bi-pencil me-1"></i>Eigen
+              </button>
+            </div>
+
+            <!-- Custom inputs -->
+            <div id="customInputs" class="d-none">
+              <div class="row g-2 mb-2">
+                <div class="col-5">
+                  <label class="settings-label mb-1">Winnaar — CPL onder</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">€</span>
+                    <input type="number" id="inp_winner" class="form-control" value="30" min="1" max="999"
+                           oninput="updateCustom()" />
+                  </div>
+                </div>
+                <div class="col-5">
+                  <label class="settings-label mb-1">Mid — CPL onder</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">€</span>
+                    <input type="number" id="inp_mid" class="form-control" value="50" min="2" max="9999"
+                           oninput="updateCustom()" />
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:.74rem;color:var(--muted);">Loser = alles boven mid-grens</div>
+            </div>
+
+            <!-- Active threshold legend -->
+            <div class="threshold-legend" id="thresholdLegend">
+              <span><span class="legend-dot" style="background:var(--success);"></span>Winnaar &lt;€<span id="leg-win">30</span></span>
+              <span><span class="legend-dot" style="background:var(--warning);"></span>Mid €<span id="leg-win2">30</span>–<span id="leg-mid">50</span></span>
+              <span><span class="legend-dot" style="background:var(--danger);"></span>Loser &gt;€<span id="leg-mid2">50</span></span>
+            </div>
+          </div>
+
           <button type="submit" class="btn-sln w-100" style="padding:.75rem;font-size:.95rem;">
             <i class="bi bi-graph-up me-2"></i>Analyseren
           </button>
@@ -466,13 +571,28 @@
 {% set s = result.summary %}
 {% set is_leads = s.campaign_type != 'purchases' %}
 {% set metric_val = s.avg_cost_per_result if is_leads else s.avg_roas %}
+{% set t_win = thresholds.winner if thresholds else 30 %}
+{% set t_mid = thresholds.mid if thresholds else 50 %}
+{% set t_preset = thresholds.preset if thresholds else 'auto' %}
 
 <!-- Hero (compact) -->
 <div class="hero" style="padding:1.75rem 0;">
   <div class="container-xl">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
       <div>
-        <div class="hero-badge"><i class="bi bi-check-circle"></i> Analyse gereed</div>
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+          <div class="hero-badge" style="margin-bottom:0;"><i class="bi bi-check-circle"></i> Analyse gereed</div>
+          {% if is_leads %}
+          <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:.7rem;color:rgba(255,255,255,.7);">
+            <i class="bi bi-sliders"></i>
+            {% if t_preset == 'fit20' %}Fit20{% elif t_preset == 'belladonna' %}Belladonna{% elif t_preset == 'custom' %}Eigen profiel{% else %}Standaard{% endif %}
+            &nbsp;&middot;&nbsp;
+            <span style="color:#6ee7b7;">&lt;€{{ t_win }}</span>
+            <span style="color:#fcd34d;">€{{ t_win }}–{{ t_mid }}</span>
+            <span style="color:#fca5a5;">&gt;€{{ t_mid }}</span>
+          </div>
+          {% endif %}
+        </div>
         <div class="hero-title" style="font-size:1.5rem;">{{ s.num_campaigns }} campagne{{ 's' if s.num_campaigns != 1 }} &middot; {{ s.num_ad_sets }} ad sets &middot; {{ s.num_ads }} advertenties</div>
       </div>
     </div>
@@ -490,7 +610,7 @@
     </div>
     <div class="kpi-card kpi-highlight">
       <div class="kpi-label">{{ s.metric_label }}</div>
-      <div class="kpi-value {% if is_leads %}{% if metric_val > 0 and metric_val < 30 %}good{% elif metric_val >= 30 and metric_val < 50 %}warn{% elif metric_val >= 50 %}bad{% endif %}{% else %}{% if metric_val >= 3 %}good{% elif metric_val >= 1.5 %}warn{% else %}bad{% endif %}{% endif %}">
+      <div class="kpi-value {% if is_leads %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% else %}{% if metric_val >= 3 %}good{% elif metric_val >= 1.5 %}warn{% else %}bad{% endif %}{% endif %}">
         {% if is_leads %}{% if metric_val > 0 %}€{{ "%.2f"|format(metric_val) }}{% else %}—{% endif %}{% else %}{{ "%.2f"|format(metric_val) }}{% endif %}
       </div>
       <i class="bi bi-arrow-repeat kpi-icon"></i>
@@ -543,10 +663,17 @@
           <input type="text" id="tblSearch" class="tbl-search" placeholder="Zoek op advertentienaam…" oninput="renderTable()" />
           <select id="tblStatus" class="tbl-filter" onchange="renderTable()">
             <option value="">Alle statussen</option>
-            <option value="lage-cpl">Lage CPL (&lt;€30)</option>
-            <option value="gemiddeld">Gemiddeld (€30–50)</option>
-            <option value="hoge-cpl">Hoge CPL (&gt;€50)</option>
+            {% if is_leads %}
+            <option value="lage-cpl">Winnaar (&lt;€{{ t_win }})</option>
+            <option value="gemiddeld">Mid (€{{ t_win }}–{{ t_mid }})</option>
+            <option value="hoge-cpl">Loser (&gt;€{{ t_mid }})</option>
             <option value="geen-leads">Geen leads</option>
+            {% else %}
+            <option value="lage-cpl">Excellent (ROAS &ge;4)</option>
+            <option value="gemiddeld">Goed (ROAS 2–4)</option>
+            <option value="hoge-cpl">Ondermaats (ROAS &lt;2)</option>
+            <option value="geen-leads">Geen conversies</option>
+            {% endif %}
           </select>
         </div>
 
@@ -649,6 +776,48 @@ function updateFileName(input) {
   }
 }
 
+// ── Upload form: campaign type + thresholds ───────────────────────────────
+function setType(val, btn) {
+  document.getElementById('campaign_type_override').value = val;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Hide threshold section for e-commerce
+  const sec = document.getElementById('thresholdSection');
+  if (sec) sec.style.display = val === 'purchases' ? 'none' : '';
+}
+
+const PRESETS = { fit20: [40, 60], belladonna: [30, 50] };
+
+function setPreset(preset, btn) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('threshold_preset_hidden').value = preset;
+  const custom = document.getElementById('customInputs');
+  if (preset === 'custom') {
+    custom.classList.remove('d-none');
+    updateCustom();
+  } else {
+    custom.classList.add('d-none');
+    const [w, m] = PRESETS[preset] || [30, 50];
+    document.getElementById('threshold_winner_hidden').value = preset === 'auto' ? '' : w;
+    document.getElementById('threshold_mid_hidden').value    = preset === 'auto' ? '' : m;
+    updateLegend(w, m);
+  }
+}
+
+function updateCustom() {
+  const w = parseInt(document.getElementById('inp_winner').value) || 30;
+  const m = parseInt(document.getElementById('inp_mid').value)    || 50;
+  document.getElementById('threshold_winner_hidden').value = w;
+  document.getElementById('threshold_mid_hidden').value    = m;
+  updateLegend(w, m);
+}
+
+function updateLegend(w, m) {
+  ['leg-win','leg-win2'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = w; });
+  ['leg-mid','leg-mid2'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = m; });
+}
+
 // Drag & drop
 const zone = document.getElementById('uploadZone');
 if (zone) {
@@ -671,6 +840,8 @@ if (zone) {
 const isLeads = {{ 'true' if result.summary.campaign_type != 'purchases' else 'false' }};
 const metricLabel = '{{ result.summary.metric_label }}';
 const resultLabel = '{{ result.summary.result_label }}';
+const T_WIN = {{ t_win }};
+const T_MID = {{ t_mid }};
 
 // ── Charts ──────────────────────────────────────────────────────────────
 const cd = {{ result.ad_chart_data | safe }};
@@ -699,8 +870,8 @@ Plotly.newPlot('chartMetric', [{
   type: 'bar', orientation: 'h',
   x: cd.metric, y: cd.labels,
   marker: { color: cd.metric.map(v => isLeads
-    ? (v > 0 && v < 30 ? '#10B981' : v >= 30 && v < 50 ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1')
-    : (v >= 3 ? '#10B981' : v >= 1.5 ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1'))
+    ? (v > 0 && v < T_WIN ? '#10B981' : v >= T_WIN && v < T_MID ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1')
+    : (v >= 4 ? '#10B981' : v >= 2 ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1'))
   },
   text: cd.metric.map(v => v > 0 ? (isLeads ? '€' + v.toFixed(2) : v.toFixed(2)) : '—'),
   textposition: 'outside', textfont: { size: 10 },
@@ -730,15 +901,14 @@ let sortDir = -1; // -1 = desc, 1 = asc
 
 function getStatus(ad) {
   if (isLeads) {
-    if (ad.cpl > 0 && ad.cpl < 30)  return 'lage-cpl';
-    if (ad.cpl >= 30 && ad.cpl < 50) return 'gemiddeld';
-    if (ad.cpl >= 50)                return 'hoge-cpl';
+    if (ad.cpl > 0 && ad.cpl < T_WIN)       return 'lage-cpl';
+    if (ad.cpl >= T_WIN && ad.cpl < T_MID)  return 'gemiddeld';
+    if (ad.cpl >= T_MID)                     return 'hoge-cpl';
     return 'geen-leads';
   } else {
-    if (ad.roas >= 4)   return 'excellent';
-    if (ad.roas >= 2)   return 'goed';
-    if (ad.roas >= 1)   return 'break-even';
-    if (ad.roas > 0)    return 'ondermaats';
+    if (ad.roas >= 4)  return 'lage-cpl';
+    if (ad.roas >= 2)  return 'gemiddeld';
+    if (ad.roas > 0)   return 'hoge-cpl';
     return 'geen-leads';
   }
 }
@@ -747,20 +917,19 @@ function statusBadge(ad) {
   const s = getStatus(ad);
   if (isLeads) {
     const map = {
-      'lage-cpl':  ['badge-top',  '<i class="bi bi-arrow-down-circle"></i> Lage CPL'],
-      'gemiddeld': ['badge-avg',  'Gemiddeld'],
-      'hoge-cpl':  ['badge-low',  '<i class="bi bi-exclamation-circle"></i> Hoge CPL'],
+      'lage-cpl':  ['badge-top',  `<i class="bi bi-arrow-down-circle"></i> Winnaar <€${T_WIN}`],
+      'gemiddeld': ['badge-avg',  `Mid €${T_WIN}–${T_MID}`],
+      'hoge-cpl':  ['badge-low',  `<i class="bi bi-exclamation-circle"></i> Loser >€${T_MID}`],
       'geen-leads':['badge-aware','Geen leads'],
     };
     const [cls, lbl] = map[s] || ['badge-aware', s];
     return `<span class="badge-sln ${cls}">${lbl}</span>`;
   } else {
     const map = {
-      'excellent':  ['badge-top',  'Excellent'],
-      'goed':       ['badge-good', 'Goed'],
-      'break-even': ['badge-avg',  'Break-even'],
-      'ondermaats': ['badge-low',  'Ondermaats'],
-      'geen-leads': ['badge-aware','Awareness'],
+      'lage-cpl':  ['badge-top',  'Excellent ≥4'],
+      'gemiddeld': ['badge-good', 'Goed 2–4'],
+      'hoge-cpl':  ['badge-low',  'Ondermaats <2'],
+      'geen-leads':['badge-aware','Geen conv.'],
     };
     const [cls, lbl] = map[s] || ['badge-aware', s];
     return `<span class="badge-sln ${cls}">${lbl}</span>`;
@@ -770,11 +939,11 @@ function statusBadge(ad) {
 function metricCell(ad) {
   if (isLeads) {
     if (ad.cpl <= 0) return '<td class="text-end text-muted">—</td>';
-    const cls = ad.cpl < 30 ? 'text-success' : ad.cpl < 50 ? 'text-warning' : 'text-danger';
+    const cls = ad.cpl < T_WIN ? 'text-success' : ad.cpl < T_MID ? 'text-warning' : 'text-danger';
     return `<td class="text-end fw-bold ${cls}">€${ad.cpl.toFixed(2)}</td>`;
   } else {
     if (ad.roas <= 0) return '<td class="text-end text-muted">—</td>';
-    const cls = ad.roas >= 3 ? 'text-success' : ad.roas >= 1.5 ? 'text-warning' : 'text-danger';
+    const cls = ad.roas >= 4 ? 'text-success' : ad.roas >= 2 ? 'text-warning' : 'text-danger';
     return `<td class="text-end fw-bold ${cls}">${ad.roas.toFixed(2)}</td>`;
   }
 }

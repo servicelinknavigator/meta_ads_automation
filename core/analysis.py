@@ -149,8 +149,8 @@ def _detect_campaign_type(rows: list[dict]) -> str:
     return top[0] if top[1] > 0 else "leads"
 
 
-def build_summary(rows: list[dict], campaigns: list[Campaign]) -> AnalysisSummary:
-    campaign_type = _detect_campaign_type(rows)
+def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_override: str = "") -> AnalysisSummary:
+    campaign_type = campaign_type_override if campaign_type_override else _detect_campaign_type(rows)
     all_ads = get_all_ads(campaigns)
     scored_ads = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0]
 
