@@ -74,24 +74,30 @@ def generate_insights(summary: AnalysisSummary, all_ads=None) -> str:
 
 
 def _fallback_insights(summary: AnalysisSummary, all_ads=None) -> str:
+    is_leads = summary.campaign_type != "purchases"
     lines = ["### Automatische Analyse (zonder AI)\n"]
 
-    if summary.avg_roas >= 3.0:
-        lines.append(f"**Sterke ROAS:** Gemiddelde ROAS van {summary.avg_roas} is uitstekend (doel: >2.0).")
-    elif summary.avg_roas >= 1.5:
-        lines.append(f"**Matige ROAS:** Gemiddelde ROAS van {summary.avg_roas} heeft optimalisatie nodig.")
+    if is_leads:
+        cpl = summary.avg_cost_per_result
+        if cpl > 0 and cpl < 30:
+            lines.append(f"**Sterke CPL:** Gemiddelde CPL van €{cpl} ligt onder €30 — goede prestatie.")
+        elif cpl < 50:
+            lines.append(f"**Gemiddelde CPL:** Gemiddelde CPL van €{cpl} — optimalisatie mogelijk.")
+        elif cpl > 0:
+            lines.append(f"**Hoge CPL:** Gemiddelde CPL van €{cpl} overschrijdt €50 — heroverweeg targeting of creatief.")
     else:
-        lines.append(f"**Lage ROAS:** Gemiddelde ROAS van {summary.avg_roas} is zorgwekkend. Heroverweeg campagnestrategie.")
+        if summary.avg_roas >= 3.0:
+            lines.append(f"**Sterke ROAS:** Gemiddelde ROAS van {summary.avg_roas} is uitstekend (doel: >2.0).")
+        elif summary.avg_roas >= 1.5:
+            lines.append(f"**Matige ROAS:** Gemiddelde ROAS van {summary.avg_roas} heeft optimalisatie nodig.")
+        else:
+            lines.append(f"**Lage ROAS:** Gemiddelde ROAS van {summary.avg_roas} is zorgwekkend.")
 
-    if summary.top_campaign:
-        top = next((c for c in summary.campaigns if c.campaign_name == summary.top_campaign), None)
-        if top:
-            lines.append(f"\n**Beste campagne:** '{top.campaign_name}' met ROAS {top.roas} — overweeg budget te verhogen.")
+    if summary.top_ad:
+        lines.append(f"\n**Beste advertentie:** '{summary.top_ad}' ({summary.top_ad_set}) — overweeg budget te verhogen.")
 
-    if summary.worst_campaign:
-        worst = next((c for c in summary.campaigns if c.campaign_name == summary.worst_campaign), None)
-        if worst:
-            lines.append(f"\n**Ondermaatse campagne:** '{worst.campaign_name}' met ROAS {worst.roas} — analyseer targeting en creatief.")
+    if summary.worst_ad:
+        lines.append(f"\n**Aandacht vereist:** '{summary.worst_ad}' ({summary.worst_ad_set}) — analyseer targeting en creatief.")
 
     if summary.avg_ctr < 1.0:
         lines.append("\n**Lage CTR:** Overweeg creatief te vernieuwen of doelgroep te verfijnen.")
