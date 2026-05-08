@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SLN Meta Ads Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <style>
+    :root {
+      --dark:    #0D1B2A;
+      --navy:    #1A3A5C;
+      --accent:  #E8541A;
+      --accent2: #FF7043;
+      --bg:      #F4F6FA;
+      --surface: #FFFFFF;
+      --border:  #E2E8F0;
+      --text:    #0F172A;
+      --muted:   #64748B;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger:  #EF4444;
+    }
+
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+
+    /* ── Navbar ── */
+    .sln-nav {
+      background: var(--dark);
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06);
+    }
+    .sln-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .sln-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      letter-spacing: -.5px;
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.2; }
+    .sln-logo-sub  { color: rgba(255,255,255,.45); font-size: 10px; font-weight: 400; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 60%, #1e4d8c 100%);
+      padding: 3rem 0 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      right: -100px; top: -100px;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,84,26,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-title { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+    .hero-sub   { color: rgba(255,255,255,.55); font-size: .95rem; margin-top: .25rem; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(232,84,26,.2);
+      border: 1px solid rgba(232,84,26,.4);
+      color: #ff9a78;
+      font-size: .72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    /* ── Buttons ── */
+    .btn-sln {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: .55rem 1.3rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: .875rem;
+      transition: background .15s, transform .1s;
+    }
+    .btn-sln:hover { background: var(--accent2); color: #fff; transform: translateY(-1px); }
+    .btn-sln-outline {
+      background: transparent;
+      color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.25);
+      padding: .55rem 1.3rem;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: .875rem;
+      transition: all .15s;
+      text-decoration: none;
+    }
+    .btn-sln-outline:hover { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.4); }
+
+    /* ── Upload card ── */
+    .upload-card { background: var(--surface); border-radius: 16px; padding: 2.5rem; box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: var(--bg);
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: #fff4f0;
+    }
+    .upload-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #fff4f0, #ffe8dc);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+
+    /* ── Feature pills ── */
+    .feature-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .feature-pill i { color: var(--accent); }
+
+    /* ── KPI Cards ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+    @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 768px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .kpi-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1.1rem 1.2rem;
+      box-shadow: 0 1px 8px rgba(0,0,0,.05);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 12px 12px 0 0;
+    }
+    .kpi-card.kpi-highlight::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .kpi-label { font-size: .68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
+    .kpi-value { font-size: 1.7rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-value.good  { color: var(--success); }
+    .kpi-value.warn  { color: var(--warning); }
+    .kpi-value.bad   { color: var(--danger); }
+    .kpi-icon { position: absolute; top: 1rem; right: 1rem; font-size: 1.2rem; opacity: .12; }
+
+    /* ── Section cards ── */
+    .sln-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 8px rgba(0,0,0,.05);
+      border: 1px solid var(--border);
+    }
+    .sln-card-title {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+    .sln-card-title i { color: var(--accent); font-size: 1rem; }
+
+    /* ── Ad Table ── */
+    .camp-table { width: 100%; border-collapse: collapse; }
+    .camp-table th {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      padding: .6rem .85rem;
+      border-bottom: 2px solid var(--border);
+      background: var(--bg);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .camp-table th.sortable {
+      cursor: pointer;
+      transition: color .15s;
+    }
+    .camp-table th.sortable:hover { color: var(--accent); }
+    .camp-table th.sort-asc  { color: var(--accent); }
+    .camp-table th.sort-desc { color: var(--accent); }
+    .sort-icon { margin-left: 4px; font-size: .65rem; opacity: .4; }
+    .sort-icon.active { opacity: 1; color: var(--accent); }
+    .camp-table td {
+      padding: .75rem .85rem;
+      font-size: .85rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .camp-table tr:last-child td { border-bottom: none; }
+    .camp-table tbody tr { transition: background .1s; }
+    .camp-table tbody tr:hover { background: #fafbff; }
+    .camp-name { font-weight: 600; color: var(--text); }
+    .ad-sub { font-size: .74rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── Table controls ── */
+    .table-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .tbl-search {
+      flex: 1;
+      min-width: 180px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .4rem .75rem .4rem 2rem;
+      font-size: .82rem;
+      outline: none;
+      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748B' d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0'/%3E%3C/svg%3E") no-repeat .65rem center;
+      transition: border-color .15s;
+    }
+    .tbl-search:focus { border-color: var(--accent); background-color: var(--surface); }
+    .tbl-filter {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .4rem .75rem;
+      font-size: .82rem;
+      outline: none;
+      background: var(--bg);
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .tbl-filter:focus { border-color: var(--accent); }
+    .tbl-counter {
+      font-size: .75rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* ── Status badges ── */
+    .badge-sln {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      white-space: nowrap;
+    }
+    .badge-top   { background: #ecfdf5; color: #059669; }
+    .badge-good  { background: #eff6ff; color: #2563eb; }
+    .badge-avg   { background: #fffbeb; color: #d97706; }
+    .badge-low   { background: #fef2f2; color: #dc2626; }
+    .badge-aware { background: #f5f3ff; color: #7c3aed; }
+
+    /* ── AI Insights ── */
+    .insights-panel { background: var(--bg); border-radius: 10px; padding: 1.1rem; }
+    .insights-panel p, .insights-panel li { font-size: .83rem; color: #374151; line-height: 1.6; }
+    .insights-panel ul { padding-left: 1.2rem; }
+    .stat-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .5rem .75rem;
+      text-align: center;
+    }
+    .stat-chip-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .stat-chip-val   { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+    /* ── Demo alert ── */
+    .demo-bar {
+      background: linear-gradient(90deg, #1e3a5c, #1a4f8a);
+      color: rgba(255,255,255,.85);
+      padding: .6rem 1.5rem;
+      font-size: .8rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    /* ── Loading overlay ── */
+    #loadingOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,27,42,.75);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+      backdrop-filter: blur(4px);
+    }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin-bottom: 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty state ── */
+    .tbl-empty {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    .tbl-empty i { font-size: 2rem; opacity: .3; display: block; margin-bottom: .5rem; }
+  </style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div style="font-weight:600;font-size:1rem;">Analyseren...</div>
+  <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:.25rem;">AI genereert inzichten</div>
+</div>
+
+<!-- Navbar -->
+<nav class="sln-nav">
+  <a class="sln-logo" href="/">
+    <div class="sln-logo-icon">SLN</div>
+    <div>
+      <div class="sln-logo-text">SLN Solutions</div>
+      <div class="sln-logo-sub">Meta Ads Analyzer</div>
+    </div>
+  </a>
+  <div class="d-flex align-items-center gap-2">
+    {% if result %}
+    <a href="/export/pdf" class="btn-sln-outline" style="font-size:.8rem;padding:.4rem 1rem;">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a href="/" class="btn-sln-outline" style="font-size:.8rem;padding:.4rem 1rem;">
+      <i class="bi bi-arrow-left me-1"></i>Nieuwe analyse
+    </a>
+    {% else %}
+    <a href="/demo" class="btn-sln" onclick="showLoading()" style="font-size:.8rem;padding:.4rem 1rem;">
+      <i class="bi bi-play-circle me-1"></i>Demo bekijken
+    </a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- Demo bar -->
+{% if result and demo %}
+<div class="demo-bar">
+  <i class="bi bi-info-circle"></i>
+  Je bekijkt <strong>&nbsp;demo data&nbsp;</strong> — upload je eigen Meta Ads CSV voor echte inzichten.
+</div>
+{% endif %}
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show rounded-0 mb-0" role="alert">
+    <div class="container-xl"><i class="bi bi-exclamation-triangle me-2"></i>{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+{% if not result %}
+<!-- ═══════════════ UPLOAD PAGE ═══════════════ -->
+<div class="hero">
+  <div class="container-xl">
+    <div class="hero-badge"><i class="bi bi-stars"></i> Powered by Claude AI</div>
+    <div class="hero-title">Meta Ads Analyzer</div>
+    <div class="hero-sub">Upload je CSV-export uit Meta Ads Manager en krijg direct inzicht in je leads, CPL en advertentieprestaties.</div>
+    <div class="mt-3 d-flex flex-wrap gap-2">
+      <span class="feature-pill"><i class="bi bi-lightning-charge"></i> CPL analyse per ad</span>
+      <span class="feature-pill"><i class="bi bi-bar-chart"></i> Sorteerbaar overzicht</span>
+      <span class="feature-pill"><i class="bi bi-robot"></i> AI aanbevelingen</span>
+      <span class="feature-pill"><i class="bi bi-file-earmark-pdf"></i> PDF export</span>
+    </div>
+  </div>
+</div>
+
+<div class="container-xl py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="upload-card">
+        <h5 style="font-weight:700;margin-bottom:1.5rem;">CSV uploaden</h5>
+        <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="showLoading()">
+          <div class="upload-zone mb-3" id="uploadZone" onclick="document.getElementById('csv_file').click()">
+            <div class="upload-icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+            <div style="font-weight:600;margin-bottom:.25rem;">Sleep je CSV hier of klik om te selecteren</div>
+            <div style="font-size:.8rem;color:var(--muted);">Meta Ads Manager export (.csv) &mdash; max 50MB</div>
+            <input type="file" id="csv_file" name="csv_file" accept=".csv" class="d-none" onchange="updateFileName(this)" />
+          </div>
+          <div id="fileName" class="d-none mb-3" style="font-size:.82rem;color:var(--muted);">
+            <i class="bi bi-check-circle text-success me-1"></i><span id="fileNameText"></span>
+          </div>
+          <button type="submit" class="btn-sln w-100" style="padding:.75rem;font-size:.95rem;">
+            <i class="bi bi-graph-up me-2"></i>Analyseren
+          </button>
+        </form>
+        <div class="text-center mt-4">
+          <span style="font-size:.8rem;color:var(--muted);">Geen CSV bij de hand? &nbsp;</span>
+          <a href="/demo" onclick="showLoading()" style="font-size:.8rem;color:var(--accent);font-weight:600;text-decoration:none;">
+            Bekijk de demo <i class="bi bi-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ═══════════════ RESULTS PAGE ═══════════════ -->
+{% set s = result.summary %}
+{% set is_leads = s.campaign_type != 'purchases' %}
+{% set metric_val = s.avg_cost_per_result if is_leads else s.avg_roas %}
+
+<!-- Hero (compact) -->
+<div class="hero" style="padding:1.75rem 0;">
+  <div class="container-xl">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <div class="hero-badge"><i class="bi bi-check-circle"></i> Analyse gereed</div>
+        <div class="hero-title" style="font-size:1.5rem;">{{ s.num_campaigns }} campagne{{ 's' if s.num_campaigns != 1 }} &middot; {{ s.num_ad_sets }} ad sets &middot; {{ s.num_ads }} advertenties</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-xl py-4">
+
+  <!-- KPI Row -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-highlight">
+      <div class="kpi-label">Totaal budget</div>
+      <div class="kpi-value">€{{ "%.0f"|format(s.total_spend) }}</div>
+      <i class="bi bi-currency-euro kpi-icon"></i>
+    </div>
+    <div class="kpi-card kpi-highlight">
+      <div class="kpi-label">{{ s.metric_label }}</div>
+      <div class="kpi-value {% if is_leads %}{% if metric_val > 0 and metric_val < 30 %}good{% elif metric_val >= 30 and metric_val < 50 %}warn{% elif metric_val >= 50 %}bad{% endif %}{% else %}{% if metric_val >= 3 %}good{% elif metric_val >= 1.5 %}warn{% else %}bad{% endif %}{% endif %}">
+        {% if is_leads %}{% if metric_val > 0 %}€{{ "%.2f"|format(metric_val) }}{% else %}—{% endif %}{% else %}{{ "%.2f"|format(metric_val) }}{% endif %}
+      </div>
+      <i class="bi bi-arrow-repeat kpi-icon"></i>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">{{ s.result_label }}</div>
+      <div class="kpi-value {% if s.total_results > 0 %}good{% else %}bad{% endif %}">{{ s.total_results }}</div>
+      <i class="bi bi-check2-circle kpi-icon"></i>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Gem. CTR</div>
+      <div class="kpi-value {% if s.avg_ctr >= 2 %}good{% elif s.avg_ctr >= 1 %}warn{% else %}bad{% endif %}">{{ "%.2f"|format(s.avg_ctr) }}%</div>
+      <i class="bi bi-cursor kpi-icon"></i>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Impressies</div>
+      <div class="kpi-value" style="font-size:1.3rem;">{{ "{:,}".format(s.total_impressions).replace(",", ".") }}</div>
+      <i class="bi bi-eye kpi-icon"></i>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Gem. CPM</div>
+      <div class="kpi-value" style="font-size:1.3rem;">€{{ "%.2f"|format(s.avg_cpm) }}</div>
+      <i class="bi bi-broadcast kpi-icon"></i>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left: Charts + Table -->
+    <div class="col-xl-8">
+
+      <!-- Charts -->
+      <div class="sln-card mb-4">
+        <div class="sln-card-title"><i class="bi bi-bar-chart-fill"></i>Prestaties per advertentie (top 10 op spend)</div>
+        <div class="row g-3">
+          <div class="col-md-6"><div id="chartSpend" style="height:240px;"></div></div>
+          <div class="col-md-6"><div id="chartMetric" style="height:240px;"></div></div>
+          <div class="col-md-6"><div id="chartCtr" style="height:240px;"></div></div>
+          <div class="col-md-6"><div id="chartResults" style="height:240px;"></div></div>
+        </div>
+      </div>
+
+      <!-- JS-driven Ad Table -->
+      <div class="sln-card">
+        <div class="sln-card-title" style="margin-bottom:.75rem;">
+          <i class="bi bi-image"></i>Advertentie overzicht
+          <span id="tblCounter" class="tbl-counter ms-auto"></span>
+        </div>
+
+        <div class="table-controls">
+          <input type="text" id="tblSearch" class="tbl-search" placeholder="Zoek op advertentienaam…" oninput="renderTable()" />
+          <select id="tblStatus" class="tbl-filter" onchange="renderTable()">
+            <option value="">Alle statussen</option>
+            <option value="lage-cpl">Lage CPL (&lt;€30)</option>
+            <option value="gemiddeld">Gemiddeld (€30–50)</option>
+            <option value="hoge-cpl">Hoge CPL (&gt;€50)</option>
+            <option value="geen-leads">Geen leads</option>
+          </select>
+        </div>
+
+        <div class="table-responsive">
+          <table class="camp-table">
+            <thead>
+              <tr>
+                <th class="sortable" data-col="ad_name" onclick="sortBy('ad_name')">
+                  Advertentie <span class="sort-icon" id="si-ad_name">&#8597;</span>
+                </th>
+                <th class="sortable" data-col="spend" onclick="sortBy('spend')">
+                  <span class="text-end d-block">Budget <span class="sort-icon" id="si-spend">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="cpl" onclick="sortBy('cpl')">
+                  <span class="text-end d-block">{{ s.metric_label }} <span class="sort-icon" id="si-cpl">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="results" onclick="sortBy('results')">
+                  <span class="text-end d-block">{{ s.result_label }} <span class="sort-icon" id="si-results">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="ctr" onclick="sortBy('ctr')">
+                  <span class="text-end d-block">CTR <span class="sort-icon" id="si-ctr">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="cpc" onclick="sortBy('cpc')">
+                  <span class="text-end d-block">CPC <span class="sort-icon" id="si-cpc">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="cpm" onclick="sortBy('cpm')">
+                  <span class="text-end d-block">CPM <span class="sort-icon" id="si-cpm">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="impressions" onclick="sortBy('impressions')">
+                  <span class="text-end d-block">Impr. <span class="sort-icon" id="si-impressions">&#8597;</span></span>
+                </th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="adTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: AI Panel -->
+    <div class="col-xl-4">
+      <div class="sln-card h-100">
+        <div class="sln-card-title"><i class="bi bi-robot"></i>AI Analyse</div>
+
+        {% if s.top_ad or s.worst_ad %}
+        <div class="row g-2 mb-3">
+          {% if s.top_ad %}
+          <div class="col-12">
+            <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:.6rem .85rem;font-size:.78rem;">
+              <span style="color:#059669;font-weight:700;"><i class="bi bi-arrow-up-circle me-1"></i>Beste ad</span><br>
+              <span style="color:#065f46;font-weight:600;">{{ s.top_ad }}</span>
+              <span style="color:#6b7280;"> &middot; {{ s.top_ad_set }}</span>
+            </div>
+          </div>
+          {% endif %}
+          {% if s.worst_ad %}
+          <div class="col-12">
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.6rem .85rem;font-size:.78rem;">
+              <span style="color:#dc2626;font-weight:700;"><i class="bi bi-exclamation-circle me-1"></i>Aandacht vereist</span><br>
+              <span style="color:#7f1d1d;font-weight:600;">{{ s.worst_ad }}</span>
+              <span style="color:#6b7280;"> &middot; {{ s.worst_ad_set }}</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="insights-panel mb-3">
+          {{ result.insights_html | safe }}
+        </div>
+
+        <div class="row g-2">
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Bereik</div><div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Clicks</div><div class="stat-chip-val">{{ "{:,}".format(s.total_clicks).replace(",", ".") }}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. CPC</div><div class="stat-chip-val">€{{ "%.2f"|format(s.avg_cpc) }}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. Freq.</div><div class="stat-chip-val">{{ "%.1f"|format(s.avg_frequency) }}</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+{% endif %}
+
+<footer style="border-top:1px solid var(--border);padding:1.5rem;text-align:center;color:var(--muted);font-size:.75rem;margin-top:3rem;">
+  SLN Solutions &mdash; Meta Ads Analyzer &mdash; Powered by Claude AI
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function showLoading() {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function updateFileName(input) {
+  if (input.files.length > 0) {
+    document.getElementById('fileNameText').textContent = input.files[0].name;
+    document.getElementById('fileName').classList.remove('d-none');
+  }
+}
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+if (zone) {
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const input = document.getElementById('csv_file');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    updateFileName(input);
+  });
+}
+
+{% if result %}
+const isLeads = {{ 'true' if result.summary.campaign_type != 'purchases' else 'false' }};
+const metricLabel = '{{ result.summary.metric_label }}';
+const resultLabel = '{{ result.summary.result_label }}';
+
+// ── Charts ──────────────────────────────────────────────────────────────
+const cd = {{ result.ad_chart_data | safe }};
+
+const layout = (title) => ({
+  title: { text: title, font: { size: 12, color: '#64748B', family: 'Inter' } },
+  margin: { t: 36, b: 50, l: 8, r: 50 },
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor:  'rgba(0,0,0,0)',
+  font: { family: 'Inter', size: 10, color: '#64748B' },
+  xaxis: { gridcolor: '#F1F5F9', zeroline: false },
+  yaxis: { gridcolor: '#F1F5F9', zeroline: false },
+  bargap: 0.35,
+});
+const cfg = { responsive: true, displayModeBar: false };
+
+Plotly.newPlot('chartSpend', [{
+  type: 'bar', orientation: 'h',
+  x: cd.spend, y: cd.labels,
+  marker: { color: '#1A3A5C' },
+  text: cd.spend.map(v => '€' + Math.round(v)),
+  textposition: 'outside', textfont: { size: 10 },
+}], layout('Budget per advertentie (€)'), cfg);
+
+Plotly.newPlot('chartMetric', [{
+  type: 'bar', orientation: 'h',
+  x: cd.metric, y: cd.labels,
+  marker: { color: cd.metric.map(v => isLeads
+    ? (v > 0 && v < 30 ? '#10B981' : v >= 30 && v < 50 ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1')
+    : (v >= 3 ? '#10B981' : v >= 1.5 ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1'))
+  },
+  text: cd.metric.map(v => v > 0 ? (isLeads ? '€' + v.toFixed(2) : v.toFixed(2)) : '—'),
+  textposition: 'outside', textfont: { size: 10 },
+}], layout(metricLabel + ' per advertentie'), cfg);
+
+Plotly.newPlot('chartCtr', [{
+  type: 'bar', orientation: 'h',
+  x: cd.ctr, y: cd.labels,
+  marker: { color: '#E8541A' },
+  text: cd.ctr.map(v => v.toFixed(2) + '%'),
+  textposition: 'outside', textfont: { size: 10 },
+}], layout('CTR per advertentie (%)'), cfg);
+
+Plotly.newPlot('chartResults', [{
+  type: 'bar', orientation: 'h',
+  x: cd.results, y: cd.labels,
+  marker: { color: '#7C3AED' },
+  text: cd.results.map(v => v.toString()),
+  textposition: 'outside', textfont: { size: 10 },
+}], layout(resultLabel + ' per advertentie'), cfg);
+
+// ── JS Table ─────────────────────────────────────────────────────────────
+const adsData = {{ result.all_ads_json | safe }};
+
+let sortCol = 'spend';
+let sortDir = -1; // -1 = desc, 1 = asc
+
+function getStatus(ad) {
+  if (isLeads) {
+    if (ad.cpl > 0 && ad.cpl < 30)  return 'lage-cpl';
+    if (ad.cpl >= 30 && ad.cpl < 50) return 'gemiddeld';
+    if (ad.cpl >= 50)                return 'hoge-cpl';
+    return 'geen-leads';
+  } else {
+    if (ad.roas >= 4)   return 'excellent';
+    if (ad.roas >= 2)   return 'goed';
+    if (ad.roas >= 1)   return 'break-even';
+    if (ad.roas > 0)    return 'ondermaats';
+    return 'geen-leads';
+  }
+}
+
+function statusBadge(ad) {
+  const s = getStatus(ad);
+  if (isLeads) {
+    const map = {
+      'lage-cpl':  ['badge-top',  '<i class="bi bi-arrow-down-circle"></i> Lage CPL'],
+      'gemiddeld': ['badge-avg',  'Gemiddeld'],
+      'hoge-cpl':  ['badge-low',  '<i class="bi bi-exclamation-circle"></i> Hoge CPL'],
+      'geen-leads':['badge-aware','Geen leads'],
+    };
+    const [cls, lbl] = map[s] || ['badge-aware', s];
+    return `<span class="badge-sln ${cls}">${lbl}</span>`;
+  } else {
+    const map = {
+      'excellent':  ['badge-top',  'Excellent'],
+      'goed':       ['badge-good', 'Goed'],
+      'break-even': ['badge-avg',  'Break-even'],
+      'ondermaats': ['badge-low',  'Ondermaats'],
+      'geen-leads': ['badge-aware','Awareness'],
+    };
+    const [cls, lbl] = map[s] || ['badge-aware', s];
+    return `<span class="badge-sln ${cls}">${lbl}</span>`;
+  }
+}
+
+function metricCell(ad) {
+  if (isLeads) {
+    if (ad.cpl <= 0) return '<td class="text-end text-muted">—</td>';
+    const cls = ad.cpl < 30 ? 'text-success' : ad.cpl < 50 ? 'text-warning' : 'text-danger';
+    return `<td class="text-end fw-bold ${cls}">€${ad.cpl.toFixed(2)}</td>`;
+  } else {
+    if (ad.roas <= 0) return '<td class="text-end text-muted">—</td>';
+    const cls = ad.roas >= 3 ? 'text-success' : ad.roas >= 1.5 ? 'text-warning' : 'text-danger';
+    return `<td class="text-end fw-bold ${cls}">${ad.roas.toFixed(2)}</td>`;
+  }
+}
+
+function renderTable() {
+  const q      = document.getElementById('tblSearch').value.trim().toLowerCase();
+  const filter = document.getElementById('tblStatus').value;
+
+  let rows = adsData.filter(ad => {
+    const matchQ = !q || ad.ad_name.toLowerCase().includes(q)
+                      || ad.ad_set_name.toLowerCase().includes(q)
+                      || ad.campaign_name.toLowerCase().includes(q);
+    const matchF = !filter || getStatus(ad) === filter;
+    return matchQ && matchF;
+  });
+
+  rows.sort((a, b) => {
+    let av = a[sortCol] ?? 0;
+    let bv = b[sortCol] ?? 0;
+    if (sortCol === 'ad_name') {
+      av = a.ad_name.toLowerCase();
+      bv = b.ad_name.toLowerCase();
+      return av < bv ? -sortDir : av > bv ? sortDir : 0;
+    }
+    return (bv - av) * sortDir * -1; // sortDir -1 means desc → higher first
+  });
+
+  const tbody = document.getElementById('adTableBody');
+  const counter = document.getElementById('tblCounter');
+
+  counter.textContent = rows.length === adsData.length
+    ? `${adsData.length} advertenties`
+    : `${rows.length} van ${adsData.length} advertenties`;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="tbl-empty"><i class="bi bi-search"></i>Geen advertenties gevonden</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(ad => `
+    <tr>
+      <td>
+        <div class="camp-name">${escHtml(ad.ad_name)}</div>
+        <div class="ad-sub">${escHtml(ad.ad_set_name)} &middot; ${escHtml(ad.campaign_name)}</div>
+      </td>
+      <td class="text-end">€${Math.round(ad.spend).toLocaleString('nl-NL')}</td>
+      ${metricCell(ad)}
+      <td class="text-end">${ad.results}</td>
+      <td class="text-end">${ad.ctr.toFixed(2)}%</td>
+      <td class="text-end">€${ad.cpc.toFixed(2)}</td>
+      <td class="text-end">€${ad.cpm.toFixed(2)}</td>
+      <td class="text-end">${ad.impressions.toLocaleString('nl-NL')}</td>
+      <td>${statusBadge(ad)}</td>
+    </tr>`).join('');
+}
+
+function sortBy(col) {
+  if (sortCol === col) {
+    sortDir *= -1;
+  } else {
+    sortCol = col;
+    sortDir = -1; // new column starts descending
+  }
+  updateSortIcons();
+  renderTable();
+}
+
+function updateSortIcons() {
+  const cols = ['ad_name','spend','cpl','results','ctr','cpc','cpm','impressions'];
+  cols.forEach(c => {
+    const el = document.getElementById('si-' + c);
+    if (!el) return;
+    if (c === sortCol) {
+      el.innerHTML = sortDir === -1 ? '&#8595;' : '&#8593;';
+      el.classList.add('active');
+    } else {
+      el.innerHTML = '&#8597;';
+      el.classList.remove('active');
+    }
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Initial render
+updateSortIcons();
+renderTable();
+{% endif %}
+</script>
+</body>
+</html>

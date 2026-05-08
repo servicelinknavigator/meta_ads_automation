@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\annak\\\\meta_ads_automation\\\\core\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\annak\\\\meta_ads_automation\\\\models\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\annak\\\\meta_ads_automation\\\\templates\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\annak\\\\meta_ads_automation\\\\dummy_data\" -Force)",
+      "WebFetch(domain:www.slnsolutions.nl)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
+    ]
+  }
+}
