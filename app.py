@@ -94,6 +94,7 @@ def _process_df(rows: list, campaign_type_override: str = "") -> dict:
         "top_ad_set":         summary.top_ad_set,
         "worst_ad":           summary.worst_ad,
         "worst_ad_set":       summary.worst_ad_set,
+        "has_click_data":     summary.has_click_data,
     }
     session["insights"] = insights
 
@@ -191,6 +192,7 @@ def _session_to_summary(data: dict):
         top_ad_set=data.get("top_ad_set"),
         worst_ad=data.get("worst_ad"),
         worst_ad_set=data.get("worst_ad_set"),
+        has_click_data=data.get("has_click_data", True),
         campaigns=[],
     )
 

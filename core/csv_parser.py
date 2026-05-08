@@ -35,6 +35,9 @@ COLUMN_MAP = {
     "cost per result (eur)": "cost_per_result",
     "cost per result (usd)": "cost_per_result",
     "cost per result": "cost_per_result",
+    "cost per results (eur)": "cost_per_result",
+    "cost per results (usd)": "cost_per_result",
+    "cost per results": "cost_per_result",
     "result indicator": "result_indicator",
     "purchase roas (return on ad spend)": "roas",
     "website purchase roas (return on ad spend)": "roas",
@@ -51,6 +54,11 @@ COLUMN_MAP = {
     "cost per on-facebook lead (eur)": "cost_per_result",
     "cost per on-facebook lead (usd)": "cost_per_result",
 }
+
+_CLICK_COLUMNS = {"clicks (all)", "link clicks", "ctr (all)(%)", "ctr (all) (%)",
+                  "ctr (link click-through rate)(%)", "ctr (link click-through rate) (%)",
+                  "cpc (all) (eur)", "cpc (all) (usd)", "cpc (all)",
+                  "cost per link click (eur)", "cost per link click (usd)", "cost per link click"}
 
 NUMERIC_FIELDS = [
     "reach", "impressions", "frequency", "spend", "clicks",
@@ -98,8 +106,19 @@ def _normalize_row(raw_row: dict) -> dict:
 def parse_csv(filepath: str | Path) -> list[dict]:
     with open(filepath, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
+        fieldnames_lower = {h.strip().lower() for h in (reader.fieldnames or [])}
         raw_rows = list(reader)
-    return [_normalize_row(row) for row in raw_rows]
+
+    has_click_data = bool(fieldnames_lower & _CLICK_COLUMNS)
+
+    rows = []
+    for raw in raw_rows:
+        row = _normalize_row(raw)
+        if not row.get("ad_name"):
+            continue  # skip totals/summary rows
+        row["_has_click_data"] = has_click_data
+        rows.append(row)
+    return rows
 
 
 def load_dummy_data() -> list[dict]:
