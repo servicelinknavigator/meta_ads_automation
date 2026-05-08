@@ -95,11 +95,19 @@ def _normalize_row(raw_row: dict) -> dict:
     return row
 
 
+def _is_aggregate_row(raw_row: dict) -> bool:
+    """Return True for Meta's summary/totals rows that have no Ad name."""
+    for key, val in raw_row.items():
+        if key.strip().lower() == "ad name":
+            return not val or not val.strip()
+    return False
+
+
 def parse_csv(filepath: str | Path) -> list[dict]:
     with open(filepath, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         raw_rows = list(reader)
-    return [_normalize_row(row) for row in raw_rows]
+    return [_normalize_row(row) for row in raw_rows if not _is_aggregate_row(row)]
 
 
 def load_dummy_data() -> list[dict]:
