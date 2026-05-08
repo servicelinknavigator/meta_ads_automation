@@ -15,6 +15,9 @@ from core.csv_parser import parse_csv, load_dummy_data, validate_csv
 from core.analysis import build_campaigns, build_summary, build_ad_chart_data, get_all_ads
 from core.generation import generate_insights
 from core.reporter import generate_pdf
+from core.creative_decoder import decode_winner, decode_loser
+from core.axes_mapper import map_axes
+from core.smart_generator import generate_testkit
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
@@ -184,6 +187,7 @@ def demo():
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
+    session["data_source"] = "demo"
     return render_template("index.html", result=result, demo=True)
 
 
@@ -212,6 +216,7 @@ def upload():
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
+    session["data_source"] = str(save_path)
     return render_template("index.html", result=result, demo=False)
 
 
@@ -229,6 +234,92 @@ def export_pdf():
         mimetype="application/pdf",
         as_attachment=True,
         download_name="meta_ads_rapport.pdf",
+    )
+
+
+def _load_rows_from_session() -> list | None:
+    source = session.get("data_source")
+    if not source:
+        return None
+    if source == "demo":
+        return load_dummy_data()
+    try:
+        return parse_csv(Path(source))
+    except Exception:
+        return None
+
+
+def _classify_ads(all_ads, summary):
+    is_leads = summary.campaign_type != "purchases"
+    if is_leads:
+        avg = summary.avg_cost_per_result
+        winners = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0 and a.cost_per_result < avg * 0.85]
+        losers  = [a for a in all_ads if a.results == 0 and a.spend > 15]
+        if not winners:
+            winners = sorted([a for a in all_ads if a.results > 0], key=lambda x: x.cost_per_result)[:3]
+    else:
+        avg = summary.avg_roas
+        winners = [a for a in all_ads if a.roas > avg * 1.2 and a.roas > 0]
+        losers  = [a for a in all_ads if a.roas < avg * 0.5 and a.spend > 15]
+        if not winners:
+            winners = sorted([a for a in all_ads if a.roas > 0], key=lambda x: x.roas, reverse=True)[:3]
+    return winners[:4], losers[:3]
+
+
+def _extract_patterns(winner_results: list) -> dict:
+    from collections import Counter
+    hooks   = [w["decoded"].get("hook_type", "unknown") for w in winner_results]
+    formats = [w["decoded"].get("format", "unknown") for w in winner_results]
+    drivers = [w["decoded"].get("psychological_driver", "") for w in winner_results if w["decoded"].get("psychological_driver")]
+    return {
+        "hook_counts":   dict(Counter(hooks)),
+        "format_counts": dict(Counter(formats)),
+        "dominant_hook": Counter(hooks).most_common(1)[0][0] if hooks else None,
+        "dominant_format": Counter(formats).most_common(1)[0][0] if formats else None,
+        "drivers": drivers,
+        "untested_formats": [f for f in ["ugc", "carousel", "static", "testimonial"] if f not in formats],
+    }
+
+
+@app.route("/creative", methods=["GET"])
+def creative():
+    summary_data = session.get("summary")
+    if not summary_data:
+        flash("Geen actieve analyse. Upload eerst een CSV.", "warning")
+        return redirect(url_for("index"))
+
+    rows = _load_rows_from_session()
+    if rows is None:
+        flash("Sessie verlopen. Upload je CSV opnieuw.", "warning")
+        return redirect(url_for("index"))
+
+    campaigns = build_campaigns(rows)
+    summary   = build_summary(rows, campaigns)
+    all_ads   = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
+
+    winners, losers = _classify_ads(all_ads, summary)
+
+    winner_results = []
+    for ad in winners:
+        decoded = decode_winner(ad, summary)
+        axes    = map_axes(decoded, ad.ad_name)
+        testkit = generate_testkit(ad.ad_name, decoded, axes)
+        winner_results.append({"ad": ad, "decoded": decoded, "axes": axes, "testkit": testkit})
+
+    loser_results = []
+    for ad in losers:
+        decoded = decode_loser(ad, summary)
+        loser_results.append({"ad": ad, "decoded": decoded})
+
+    patterns = _extract_patterns(winner_results)
+
+    return render_template(
+        "creative.html",
+        summary=summary,
+        winners=winner_results,
+        losers=loser_results,
+        patterns=patterns,
+        is_demo=session.get("data_source") == "demo",
     )
 
 

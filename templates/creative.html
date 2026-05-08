@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creative Intelligence Report — SLN</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:    #0D1B2A;
+      --navy:    #1A3A5C;
+      --accent:  #E8541A;
+      --accent2: #FF7043;
+      --bg:      #F4F6FA;
+      --surface: #FFFFFF;
+      --border:  #E2E8F0;
+      --text:    #0F172A;
+      --muted:   #64748B;
+      --green:   #10B981;
+      --amber:   #F59E0B;
+      --red:     #EF4444;
+      --purple:  #7C3AED;
+      --blue:    #2563EB;
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+
+    /* Nav */
+    .sln-nav {
+      background: var(--dark);
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06);
+    }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; color: #fff;
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; }
+    .sln-logo-sub  { color: rgba(255,255,255,.45); font-size: 10px; }
+    .btn-nav {
+      background: transparent;
+      color: rgba(255,255,255,.75);
+      border: 1px solid rgba(255,255,255,.2);
+      padding: .4rem 1rem;
+      border-radius: 8px;
+      font-size: .8rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all .15s;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--dark) 0%, #1a2f4f 50%, #1e1a4f 100%);
+      padding: 2.5rem 0 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; right: -80px; top: -80px;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,58,237,.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,.2);
+      border: 1px solid rgba(124,58,237,.4);
+      color: #c4b5fd;
+      font-size: .72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px;
+      margin-bottom: .6rem;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .hero-title { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -.4px; }
+    .hero-sub   { color: rgba(255,255,255,.5); font-size: .9rem; margin-top: .25rem; }
+
+    /* Stats row in hero */
+    .hero-stats { display: flex; gap: 2rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .hero-stat-label { font-size: .65rem; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .08em; }
+    .hero-stat-val   { font-size: 1.2rem; font-weight: 700; color: #fff; }
+
+    /* Cards */
+    .sln-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 8px rgba(0,0,0,.05);
+      border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: .75rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .08em;
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 1.1rem;
+    }
+    .card-title i { font-size: .95rem; }
+
+    /* Section headers */
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .section-header h2 {
+      font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0;
+    }
+    .section-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* Patterns */
+    .pattern-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: .78rem; font-weight: 600;
+    }
+    .hook-chip  { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+    .fmt-chip   { background: #f5f3ff; color: var(--purple); border: 1px solid #ddd6fe; }
+    .drv-chip   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+    /* Hook type badge */
+    .hook-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    }
+    .hook-recognition   { background: #eff6ff; color: #1d4ed8; }
+    .hook-frustration   { background: #fef2f2; color: #b91c1c; }
+    .hook-proof         { background: #ecfdf5; color: #065f46; }
+    .hook-curiosity     { background: #fffbeb; color: #92400e; }
+    .hook-confrontation { background: #fdf4ff; color: #7e22ce; }
+    .hook-promise       { background: #fff1f2; color: #9f1239; }
+
+    /* Winner accordion */
+    .winner-card {
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 8px rgba(0,0,0,.04);
+    }
+    .winner-header {
+      padding: 1.1rem 1.4rem;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+    .winner-header:hover { background: #fafbff; }
+    .winner-header.open  { background: #f8faff; border-bottom: 1px solid var(--border); }
+    .winner-name { font-weight: 700; font-size: .95rem; color: var(--text); }
+    .winner-meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .winner-metrics { display: flex; gap: 1.5rem; flex-shrink: 0; }
+    .w-metric { text-align: right; }
+    .w-metric-val   { font-size: .95rem; font-weight: 700; }
+    .w-metric-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .winner-body { display: none; padding: 1.4rem; }
+    .winner-body.open { display: block; }
+
+    /* Tabs */
+    .tab-nav {
+      display: flex; gap: 4px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+    .tab-btn {
+      background: none; border: none;
+      padding: .55rem 1rem;
+      font-size: .8rem; font-weight: 600; color: var(--muted);
+      cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;
+      transition: color .15s;
+    }
+    .tab-btn:hover  { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Decode grid */
+    .decode-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    @media (max-width: 768px) { .decode-grid { grid-template-columns: 1fr 1fr; } }
+    .decode-cell {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: .75rem 1rem;
+    }
+    .decode-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+    .decode-val   { font-size: .82rem; color: var(--text); line-height: 1.45; }
+    .decode-why {
+      background: linear-gradient(135deg, #fff4f0, #fff8f5);
+      border: 1px solid #fde8dc;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: .75rem;
+    }
+    .decode-why-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 5px; }
+    .decode-why-text  { font-size: .83rem; color: #374151; line-height: 1.55; }
+
+    /* Variant cards */
+    .variant-section { margin-bottom: 1.25rem; }
+    .variant-section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: .6rem;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .variant-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 900px) { .variant-grid { grid-template-columns: 1fr; } }
+    .variant-single { max-width: 460px; }
+
+    .vcard {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .vcard-header {
+      padding: .5rem .85rem;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    }
+    .vcard-body { padding: .85rem; flex: 1; background: var(--surface); }
+    .vcard-hook { font-weight: 700; font-size: .88rem; color: var(--text); margin-bottom: .5rem; line-height: 1.4; }
+    .vcard-text { font-size: .8rem; color: #374151; line-height: 1.55; margin-bottom: .6rem; }
+    .vcard-headline { font-size: .75rem; font-weight: 600; color: var(--muted); }
+    .vcard-why {
+      font-size: .72rem; color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding: .5rem .85rem;
+      background: var(--bg);
+      font-style: italic;
+    }
+
+    .vcard-safe  .vcard-header { background: #eff6ff; color: #1d4ed8; }
+    .vcard-fresh .vcard-header { background: #fff7ed; color: #c2410c; }
+    .vcard-risky .vcard-header { background: #fef2f2; color: #b91c1c; }
+
+    /* Testimonial / Static / Shootlist */
+    .brief-card {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: .75rem;
+    }
+    .brief-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: .6rem;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .brief-body { font-size: .82rem; color: var(--text); line-height: 1.55; }
+    .brief-q { font-size: .8rem; color: #374151; margin-bottom: 4px; }
+    .brief-q::before { content: "→ "; color: var(--accent); font-weight: 700; }
+
+    .shootlist { list-style: none; padding: 0; margin: 0; }
+    .shootlist li {
+      font-size: .82rem; color: var(--text); padding: .45rem 0;
+      border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 8px;
+    }
+    .shootlist li:last-child { border-bottom: none; }
+    .shot-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-size: .65rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    .priority-box {
+      background: linear-gradient(135deg, #0d1b2a, #1a3a5c);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      color: #fff;
+    }
+    .priority-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.45); margin-bottom: .5rem; }
+    .priority-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: .75rem; }
+    .priority-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .82rem; color: rgba(255,255,255,.9);
+    }
+    .priority-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent);
+      font-size: .65rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .priority-reasoning { font-size: .78rem; color: rgba(255,255,255,.55); font-style: italic; }
+
+    /* Axes grid */
+    .axes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 768px) { .axes-grid { grid-template-columns: 1fr 1fr; } }
+    .axis-card {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: .75rem .9rem;
+    }
+    .axis-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+    .axis-idea  { font-size: .78rem; color: var(--text); padding: 3px 0; display: flex; align-items: flex-start; gap: 5px; line-height: 1.4; }
+    .axis-dot   { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+
+    /* Loser cards */
+    .loser-card {
+      background: var(--surface);
+      border: 1px solid #fecaca;
+      border-left: 4px solid var(--red);
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: .75rem;
+    }
+    .loser-name { font-weight: 700; font-size: .9rem; color: var(--text); }
+    .loser-meta { font-size: .74rem; color: var(--muted); }
+    .fail-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .7rem; font-weight: 700;
+      background: #fef2f2; color: #b91c1c;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .kill-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .7rem; font-weight: 700;
+    }
+    .kill-yes { background: #fef2f2; color: #b91c1c; }
+    .kill-no  { background: #ecfdf5; color: #065f46; }
+    .loser-section-title { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 3px; }
+    .loser-text { font-size: .82rem; color: #374151; line-height: 1.5; }
+    .fix-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: .6rem .85rem;
+      font-size: .82rem;
+      color: #92400e;
+      line-height: 1.5;
+    }
+
+    /* No winners / no API */
+    .empty-state {
+      text-align: center; padding: 3rem 1rem;
+      color: var(--muted); font-size: .875rem;
+    }
+    .empty-state i { font-size: 2.5rem; opacity: .25; display: block; margin-bottom: .75rem; }
+
+    /* Demo bar */
+    .demo-bar {
+      background: linear-gradient(90deg, #1e3a5c, #1a4f8a);
+      color: rgba(255,255,255,.85);
+      padding: .55rem 1.5rem;
+      font-size: .8rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+
+    .no-api-notice {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: .85rem 1rem;
+      font-size: .82rem;
+      color: #92400e;
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="sln-nav">
+  <a class="sln-logo" href="/">
+    <div class="sln-logo-icon">SLN</div>
+    <div>
+      <div class="sln-logo-text">SLN Solutions</div>
+      <div class="sln-logo-sub">Creative Intelligence</div>
+    </div>
+  </a>
+  <div class="d-flex gap-2">
+    <a href="/" class="btn-nav"><i class="bi bi-arrow-left me-1"></i>Terug naar analyse</a>
+    <a href="/export/pdf" class="btn-nav"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+  </div>
+</nav>
+
+{% if is_demo %}
+<div class="demo-bar"><i class="bi bi-info-circle"></i>Demo data — resultaten zijn illustratief.</div>
+{% endif %}
+
+<!-- Hero -->
+<div class="hero">
+  <div class="container-xl">
+    <div class="hero-badge"><i class="bi bi-stars"></i> Creative Intelligence Engine</div>
+    <div class="hero-title">Creative Intelligence Report</div>
+    <div class="hero-sub">
+      {{ winners|length }} winner{{ 's' if winners|length != 1 }} geanalyseerd &middot;
+      {{ losers|length }} loser{{ 's' if losers|length != 1 }} &middot;
+      {{ summary.num_ads }} ads totaal
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="hero-stat-label">Totaal spend</div>
+        <div class="hero-stat-val">€{{ "%.0f"|format(summary.total_spend) }}</div>
+      </div>
+      <div>
+        <div class="hero-stat-label">Gem. CPL</div>
+        <div class="hero-stat-val">{% if summary.avg_cost_per_result > 0 %}€{{ "%.2f"|format(summary.avg_cost_per_result) }}{% else %}—{% endif %}</div>
+      </div>
+      <div>
+        <div class="hero-stat-label">Totaal leads</div>
+        <div class="hero-stat-val">{{ summary.total_results }}</div>
+      </div>
+      <div>
+        <div class="hero-stat-label">CTR</div>
+        <div class="hero-stat-val">{{ "%.2f"|format(summary.avg_ctr) }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-xl py-4">
+
+  <!-- ── Winning Patterns ── -->
+  {% if winners %}
+  <div class="sln-card mb-4">
+    <div class="card-title"><i class="bi bi-diagram-3-fill" style="color:var(--purple);"></i>Winning Patterns</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.6rem;">Dominante hook types</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for hook, count in patterns.hook_counts.items() %}
+          <span class="pattern-chip hook-chip">
+            {{ hook }} <span style="background:#dbeafe;border-radius:10px;padding:1px 6px;font-size:.68rem;">{{ count }}x</span>
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.6rem;">Dominante formats</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for fmt, count in patterns.format_counts.items() %}
+          <span class="pattern-chip fmt-chip">
+            {{ fmt }} <span style="background:#ede9fe;border-radius:10px;padding:1px 6px;font-size:.68rem;">{{ count }}x</span>
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.6rem;">Ongeteste formats (kansen)</div>
+        {% if patterns.untested_formats %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for fmt in patterns.untested_formats %}
+          <span class="pattern-chip" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">
+            <i class="bi bi-plus-circle"></i> {{ fmt }}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <span style="font-size:.82rem;color:var(--muted);">Alle formats al getest.</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if patterns.drivers %}
+    <div class="mt-3 pt-3" style="border-top:1px solid var(--border);">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.6rem;">Psychologische drivers die werken</div>
+      <div class="d-flex flex-wrap gap-2">
+        {% for d in patterns.drivers %}
+        <span class="pattern-chip drv-chip"><i class="bi bi-brain"></i> {{ d }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ── Winners ── -->
+  <div class="section-header mb-3">
+    <div class="section-dot" style="background:var(--green);"></div>
+    <h2>Winnende Advertenties <span style="font-size:.85rem;color:var(--muted);font-weight:400;">({{ winners|length }})</span></h2>
+  </div>
+
+  {% if not winners %}
+  <div class="sln-card mb-4">
+    <div class="empty-state">
+      <i class="bi bi-emoji-neutral"></i>
+      Geen duidelijke winners gevonden. Zorg dat ads voldoende spend en resultaten hebben.
+    </div>
+  </div>
+  {% endif %}
+
+  {% for w in winners %}
+  {% set ad = w.ad %}
+  {% set decoded = w.decoded %}
+  {% set axes = w.axes %}
+  {% set testkit = w.testkit %}
+  {% set has_testkit = testkit and '_no_api' not in testkit %}
+
+  <div class="winner-card">
+    <div class="winner-header" onclick="toggleWinner({{ loop.index0 }})">
+      <div>
+        <div class="winner-name">{{ ad.ad_name }}</div>
+        <div class="winner-meta">{{ ad.ad_set_name }} &middot; {{ ad.campaign_name }}</div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="winner-metrics">
+          <div class="w-metric">
+            <div class="w-metric-val" style="color:var(--green);">
+              {% if ad.cost_per_result > 0 %}€{{ "%.2f"|format(ad.cost_per_result) }}{% else %}—{% endif %}
+            </div>
+            <div class="w-metric-label">CPL</div>
+          </div>
+          <div class="w-metric">
+            <div class="w-metric-val">{{ ad.results }}</div>
+            <div class="w-metric-label">Leads</div>
+          </div>
+          <div class="w-metric">
+            <div class="w-metric-val">{{ "%.2f"|format(ad.ctr) }}%</div>
+            <div class="w-metric-label">CTR</div>
+          </div>
+          <div class="w-metric">
+            <div class="w-metric-val">€{{ "%.0f"|format(ad.spend) }}</div>
+            <div class="w-metric-label">Spend</div>
+          </div>
+        </div>
+        {% set hook = decoded.get('hook_type', 'proof') %}
+        <span class="hook-badge hook-{{ hook }}">{{ hook }}</span>
+        <i class="bi bi-chevron-down" id="chev-{{ loop.index0 }}" style="color:var(--muted);transition:transform .2s;"></i>
+      </div>
+    </div>
+
+    <div class="winner-body" id="winner-body-{{ loop.index0 }}">
+
+      <!-- Tabs -->
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab({{ loop.index0 }}, 'decode', this)">
+          <i class="bi bi-search me-1"></i>Creative Decode
+        </button>
+        <button class="tab-btn" onclick="switchTab({{ loop.index0 }}, 'axes', this)">
+          <i class="bi bi-grid-3x2 me-1"></i>Test Assen
+        </button>
+        <button class="tab-btn" onclick="switchTab({{ loop.index0 }}, 'testkit', this)">
+          <i class="bi bi-magic me-1"></i>Smart Test Kit
+        </button>
+        <button class="tab-btn" onclick="switchTab({{ loop.index0 }}, 'production', this)">
+          <i class="bi bi-camera-video me-1"></i>Productie
+        </button>
+      </div>
+
+      <!-- TAB: Decode -->
+      <div class="tab-panel active" id="tab-{{ loop.index0 }}-decode">
+        <div class="decode-grid">
+          <div class="decode-cell">
+            <div class="decode-label">Hook type</div>
+            <div class="decode-val">
+              <span class="hook-badge hook-{{ decoded.get('hook_type', '') }}">{{ decoded.get('hook_type', '—') }}</span>
+              <div style="margin-top:6px;font-size:.78rem;color:var(--muted);">{{ decoded.get('hook_explanation', '') }}</div>
+            </div>
+          </div>
+          <div class="decode-cell">
+            <div class="decode-label">Promise</div>
+            <div class="decode-val">{{ decoded.get('promise', '—') }}</div>
+          </div>
+          <div class="decode-cell">
+            <div class="decode-label">Audience pain</div>
+            <div class="decode-val">{{ decoded.get('audience_pain', '—') }}</div>
+          </div>
+          <div class="decode-cell">
+            <div class="decode-label">Format</div>
+            <div class="decode-val">
+              <span class="pattern-chip fmt-chip" style="font-size:.75rem;padding:3px 10px;">{{ decoded.get('format', '—') }}</span>
+            </div>
+          </div>
+          <div class="decode-cell">
+            <div class="decode-label">CTA intent</div>
+            <div class="decode-val">{{ decoded.get('cta_intent', '—') }}</div>
+          </div>
+          <div class="decode-cell">
+            <div class="decode-label">Psychological driver</div>
+            <div class="decode-val">
+              <span class="pattern-chip drv-chip" style="font-size:.75rem;padding:3px 10px;">{{ decoded.get('psychological_driver', '—') }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="decode-why mt-3">
+          <div class="decode-why-label"><i class="bi bi-trophy-fill me-1"></i>Waarom wint dit</div>
+          <div class="decode-why-text">{{ decoded.get('why_wins', '—') }}</div>
+        </div>
+      </div>
+
+      <!-- TAB: Axes -->
+      <div class="tab-panel" id="tab-{{ loop.index0 }}-axes">
+        <div class="axes-grid">
+          {% set axis_labels = [
+            ('A', 'Angle variaties', 'A_angle_variation'),
+            ('B', 'Pain variaties', 'B_pain_variation'),
+            ('C', 'Promise variaties', 'C_promise_variation'),
+            ('D', 'Format variaties', 'D_format_variation'),
+            ('E', 'Opposite angles', 'E_opposite_angle'),
+            ('F', 'Nieuwe segmenten', 'F_new_segment'),
+          ] %}
+          {% for letter, label, key in axis_labels %}
+          <div class="axis-card">
+            <div class="axis-label">
+              <span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:.65rem;margin-right:5px;">{{ letter }}</span>
+              {{ label }}
+            </div>
+            {% for idea in axes.get(key, []) %}
+            <div class="axis-idea"><span class="axis-dot"></span>{{ idea }}</div>
+            {% else %}
+            <div style="font-size:.78rem;color:var(--muted);">—</div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- TAB: Test Kit -->
+      <div class="tab-panel" id="tab-{{ loop.index0 }}-testkit">
+        {% if not has_testkit %}
+        <div class="no-api-notice">
+          <i class="bi bi-exclamation-triangle-fill" style="color:var(--amber);margin-top:2px;"></i>
+          <div>AI niet beschikbaar. Stel <strong>ANTHROPIC_API_KEY</strong> in op Render om de Smart Test Kit te genereren.</div>
+        </div>
+        {% else %}
+
+        <!-- Safe variants -->
+        <div class="variant-section">
+          <div class="variant-section-title" style="color:var(--blue);">
+            <i class="bi bi-shield-check"></i> Safe Variants — bewezen angle, nieuwe hooks
+          </div>
+          <div class="variant-grid">
+            {% for v in testkit.get('safe_variants', []) %}
+            <div class="vcard vcard-safe">
+              <div class="vcard-header"><span>Safe {{ loop.index }}</span><i class="bi bi-shield-check"></i></div>
+              <div class="vcard-body">
+                <div class="vcard-hook">"{{ v.hook }}"</div>
+                <div class="vcard-text">{{ v.primary_text }}</div>
+                <div class="vcard-headline"><i class="bi bi-fonts me-1"></i>{{ v.headline }}</div>
+              </div>
+              <div class="vcard-why"><i class="bi bi-lightbulb me-1"></i>{{ v.why_this_works }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Fresh variants -->
+        <div class="variant-section">
+          <div class="variant-section-title" style="color:#c2410c;">
+            <i class="bi bi-lightning-charge"></i> Fresh Variants — zelfde psychologie, ander format
+          </div>
+          <div class="variant-grid">
+            {% for v in testkit.get('fresh_variants', []) %}
+            <div class="vcard vcard-fresh">
+              <div class="vcard-header"><span>Fresh {{ loop.index }}</span><i class="bi bi-lightning-charge"></i></div>
+              <div class="vcard-body">
+                <div class="vcard-hook">"{{ v.hook }}"</div>
+                <div class="vcard-text">{{ v.primary_text }}</div>
+                <div class="vcard-headline"><i class="bi bi-fonts me-1"></i>{{ v.headline }}</div>
+              </div>
+              <div class="vcard-why"><i class="bi bi-lightbulb me-1"></i>{{ v.why_this_works }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Risky variant -->
+        {% if testkit.get('risky_variant') %}
+        {% set rv = testkit.risky_variant %}
+        <div class="variant-section">
+          <div class="variant-section-title" style="color:var(--red);">
+            <i class="bi bi-dice-5"></i> Risky Variant — tegenovergesteld angle
+          </div>
+          <div class="variant-single">
+            <div class="vcard vcard-risky">
+              <div class="vcard-header"><span>Risky</span><i class="bi bi-dice-5"></i></div>
+              <div class="vcard-body">
+                <div class="vcard-hook">"{{ rv.hook }}"</div>
+                <div class="vcard-text">{{ rv.primary_text }}</div>
+                <div class="vcard-headline"><i class="bi bi-fonts me-1"></i>{{ rv.headline }}</div>
+              </div>
+              <div class="vcard-why"><i class="bi bi-lightbulb me-1"></i>{{ rv.why_this_works }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- TAB: Production -->
+      <div class="tab-panel" id="tab-{{ loop.index0 }}-production">
+        {% if not has_testkit %}
+        <div class="no-api-notice">
+          <i class="bi bi-exclamation-triangle-fill" style="color:var(--amber);margin-top:2px;"></i>
+          <div>AI niet beschikbaar. Stel <strong>ANTHROPIC_API_KEY</strong> in op Render.</div>
+        </div>
+        {% else %}
+        <div class="row g-3">
+          <!-- Left: Testimonial + Static -->
+          <div class="col-md-5">
+            {% if testkit.get('testimonial_brief') %}
+            {% set tb = testkit.testimonial_brief %}
+            <div class="brief-card" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+              <div class="brief-title" style="color:var(--purple);"><i class="bi bi-person-video3"></i>Testimonial Brief</div>
+              <div style="font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:.5rem;">{{ tb.angle }}</div>
+              <div class="mb-2">
+                {% for q in tb.get('questions', []) %}
+                <div class="brief-q">{{ q }}</div>
+                {% endfor %}
+              </div>
+              <div style="font-size:.75rem;color:var(--purple);font-style:italic;">
+                <i class="bi bi-eye me-1"></i>Gewenst gevoel: {{ tb.desired_outcome }}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if testkit.get('static_concept') %}
+            {% set sc = testkit.static_concept %}
+            <div class="brief-card" style="background:#ecfdf5;border:1px solid #a7f3d0;">
+              <div class="brief-title" style="color:#065f46;"><i class="bi bi-image"></i>Static Concept</div>
+              <div class="brief-body">
+                <div style="margin-bottom:.4rem;"><span class="loser-section-title">Visual:</span> {{ sc.visual }}</div>
+                <div style="margin-bottom:.4rem;">
+                  <span class="loser-section-title">Headline:</span>
+                  <strong style="font-size:.88rem;">{{ sc.headline }}</strong>
+                </div>
+                <div style="margin-bottom:.4rem;"><span class="loser-section-title">Subtext:</span> {{ sc.subtext }}</div>
+                <div><span class="loser-section-title">CTA:</span>
+                  <span style="background:var(--accent);color:#fff;border-radius:6px;padding:2px 10px;font-size:.75rem;font-weight:600;">{{ sc.cta }}</span>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Right: Shootlist + Priority -->
+          <div class="col-md-7">
+            {% if testkit.get('shootlist') %}
+            <div class="brief-card mb-3">
+              <div class="brief-title"><i class="bi bi-camera-video"></i>Shootlist — 1 dag opnames</div>
+              <ul class="shootlist">
+                {% for shot in testkit.shootlist %}
+                <li>
+                  <span class="shot-num">{{ loop.index }}</span>
+                  <span>{{ shot }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if testkit.get('test_priority') %}
+            {% set tp = testkit.test_priority %}
+            <div class="priority-box">
+              <div class="priority-label"><i class="bi bi-sort-down me-1"></i>Test Prioriteit — start hiermee</div>
+              <div class="priority-items">
+                {% for item in tp.get('first_3', []) %}
+                <div class="priority-item">
+                  <span class="priority-num">{{ loop.index }}</span>
+                  <span>{{ item }}</span>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="priority-reasoning">{{ tp.reasoning }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div><!-- /winner-body -->
+  </div><!-- /winner-card -->
+  {% endfor %}
+
+
+  <!-- ── Losers ── -->
+  {% if losers %}
+  <div class="section-header mt-4 mb-3">
+    <div class="section-dot" style="background:var(--red);"></div>
+    <h2>Underperformers <span style="font-size:.85rem;color:var(--muted);font-weight:400;">({{ losers|length }})</span></h2>
+  </div>
+
+  {% for l in losers %}
+  {% set ad = l.ad %}
+  {% set decoded = l.decoded %}
+  <div class="loser-card">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+      <div>
+        <div class="loser-name">{{ ad.ad_name }}</div>
+        <div class="loser-meta">{{ ad.ad_set_name }} &middot; {{ ad.campaign_name }}</div>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span style="font-size:.8rem;color:var(--muted);">€{{ "%.0f"|format(ad.spend) }} spend &middot; {{ ad.results }} leads &middot; CTR {{ "%.2f"|format(ad.ctr) }}%</span>
+        <span class="fail-badge"><i class="bi bi-x-circle"></i> {{ decoded.get('failure_reason', '').replace('_', ' ') }}</span>
+        {% if decoded.get('should_kill') %}
+        <span class="kill-badge kill-yes"><i class="bi bi-stop-circle"></i> Stop</span>
+        {% else %}
+        <span class="kill-badge kill-no"><i class="bi bi-arrow-clockwise"></i> Test verder</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <div class="loser-section-title">Waarom faalt dit</div>
+        <div class="loser-text">{{ decoded.get('failure_explanation', '—') }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="loser-section-title">Fix richting</div>
+        <div class="fix-box">{{ decoded.get('fix_direction', '—') }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="loser-section-title">Beslissing</div>
+        <div class="loser-text" style="font-style:italic;">{{ decoded.get('kill_reasoning', '—') }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:1.5rem;text-align:center;color:var(--muted);font-size:.75rem;margin-top:3rem;">
+  SLN Solutions &mdash; Creative Intelligence Engine &mdash; Powered by Claude AI
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleWinner(idx) {
+  const body = document.getElementById('winner-body-' + idx);
+  const chev = document.getElementById('chev-' + idx);
+  const header = body.previousElementSibling;
+  const open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  header.classList.toggle('open', !open);
+  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function switchTab(winnerIdx, tabName, btn) {
+  // Deactivate all tabs for this winner
+  const body = document.getElementById('winner-body-' + winnerIdx);
+  body.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  body.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  // Activate selected
+  btn.classList.add('active');
+  const panel = document.getElementById('tab-' + winnerIdx + '-' + tabName);
+  if (panel) panel.classList.add('active');
+}
+
+// Open first winner by default
+document.addEventListener('DOMContentLoaded', () => {
+  const first = document.getElementById('winner-body-0');
+  if (first) {
+    first.classList.add('open');
+    const header = first.previousElementSibling;
+    if (header) header.classList.add('open');
+    const chev = document.getElementById('chev-0');
+    if (chev) chev.style.transform = 'rotate(180deg)';
+  }
+});
+</script>
+</body>
+</html>
