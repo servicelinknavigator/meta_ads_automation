@@ -154,12 +154,8 @@ def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_ove
     all_ads = get_all_ads(campaigns)
     scored_ads = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0]
 
-    if campaign_type == "purchases":
-        top_ad = max(scored_ads, key=lambda a: a.roas, default=None)
-        worst_ad = min(scored_ads, key=lambda a: a.roas, default=None)
-    else:
-        top_ad = min(scored_ads, key=lambda a: a.cost_per_result, default=None)
-        worst_ad = max(scored_ads, key=lambda a: a.cost_per_result, default=None)
+    top_ad = min(scored_ads, key=lambda a: a.cost_per_result, default=None)
+    worst_ad = max(scored_ads, key=lambda a: a.cost_per_result, default=None)
 
     total_spend = _sum(rows, "spend")
     total_impressions = int(_sum(rows, "impressions"))

@@ -98,10 +98,10 @@ class AnalysisSummary:
 
     @property
     def metric_label(self) -> str:
-        if self.campaign_type == "purchases":
-            return "ROAS"
-        elif self.campaign_type == "awareness":
+        if self.campaign_type == "awareness":
             return "CPM"
+        elif self.campaign_type == "purchases":
+            return "CPR"
         return "CPL"
 
     @property

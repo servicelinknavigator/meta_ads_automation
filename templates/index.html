@@ -506,7 +506,7 @@
 
           <!-- CPL Thresholds (hidden for e-commerce) -->
           <div class="settings-section" id="thresholdSection">
-            <span class="settings-label"><i class="bi bi-sliders me-1"></i>CPL drempelwaarden</span>
+            <span class="settings-label" id="thresholdLabel"><i class="bi bi-sliders me-1"></i>CPL drempelwaarden</span>
             <div class="preset-toggle mb-2">
               <button type="button" class="preset-btn active" onclick="setPreset('auto', this)">Auto</button>
               <button type="button" class="preset-btn" onclick="setPreset('fit20', this)" data-win="40" data-mid="60">
@@ -570,7 +570,8 @@
 <!-- ═══════════════ RESULTS PAGE ═══════════════ -->
 {% set s = result.summary %}
 {% set is_leads = s.campaign_type != 'purchases' %}
-{% set metric_val = s.avg_cost_per_result if is_leads else s.avg_roas %}
+{% set uses_cpr = s.campaign_type != 'awareness' %}
+{% set metric_val = s.avg_cost_per_result if uses_cpr else s.avg_cpm %}
 {% set t_win = thresholds.winner if thresholds else 30 %}
 {% set t_mid = thresholds.mid if thresholds else 50 %}
 {% set t_preset = thresholds.preset if thresholds else 'auto' %}
@@ -610,8 +611,8 @@
     </div>
     <div class="kpi-card kpi-highlight">
       <div class="kpi-label">{{ s.metric_label }}</div>
-      <div class="kpi-value {% if is_leads %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% else %}{% if metric_val >= 3 %}good{% elif metric_val >= 1.5 %}warn{% else %}bad{% endif %}{% endif %}">
-        {% if is_leads %}{% if metric_val > 0 %}€{{ "%.2f"|format(metric_val) }}{% else %}—{% endif %}{% else %}{{ "%.2f"|format(metric_val) }}{% endif %}
+      <div class="kpi-value {% if uses_cpr %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% else %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% endif %}">
+        {% if uses_cpr %}{% if metric_val > 0 %}€{{ "%.2f"|format(metric_val) }}{% else %}—{% endif %}{% else %}{{ "%.2f"|format(metric_val) }}{% endif %}
       </div>
       <i class="bi bi-arrow-repeat kpi-icon"></i>
     </div>
@@ -663,16 +664,15 @@
           <input type="text" id="tblSearch" class="tbl-search" placeholder="Zoek op advertentienaam…" oninput="renderTable()" />
           <select id="tblStatus" class="tbl-filter" onchange="renderTable()">
             <option value="">Alle statussen</option>
-            {% if is_leads %}
+            {% if uses_cpr %}
             <option value="lage-cpl">Winnaar (&lt;€{{ t_win }})</option>
             <option value="gemiddeld">Mid (€{{ t_win }}–{{ t_mid }})</option>
             <option value="hoge-cpl">Loser (&gt;€{{ t_mid }})</option>
-            <option value="geen-leads">Geen leads</option>
+            <option value="geen-leads">Geen {{ s.result_label|lower }}</option>
             {% else %}
-            <option value="lage-cpl">Excellent (ROAS &ge;4)</option>
-            <option value="gemiddeld">Goed (ROAS 2–4)</option>
-            <option value="hoge-cpl">Ondermaats (ROAS &lt;2)</option>
-            <option value="geen-leads">Geen conversies</option>
+            <option value="lage-cpl">Lage CPM</option>
+            <option value="gemiddeld">Gemiddeld</option>
+            <option value="hoge-cpl">Hoge CPM</option>
             {% endif %}
           </select>
         </div>
@@ -702,6 +702,11 @@
                 <th class="sortable" data-col="cpm" onclick="sortBy('cpm')">
                   <span class="text-end d-block">CPM <span class="sort-icon" id="si-cpm">&#8597;</span></span>
                 </th>
+                {% if not is_leads %}
+                <th class="sortable" data-col="roas" onclick="sortBy('roas')">
+                  <span class="text-end d-block">ROAS <span class="sort-icon" id="si-roas">&#8597;</span></span>
+                </th>
+                {% endif %}
                 <th class="sortable" data-col="impressions" onclick="sortBy('impressions')">
                   <span class="text-end d-block">Impr. <span class="sort-icon" id="si-impressions">&#8597;</span></span>
                 </th>
@@ -781,9 +786,12 @@ function setType(val, btn) {
   document.getElementById('campaign_type_override').value = val;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  // Hide threshold section for e-commerce
+  // Rename threshold label based on type
+  const lbl = document.getElementById('thresholdLabel');
+  if (lbl) lbl.textContent = val === 'purchases' ? 'Cost per Result drempelwaarden' : 'CPL drempelwaarden';
+  // Hide threshold section only for awareness (not for e-commerce)
   const sec = document.getElementById('thresholdSection');
-  if (sec) sec.style.display = val === 'purchases' ? 'none' : '';
+  if (sec) sec.style.display = val === 'awareness' ? 'none' : '';
 }
 
 const PRESETS = { fit20: [40, 60], belladonna: [30, 50] };
@@ -837,9 +845,11 @@ if (zone) {
 }
 
 {% if result %}
-const isLeads = {{ 'true' if result.summary.campaign_type != 'purchases' else 'false' }};
+const isLeads  = {{ 'true' if result.summary.campaign_type != 'purchases' else 'false' }};
+const usesCPR  = {{ 'true' if result.summary.campaign_type != 'awareness' else 'false' }};
+const showRoas = {{ 'true' if result.summary.campaign_type == 'purchases' else 'false' }};
 const metricLabel = '{{ result.summary.metric_label }}';
-const resultLabel = '{{ result.summary.result_label }}';
+const resultLabel  = '{{ result.summary.result_label }}';
 const T_WIN = {{ t_win }};
 const T_MID = {{ t_mid }};
 
@@ -869,11 +879,11 @@ Plotly.newPlot('chartSpend', [{
 Plotly.newPlot('chartMetric', [{
   type: 'bar', orientation: 'h',
   x: cd.metric, y: cd.labels,
-  marker: { color: cd.metric.map(v => isLeads
+  marker: { color: cd.metric.map(v => usesCPR
     ? (v > 0 && v < T_WIN ? '#10B981' : v >= T_WIN && v < T_MID ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1')
-    : (v >= 4 ? '#10B981' : v >= 2 ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1'))
+    : '#CBD5E1')
   },
-  text: cd.metric.map(v => v > 0 ? (isLeads ? '€' + v.toFixed(2) : v.toFixed(2)) : '—'),
+  text: cd.metric.map(v => v > 0 ? '€' + v.toFixed(2) : '—'),
   textposition: 'outside', textfont: { size: 10 },
 }], layout(metricLabel + ' per advertentie'), cfg);
 
@@ -900,52 +910,37 @@ let sortCol = 'spend';
 let sortDir = -1; // -1 = desc, 1 = asc
 
 function getStatus(ad) {
-  if (isLeads) {
-    if (ad.cpl > 0 && ad.cpl < T_WIN)       return 'lage-cpl';
-    if (ad.cpl >= T_WIN && ad.cpl < T_MID)  return 'gemiddeld';
-    if (ad.cpl >= T_MID)                     return 'hoge-cpl';
-    return 'geen-leads';
-  } else {
-    if (ad.roas >= 4)  return 'lage-cpl';
-    if (ad.roas >= 2)  return 'gemiddeld';
-    if (ad.roas > 0)   return 'hoge-cpl';
-    return 'geen-leads';
-  }
+  if (!usesCPR) return ad.cpl > 0 ? 'gemiddeld' : 'geen-leads';
+  if (ad.cpl > 0 && ad.cpl < T_WIN)      return 'lage-cpl';
+  if (ad.cpl >= T_WIN && ad.cpl < T_MID) return 'gemiddeld';
+  if (ad.cpl >= T_MID)                    return 'hoge-cpl';
+  return 'geen-leads';
 }
 
 function statusBadge(ad) {
   const s = getStatus(ad);
-  if (isLeads) {
-    const map = {
-      'lage-cpl':  ['badge-top',  `<i class="bi bi-arrow-down-circle"></i> Winnaar <€${T_WIN}`],
-      'gemiddeld': ['badge-avg',  `Mid €${T_WIN}–${T_MID}`],
-      'hoge-cpl':  ['badge-low',  `<i class="bi bi-exclamation-circle"></i> Loser >€${T_MID}`],
-      'geen-leads':['badge-aware','Geen leads'],
-    };
-    const [cls, lbl] = map[s] || ['badge-aware', s];
-    return `<span class="badge-sln ${cls}">${lbl}</span>`;
-  } else {
-    const map = {
-      'lage-cpl':  ['badge-top',  'Excellent ≥4'],
-      'gemiddeld': ['badge-good', 'Goed 2–4'],
-      'hoge-cpl':  ['badge-low',  'Ondermaats <2'],
-      'geen-leads':['badge-aware','Geen conv.'],
-    };
-    const [cls, lbl] = map[s] || ['badge-aware', s];
-    return `<span class="badge-sln ${cls}">${lbl}</span>`;
-  }
+  const noResult = isLeads ? 'Geen leads' : 'Geen conv.';
+  const map = {
+    'lage-cpl':  ['badge-top',  `<i class="bi bi-arrow-down-circle"></i> Winnaar &lt;€${T_WIN}`],
+    'gemiddeld': ['badge-avg',  `Mid €${T_WIN}–${T_MID}`],
+    'hoge-cpl':  ['badge-low',  `<i class="bi bi-exclamation-circle"></i> Loser &gt;€${T_MID}`],
+    'geen-leads':['badge-aware', noResult],
+  };
+  const [cls, lbl] = map[s] || ['badge-aware', s];
+  return `<span class="badge-sln ${cls}">${lbl}</span>`;
 }
 
 function metricCell(ad) {
-  if (isLeads) {
-    if (ad.cpl <= 0) return '<td class="text-end text-muted">—</td>';
-    const cls = ad.cpl < T_WIN ? 'text-success' : ad.cpl < T_MID ? 'text-warning' : 'text-danger';
-    return `<td class="text-end fw-bold ${cls}">€${ad.cpl.toFixed(2)}</td>`;
-  } else {
-    if (ad.roas <= 0) return '<td class="text-end text-muted">—</td>';
-    const cls = ad.roas >= 4 ? 'text-success' : ad.roas >= 2 ? 'text-warning' : 'text-danger';
-    return `<td class="text-end fw-bold ${cls}">${ad.roas.toFixed(2)}</td>`;
-  }
+  if (ad.cpl <= 0) return '<td class="text-end text-muted">—</td>';
+  const cls = ad.cpl < T_WIN ? 'text-success' : ad.cpl < T_MID ? 'text-warning' : 'text-danger';
+  return `<td class="text-end fw-bold ${cls}">€${ad.cpl.toFixed(2)}</td>`;
+}
+
+function roasCell(ad) {
+  if (!showRoas) return '';
+  if (!ad.roas || ad.roas <= 0) return '<td class="text-end text-muted">—</td>';
+  const cls = ad.roas >= 3 ? 'text-success' : ad.roas >= 1.5 ? 'text-warning' : 'text-danger';
+  return `<td class="text-end fw-bold ${cls}">${ad.roas.toFixed(2)}</td>`;
 }
 
 function renderTable() {
@@ -995,6 +990,7 @@ function renderTable() {
       <td class="text-end">${ad.ctr.toFixed(2)}%</td>
       <td class="text-end">€${ad.cpc.toFixed(2)}</td>
       <td class="text-end">€${ad.cpm.toFixed(2)}</td>
+      ${roasCell(ad)}
       <td class="text-end">${ad.impressions.toLocaleString('nl-NL')}</td>
       <td>${statusBadge(ad)}</td>
     </tr>`).join('');
@@ -1012,7 +1008,7 @@ function sortBy(col) {
 }
 
 function updateSortIcons() {
-  const cols = ['ad_name','spend','cpl','results','ctr','cpc','cpm','impressions'];
+  const cols = ['ad_name','spend','cpl','results','ctr','cpc','cpm','roas','impressions'];
   cols.forEach(c => {
     const el = document.getElementById('si-' + c);
     if (!el) return;
