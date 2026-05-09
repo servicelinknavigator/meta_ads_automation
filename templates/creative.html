@@ -377,6 +377,16 @@
       display: flex; align-items: flex-start; gap: 8px;
       margin-bottom: 1rem;
     }
+    .btn-copy {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 10px;
+      font-size: .72rem; font-weight: 600; color: var(--muted);
+      cursor: pointer; transition: all .15s;
+      margin-top: .5rem;
+    }
+    .btn-copy:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+    .btn-copy.copied { background: #ecfdf5; border-color: #059669; color: #059669; }
   </style>
 </head>
 <body>
@@ -649,6 +659,15 @@
                 <div class="vcard-hook">"{{ v.hook }}"</div>
                 <div class="vcard-text">{{ v.primary_text }}</div>
                 <div class="vcard-headline"><i class="bi bi-fonts me-1"></i>{{ v.headline }}</div>
+                <textarea class="vcard-copy-src d-none">Hook:
+{{ v.hook }}
+
+Ad tekst:
+{{ v.primary_text }}
+
+Headline:
+{{ v.headline }}</textarea>
+                <button type="button" class="btn-copy" onclick="copyVariant(this)"><i class="bi bi-clipboard"></i> Kopieer</button>
               </div>
               <div class="vcard-why"><i class="bi bi-lightbulb me-1"></i>{{ v.why_this_works }}</div>
             </div>
@@ -669,6 +688,15 @@
                 <div class="vcard-hook">"{{ v.hook }}"</div>
                 <div class="vcard-text">{{ v.primary_text }}</div>
                 <div class="vcard-headline"><i class="bi bi-fonts me-1"></i>{{ v.headline }}</div>
+                <textarea class="vcard-copy-src d-none">Hook:
+{{ v.hook }}
+
+Ad tekst:
+{{ v.primary_text }}
+
+Headline:
+{{ v.headline }}</textarea>
+                <button type="button" class="btn-copy" onclick="copyVariant(this)"><i class="bi bi-clipboard"></i> Kopieer</button>
               </div>
               <div class="vcard-why"><i class="bi bi-lightbulb me-1"></i>{{ v.why_this_works }}</div>
             </div>
@@ -690,6 +718,15 @@
                 <div class="vcard-hook">"{{ rv.hook }}"</div>
                 <div class="vcard-text">{{ rv.primary_text }}</div>
                 <div class="vcard-headline"><i class="bi bi-fonts me-1"></i>{{ rv.headline }}</div>
+                <textarea class="vcard-copy-src d-none">Hook:
+{{ rv.hook }}
+
+Ad tekst:
+{{ rv.primary_text }}
+
+Headline:
+{{ rv.headline }}</textarea>
+                <button type="button" class="btn-copy" onclick="copyVariant(this)"><i class="bi bi-clipboard"></i> Kopieer</button>
               </div>
               <div class="vcard-why"><i class="bi bi-lightbulb me-1"></i>{{ rv.why_this_works }}</div>
             </div>
@@ -857,6 +894,31 @@ function switchTab(winnerIdx, tabName, btn) {
   btn.classList.add('active');
   const panel = document.getElementById('tab-' + winnerIdx + '-' + tabName);
   if (panel) panel.classList.add('active');
+}
+
+function copyVariant(btn) {
+  const card = btn.closest('.vcard');
+  const ta = card.querySelector('.vcard-copy-src');
+  if (!ta) return;
+  navigator.clipboard.writeText(ta.value).then(() => {
+    btn.innerHTML = '<i class="bi bi-check2"></i> Gekopieerd!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-clipboard"></i> Kopieer';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    ta.classList.remove('d-none');
+    ta.select();
+    document.execCommand('copy');
+    ta.classList.add('d-none');
+    btn.innerHTML = '<i class="bi bi-check2"></i> Gekopieerd!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-clipboard"></i> Kopieer';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
 }
 
 // Open first winner by default

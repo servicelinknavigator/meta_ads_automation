@@ -257,6 +257,70 @@ def build_ad_chart_data(campaigns: list[Campaign], campaign_type: str, top_n: in
     }
 
 
+def get_date_range(rows: list[dict]) -> tuple[str | None, str | None]:
+    dates = sorted({str(r.get("day", "")).strip() for r in rows if str(r.get("day", "")).strip()})
+    if not dates:
+        return None, None
+    return dates[0], dates[-1]
+
+
+def filter_rows_by_date(rows: list[dict], date_from: str, date_to: str) -> list[dict]:
+    if not date_from and not date_to:
+        return rows
+    out = []
+    for r in rows:
+        d = str(r.get("day", "")).strip()
+        if not d:
+            out.append(r)
+            continue
+        if date_from and d < date_from:
+            continue
+        if date_to and d > date_to:
+            continue
+        out.append(r)
+    return out
+
+
+def build_wow_comparison(rows: list[dict]) -> dict | None:
+    dated = [(str(r.get("day", "")).strip(), r) for r in rows if str(r.get("day", "")).strip()]
+    if not dated:
+        return None
+    all_dates = sorted({d for d, _ in dated})
+    if len(all_dates) < 2:
+        return None
+    mid = len(all_dates) // 2
+    s1, s2 = set(all_dates[:mid]), set(all_dates[mid:])
+    r1 = [r for d, r in dated if d in s1]
+    r2 = [r for d, r in dated if d in s2]
+
+    def _m(rws: list[dict]) -> dict:
+        sp  = _sum(rws, "spend")
+        res = int(_sum(rws, "results"))
+        imp = int(_sum(rws, "impressions"))
+        clk = int(_sum(rws, "clicks"))
+        return {
+            "spend":   round(sp, 2),
+            "results": res,
+            "cpl":     round(_safe_div(sp, res), 2),
+            "ctr":     round(_safe_div(clk, imp) * 100, 2),
+        }
+
+    p1, p2 = _m(r1), _m(r2)
+    p1["date_from"], p1["date_to"] = all_dates[0], all_dates[mid - 1]
+    p2["date_from"], p2["date_to"] = all_dates[mid], all_dates[-1]
+
+    def _delta(a: float, b: float) -> float | None:
+        return round((b - a) / a * 100, 1) if a else None
+
+    return {
+        "p1": p1, "p2": p2,
+        "delta_spend":   _delta(p1["spend"],   p2["spend"]),
+        "delta_results": _delta(p1["results"],  p2["results"]),
+        "delta_cpl":     _delta(p1["cpl"],      p2["cpl"]),
+        "delta_ctr":     _delta(p1["ctr"],      p2["ctr"]),
+    }
+
+
 def build_chart_data(campaigns: list[Campaign]) -> dict:
     names = [c.campaign_name for c in campaigns]
     return {

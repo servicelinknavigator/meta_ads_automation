@@ -3,6 +3,7 @@ import sys
 import re
 import json
 import logging
+import hashlib
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
@@ -18,12 +19,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from core.csv_parser import parse_csv, load_dummy_data, validate_csv
-from core.analysis import build_campaigns, build_summary, build_ad_chart_data, get_all_ads
+from core.analysis import (
+    build_campaigns, build_summary, build_ad_chart_data, get_all_ads,
+    get_date_range, filter_rows_by_date, build_wow_comparison,
+)
 from core.generation import generate_insights
 from core.reporter import generate_pdf
 from core.creative_decoder import decode_winner, decode_loser
 from core.axes_mapper import map_axes
 from core.smart_generator import generate_testkit
+
+# In-memory creative cache — survives across requests in the same worker process
+_CREATIVE_CACHE: dict = {}
+_CREATIVE_CACHE_MAX = 120
+
+
+def _cache_key(ad) -> str:
+    s = f"{ad.ad_name}:{ad.campaign_name}:{ad.spend:.2f}:{ad.results}"
+    return hashlib.sha256(s.encode()).hexdigest()[:16]
+
+
+def _cache_set(key: str, value: dict) -> None:
+    if len(_CREATIVE_CACHE) >= _CREATIVE_CACHE_MAX:
+        _CREATIVE_CACHE.pop(next(iter(_CREATIVE_CACHE)))
+    _CREATIVE_CACHE[key] = value
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
@@ -50,16 +70,50 @@ def _compute_thresholds(form=None) -> dict:
     return {"winner": 30, "mid": 50, "preset": "auto"}
 
 
-def _process_df(rows: list, campaign_type_override: str = "") -> dict:
+def _process_df(rows: list, campaign_type_override: str = "",
+                date_from: str = "", date_to: str = "") -> dict:
     valid, errors = validate_csv(rows)
     if not valid:
         return {"error": "; ".join(errors)}
+
+    # Date range info (always from the full unfiltered rows)
+    full_from, full_to = get_date_range(rows)
+    if date_from or date_to:
+        rows = filter_rows_by_date(rows, date_from, date_to)
+        if not rows:
+            return {"error": "Geen data gevonden voor de geselecteerde periode."}
+
+    date_range = None
+    if full_from:
+        cur_from, cur_to = get_date_range(rows)
+        date_range = {
+            "from": cur_from or full_from,
+            "to":   cur_to   or full_to,
+            "full_from": full_from,
+            "full_to":   full_to,
+        }
+
+    wow = build_wow_comparison(rows)
 
     campaigns = build_campaigns(rows)
     summary = build_summary(rows, campaigns, campaign_type_override=campaign_type_override)
     ad_chart_data = build_ad_chart_data(campaigns, summary.campaign_type)
     all_ads = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
     insights = generate_insights(summary, all_ads)
+
+    # Urgent actions: geld-verbrandende ads en ad fatigue
+    urgent_actions = []
+    for a in all_ads:
+        if a.results == 0 and a.spend > 15:
+            urgent_actions.append({
+                "type": "burning", "ad_name": a.ad_name,
+                "ad_set_name": a.ad_set_name, "spend": round(a.spend),
+            })
+        elif a.frequency > 3.5 and a.results > 0:
+            urgent_actions.append({
+                "type": "fatigue", "ad_name": a.ad_name,
+                "ad_set_name": a.ad_set_name, "frequency": round(a.frequency, 1),
+            })
 
     all_ads_json = json.dumps([{
         "ad_name":       a.ad_name,
@@ -75,6 +129,19 @@ def _process_df(rows: list, campaign_type_override: str = "") -> dict:
         "cpm":           a.cpm,
         "frequency":     a.frequency,
     } for a in all_ads])
+
+    session["top_ads"] = [{
+        "ad_name":        a.ad_name,
+        "ad_set_name":    a.ad_set_name,
+        "campaign_name":  a.campaign_name,
+        "spend":          a.spend,
+        "results":        a.results,
+        "cost_per_result": a.cost_per_result,
+        "roas":           a.roas,
+        "ctr":            a.ctr,
+        "frequency":      a.frequency,
+    } for a in all_ads[:10]]
+    session["date_range"] = date_range
 
     session["summary"] = {
         "total_spend":        summary.total_spend,
@@ -102,10 +169,13 @@ def _process_df(rows: list, campaign_type_override: str = "") -> dict:
     session["insights"] = insights
 
     return {
-        "summary":       summary,
-        "all_ads_json":  all_ads_json,
-        "ad_chart_data": json.dumps(ad_chart_data),
-        "insights_html": _md_to_html(insights),
+        "summary":         summary,
+        "all_ads_json":    all_ads_json,
+        "ad_chart_data":   json.dumps(ad_chart_data),
+        "insights_html":   _md_to_html(insights),
+        "date_range":      date_range,
+        "wow":             wow,
+        "urgent_actions":  urgent_actions,
     }
 
 
@@ -257,6 +327,26 @@ def upload():
     return render_template("index.html", result=result, demo=False, thresholds=thresholds)
 
 
+@app.route("/reanalyze", methods=["POST"])
+def reanalyze():
+    rows = _load_rows_from_session()
+    if rows is None:
+        flash("Sessie verlopen. Upload je CSV opnieuw.", "warning")
+        return redirect(url_for("index"))
+    date_from = request.form.get("date_from", "").strip()
+    date_to   = request.form.get("date_to",   "").strip()
+    campaign_type_override = request.form.get("campaign_type_override", "")
+    thresholds = _compute_thresholds(request.form)
+    result = _process_df(rows, campaign_type_override=campaign_type_override,
+                         date_from=date_from, date_to=date_to)
+    if "error" in result:
+        flash(result["error"], "danger")
+        return redirect(url_for("index"))
+    session.permanent = True
+    session["thresholds"] = thresholds
+    return render_template("index.html", result=result, demo=False, thresholds=thresholds)
+
+
 @app.route("/export/pdf", methods=["GET"])
 def export_pdf():
     summary_data = session.get("summary")
@@ -265,7 +355,9 @@ def export_pdf():
         flash("Geen actieve analyse. Upload eerst een CSV.", "warning")
         return redirect(url_for("index"))
     summary = _session_to_summary(summary_data)
-    pdf_bytes = generate_pdf(summary, insights_raw)
+    top_ads  = session.get("top_ads", [])
+    date_range = session.get("date_range")
+    pdf_bytes = generate_pdf(summary, insights_raw, top_ads=top_ads, date_range=date_range)
     return send_file(
         io.BytesIO(pdf_bytes),
         mimetype="application/pdf",
@@ -339,15 +431,28 @@ def creative():
 
     winner_results = []
     for ad in winners:
-        decoded = decode_winner(ad, summary)
-        axes    = map_axes(decoded, ad.ad_name)
-        testkit = generate_testkit(ad.ad_name, decoded, axes)
-        winner_results.append({"ad": ad, "decoded": decoded, "axes": axes, "testkit": testkit})
+        key = _cache_key(ad)
+        cached = _CREATIVE_CACHE.get(key)
+        if cached:
+            winner_results.append({"ad": ad, **cached})
+        else:
+            decoded = decode_winner(ad, summary)
+            axes    = map_axes(decoded, ad.ad_name)
+            testkit = generate_testkit(ad.ad_name, decoded, axes)
+            entry   = {"decoded": decoded, "axes": axes, "testkit": testkit}
+            _cache_set(key, entry)
+            winner_results.append({"ad": ad, **entry})
 
     loser_results = []
     for ad in losers:
-        decoded = decode_loser(ad, summary)
-        loser_results.append({"ad": ad, "decoded": decoded})
+        key = _cache_key(ad) + "_loser"
+        cached = _CREATIVE_CACHE.get(key)
+        if cached:
+            loser_results.append({"ad": ad, "decoded": cached})
+        else:
+            decoded = decode_loser(ad, summary)
+            _cache_set(key, decoded)
+            loser_results.append({"ad": ad, "decoded": decoded})
 
     patterns = _extract_patterns(winner_results)
 

@@ -394,6 +394,59 @@
       font-size: .85rem;
     }
     .tbl-empty i { font-size: 2rem; opacity: .3; display: block; margin-bottom: .5rem; }
+
+    /* ── Urgente acties ── */
+    .urgent-bar {
+      background: linear-gradient(90deg, #7f1d1d, #991b1b);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .urgent-icon { font-size: 1.3rem; color: #fca5a5; flex-shrink: 0; margin-top: 1px; }
+    .urgent-title { font-size: .78rem; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+    .urgent-item {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.1); border-radius: 6px;
+      padding: 3px 9px; font-size: .76rem; color: #fecaca;
+      margin: 2px 4px 2px 0;
+    }
+    .urgent-item.fatigue { background: rgba(251,191,36,.15); color: #fde68a; }
+
+    /* ── WoW vergelijking ── */
+    .wow-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 1px 8px rgba(0,0,0,.05);
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    .wow-metric { text-align: center; padding: .5rem .25rem; }
+    .wow-metric-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+    .wow-metric-val { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .wow-metric-delta { font-size: .75rem; font-weight: 600; }
+    .delta-good  { color: var(--success); }
+    .delta-bad   { color: var(--danger); }
+    .delta-neut  { color: var(--muted); }
+
+    /* ── Datumfilter balk ── */
+    .date-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: .55rem 0;
+    }
+    .date-bar form { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+    .date-input {
+      border: 1px solid var(--border); border-radius: 7px;
+      padding: .3rem .6rem; font-size: .8rem; color: var(--text);
+      background: var(--bg); outline: none;
+    }
+    .date-input:focus { border-color: var(--accent); }
+    .date-label { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+    .freq-warn { color: var(--danger); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -600,7 +653,36 @@
   </div>
 </div>
 
+{% if result.date_range %}
+<div class="date-bar">
+  <div class="container-xl">
+    <form action="/reanalyze" method="post">
+      <input type="hidden" name="campaign_type_override" value="{{ s.campaign_type }}" />
+      <input type="hidden" name="threshold_preset"  value="{{ t_preset }}" />
+      <input type="hidden" name="threshold_winner"  value="{{ t_win }}" />
+      <input type="hidden" name="threshold_mid"     value="{{ t_mid }}" />
+      <span class="date-label"><i class="bi bi-calendar3 me-1"></i>Periode:</span>
+      <input type="date" name="date_from" class="date-input" value="{{ result.date_range.from }}" />
+      <span class="date-label">t/m</span>
+      <input type="date" name="date_to" class="date-input" value="{{ result.date_range.to }}" />
+      <button type="submit" class="btn-sln" style="padding:.3rem .85rem;font-size:.78rem;">
+        <i class="bi bi-funnel me-1"></i>Filter
+      </button>
+      {% if result.date_range.from != result.date_range.full_from or result.date_range.to != result.date_range.full_to %}
+      <a href="#" onclick="document.querySelector('[name=date_from]').value='{{ result.date_range.full_from }}';document.querySelector('[name=date_to]').value='{{ result.date_range.full_to }}';this.closest('form').submit();return false;"
+         style="font-size:.76rem;color:var(--accent);text-decoration:none;">
+        <i class="bi bi-x-circle me-1"></i>Reset
+      </a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <div class="container-xl py-4">
+
+  <!-- Urgente acties (rendered by JS) -->
+  <div id="urgentActions"></div>
 
   <!-- KPI Row -->
   <div class="kpi-grid">
@@ -641,6 +723,47 @@
       <i class="bi bi-broadcast kpi-icon"></i>
     </div>
   </div>
+
+  {% if result.wow %}
+  {% set wow = result.wow %}
+  <div class="wow-card">
+    <div class="sln-card-title" style="margin-bottom:.75rem;">
+      <i class="bi bi-arrow-left-right" style="color:var(--navy);"></i>
+      Periode vergelijking
+      <span style="font-size:.72rem;font-weight:400;color:var(--muted);margin-left:.5rem;">
+        {{ wow.p1.date_from }} – {{ wow.p1.date_to }}
+        &nbsp;vs&nbsp;
+        {{ wow.p2.date_from }} – {{ wow.p2.date_to }}
+      </span>
+    </div>
+    <div class="row g-2 text-center">
+      {% set metrics = [
+        ('Budget', wow.p1.spend, wow.p2.spend, wow.delta_spend, 'euro', false),
+        (s.result_label, wow.p1.results, wow.p2.results, wow.delta_results, 'num', true),
+        (s.metric_label, wow.p1.cpl, wow.p2.cpl, wow.delta_cpl, 'euro', false),
+        ('CTR', wow.p1.ctr, wow.p2.ctr, wow.delta_ctr, 'pct', true),
+      ] %}
+      {% for label, v1, v2, delta, fmt, higher_better in metrics %}
+      <div class="col-6 col-md-3">
+        <div class="wow-metric">
+          <div class="wow-metric-label">{{ label }}</div>
+          <div style="display:flex;justify-content:center;gap:.75rem;align-items:baseline;margin:.2rem 0;">
+            <span style="font-size:.82rem;color:var(--muted);">{% if fmt=='euro' %}€{{ "%.0f"|format(v1) }}{% elif fmt=='pct' %}{{ "%.2f"|format(v1) }}%{% else %}{{ v1 }}{% endif %}</span>
+            <span class="wow-metric-val">{% if fmt=='euro' %}€{{ "%.0f"|format(v2) }}{% elif fmt=='pct' %}{{ "%.2f"|format(v2) }}%{% else %}{{ v2 }}{% endif %}</span>
+          </div>
+          {% if delta is not none %}
+          {% set good = (delta > 0 and higher_better) or (delta < 0 and not higher_better) %}
+          {% set bad  = (delta < 0 and higher_better) or (delta > 0 and not higher_better) %}
+          <div class="wow-metric-delta {% if good %}delta-good{% elif bad %}delta-bad{% else %}delta-neut{% endif %}">
+            {% if delta > 0 %}+{% endif %}{{ delta }}%
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <div class="row g-4">
     <!-- Left: Charts + Table -->
@@ -713,6 +836,9 @@
                 {% endif %}
                 <th class="sortable" data-col="impressions" onclick="sortBy('impressions')">
                   <span class="text-end d-block">Impr. <span class="sort-icon" id="si-impressions">&#8597;</span></span>
+                </th>
+                <th class="sortable" data-col="frequency" onclick="sortBy('frequency')">
+                  <span class="text-end d-block">Freq. <span class="sort-icon" id="si-frequency">&#8597;</span></span>
                 </th>
                 <th>Status</th>
               </tr>
@@ -1002,6 +1128,7 @@ function renderTable() {
       <td class="text-end">€${ad.cpm.toFixed(2)}</td>
       ${roasCell(ad)}
       <td class="text-end">${ad.impressions.toLocaleString('nl-NL')}</td>
+      <td class="text-end ${ad.frequency > 3.5 ? 'freq-warn' : ''}">${ad.frequency > 0 ? ad.frequency.toFixed(1) : '—'}</td>
       <td>${statusBadge(ad)}</td>
     </tr>`).join('');
 }
@@ -1018,7 +1145,7 @@ function sortBy(col) {
 }
 
 function updateSortIcons() {
-  const cols = ['ad_name','spend','cpl','results','ctr','cpc','cpm','roas','impressions'];
+  const cols = ['ad_name','spend','cpl','results','ctr','cpc','cpm','roas','impressions','frequency'];
   cols.forEach(c => {
     const el = document.getElementById('si-' + c);
     if (!el) return;
@@ -1036,9 +1163,34 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function renderUrgentActions() {
+  const burning = adsData.filter(a => a.results === 0 && a.spend > 15);
+  const fatigue = adsData.filter(a => a.frequency > 3.5 && a.results > 0);
+  const el = document.getElementById('urgentActions');
+  if (!el || (!burning.length && !fatigue.length)) return;
+
+  const burningHtml = burning.map(a =>
+    `<span class="urgent-item"><i class="bi bi-fire"></i>${escHtml(a.ad_name)} &mdash; €${Math.round(a.spend)} / 0 resultaten</span>`
+  ).join('');
+  const fatigueHtml = fatigue.map(a =>
+    `<span class="urgent-item fatigue"><i class="bi bi-eye-slash"></i>${escHtml(a.ad_name)} &mdash; freq. ${a.frequency.toFixed(1)}</span>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="urgent-bar">
+      <i class="bi bi-exclamation-triangle-fill urgent-icon"></i>
+      <div style="flex:1;">
+        <div class="urgent-title"><i class="bi bi-lightning-charge-fill me-1"></i>Directe actie vereist (${burning.length + fatigue.length} advertentie${burning.length + fatigue.length !== 1 ? 's' : ''})</div>
+        ${burning.length ? `<div style="margin-bottom:${fatigue.length ? '.35rem' : '0'};">${burningHtml}</div>` : ''}
+        ${fatigue.length ? `<div>${fatigueHtml}</div>` : ''}
+      </div>
+    </div>`;
+}
+
 // Initial render
 updateSortIcons();
 renderTable();
+renderUrgentActions();
 {% endif %}
 </script>
 </body>
