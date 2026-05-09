@@ -70,37 +70,65 @@ COLUMN_MAP = {
     "dag": "day",
     "bereik": "reach",
     "vertoningen": "impressions",
+    "weergaven": "impressions",            # alternatief NL woord voor impressions
     "frequentie": "frequency",
     "besteed bedrag (eur)": "spend",
     "besteed bedrag (usd)": "spend",
     "besteed bedrag": "spend",
+    # clicks
     "klikken (alle)": "clicks",
     "linkkliks": "link_clicks",
     "link-kliks": "link_clicks",
+    "klikken op links": "link_clicks",     # variant in sommige NL exports
+    # CTR varianten (met en zonder %-teken)
     "ctr (alle)(%)": "ctr",
     "ctr (alle) (%)": "ctr",
+    "ctr (alle)": "ctr",
     "ctr (klikfrequentie van links)(%)": "ctr_link",
     "ctr (klikfrequentie van links) (%)": "ctr_link",
+    "ctr (klikfrequentie van links)": "ctr_link",
+    "ctr (doorklikratio voor klikken op link)": "ctr_link",
+    "ctr (doorklikratio voor klikken op link) (%)": "ctr_link",
+    # CPC varianten (KPK én CPC notatie)
     "kpk (alle) (eur)": "cpc",
     "kpk (alle) (usd)": "cpc",
     "kpk (alle)": "cpc",
+    "cpc (alle) (eur)": "cpc",             # NL export met CPC afkorting
+    "cpc (alle) (usd)": "cpc",
+    "cpc (alle)": "cpc",
     "kosten per linkklik (eur)": "cpc_link",
     "kosten per linkklik (usd)": "cpc_link",
     "kosten per linkklik": "cpc_link",
+    "cpc (kosten per klik op link) (eur)": "cpc_link",
+    "cpc (kosten per klik op link) (usd)": "cpc_link",
+    "cpc (kosten per klik op link)": "cpc_link",
+    # CPM varianten (KPM én CPM notatie, vertoningen én weergaven)
     "kpm (kosten per 1.000 vertoningen bereikt) (eur)": "cpm",
     "kpm (kosten per 1.000 vertoningen bereikt) (usd)": "cpm",
     "kpm (kosten per 1.000 vertoningen bereikt)": "cpm",
+    "cpm (kosten per 1.000 vertoningen bereikt) (eur)": "cpm",
+    "cpm (kosten per 1.000 vertoningen bereikt) (usd)": "cpm",
+    "cpm (kosten per 1000 weergaven) (eur)": "cpm",
+    "cpm (kosten per 1000 weergaven) (usd)": "cpm",
+    "cpm (kosten per 1.000 weergaven) (eur)": "cpm",
+    "cpm (kosten per 1.000 weergaven) (usd)": "cpm",
+    # results
     "resultaten": "results",
     "kosten per resultaat (eur)": "cost_per_result",
     "kosten per resultaat (usd)": "cost_per_result",
     "kosten per resultaat": "cost_per_result",
+    "kosten per resultaten (eur)": "cost_per_result",  # variant met 'en'
+    "kosten per resultaten (usd)": "cost_per_result",
+    "kosten per resultaten": "cost_per_result",
+    # result indicator varianten
     "resultaatindicator": "result_indicator",
     "resultaat-indicator": "result_indicator",
+    "resultatenindicator": "result_indicator",  # variant met 'en'
+    # ROAS
     "aankoop-roas (rendement op advertentie-uitgaven)": "roas",
     "aankoop roas (rendement op advertentie-uitgaven)": "roas",
     "website-aankoop-roas (rendement op advertentie-uitgaven)": "roas",
     # Nederlands — leads
-    "leads": "results",
     "facebook-leads": "results",
     "websiteleads": "results",
     "gestarte gesprekken via berichten": "results",
@@ -121,11 +149,17 @@ _CLICK_COLUMNS = {
     "ctr (link click-through rate)(%)", "ctr (link click-through rate) (%)",
     "cpc (all) (eur)", "cpc (all) (usd)", "cpc (all)",
     "cost per link click (eur)", "cost per link click (usd)", "cost per link click",
-    # Nederlands
-    "klikken (alle)", "linkkliks", "link-kliks",
-    "ctr (alle)(%)", "ctr (alle) (%)",
+    # Nederlands — klikken
+    "klikken (alle)", "linkkliks", "link-kliks", "klikken op links",
+    # Nederlands — CTR
+    "ctr (alle)(%)", "ctr (alle) (%)", "ctr (alle)",
+    "ctr (doorklikratio voor klikken op link)",
+    "ctr (klikfrequentie van links)", "ctr (klikfrequentie van links) (%)",
+    # Nederlands — CPC/KPK
     "kpk (alle) (eur)", "kpk (alle) (usd)", "kpk (alle)",
+    "cpc (alle) (eur)", "cpc (alle) (usd)", "cpc (alle)",
     "kosten per linkklik (eur)", "kosten per linkklik (usd)", "kosten per linkklik",
+    "cpc (kosten per klik op link) (eur)", "cpc (kosten per klik op link) (usd)",
 }
 
 # Nederlandse kolomnamen voor de advertentienaam (voor aggregate-row detectie)
