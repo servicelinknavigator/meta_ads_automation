@@ -6,7 +6,9 @@ import logging
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from datetime import timedelta
 import io
 
 load_dotenv()
@@ -26,6 +28,7 @@ from core.smart_generator import generate_testkit
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", 50)) * 1024 * 1024
+app.permanent_session_lifetime = timedelta(hours=4)
 
 UPLOAD_FOLDER = Path(__file__).parent / "uploads"
 UPLOAD_FOLDER.mkdir(exist_ok=True)
@@ -210,6 +213,7 @@ def demo():
         flash(result["error"], "danger")
         return redirect(url_for("index"))
     thresholds = {"winner": 30, "mid": 50, "preset": "auto"}
+    session.permanent = True
     session["data_source"] = "demo"
     session["thresholds"] = thresholds
     return render_template("index.html", result=result, demo=True, thresholds=thresholds)
@@ -228,7 +232,7 @@ def upload():
         flash("Alleen CSV bestanden zijn toegestaan.", "danger")
         return redirect(url_for("index"))
 
-    save_path = UPLOAD_FOLDER / file.filename
+    save_path = UPLOAD_FOLDER / secure_filename(file.filename)
     file.save(save_path)
     try:
         rows = parse_csv(save_path)
@@ -247,6 +251,7 @@ def upload():
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
+    session.permanent = True
     session["data_source"] = str(save_path)
     session["thresholds"] = thresholds
     return render_template("index.html", result=result, demo=False, thresholds=thresholds)
