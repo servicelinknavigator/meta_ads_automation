@@ -28,6 +28,11 @@ from core.reporter import generate_pdf
 from core.creative_decoder import decode_winner, decode_loser
 from core.axes_mapper import map_axes
 from core.smart_generator import generate_testkit
+from core.hook_analyzer import (
+    aggregate_hook_performance, aggregate_format_performance,
+    get_winning_combinations, get_untested_hooks, get_untested_formats,
+)
+from core.shoot_brief import generate_shoot_brief
 
 # In-memory creative cache — survives across requests in the same worker process
 _CREATIVE_CACHE: dict = {}
@@ -437,7 +442,7 @@ def creative():
             winner_results.append({"ad": ad, **cached})
         else:
             decoded = decode_winner(ad, summary)
-            axes    = map_axes(decoded, ad.ad_name)
+            axes    = map_axes(decoded, ad.ad_name, all_ads=all_ads)
             testkit = generate_testkit(ad.ad_name, decoded, axes)
             entry   = {"decoded": decoded, "axes": axes, "testkit": testkit}
             _cache_set(key, entry)
@@ -464,6 +469,50 @@ def creative():
         losers=loser_results,
         patterns=patterns,
         thresholds=thresholds,
+        is_demo=session.get("data_source") == "demo",
+    )
+
+
+@app.route("/hooks", methods=["GET"])
+def hooks():
+    summary_data = session.get("summary")
+    if not summary_data:
+        flash("Geen actieve analyse. Upload eerst een CSV.", "warning")
+        return redirect(url_for("index"))
+
+    rows = _load_rows_from_session()
+    if rows is None:
+        flash("Het bestand kon niet worden geladen. Upload je CSV opnieuw.", "warning")
+        return redirect(url_for("index"))
+
+    campaigns = build_campaigns(rows)
+    summary   = build_summary(rows, campaigns)
+    all_ads   = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
+
+    hook_perf   = aggregate_hook_performance(all_ads)
+    fmt_perf    = aggregate_format_performance(all_ads)
+    combos      = get_winning_combinations(all_ads)
+    untested_hooks   = get_untested_hooks(all_ads)
+    untested_formats = get_untested_formats(all_ads)
+
+    # Best ad for shoot brief context
+    top_ad = None
+    for a in all_ads:
+        if a.results > 0 and a.cost_per_result > 0:
+            top_ad = a
+            break
+
+    shoot_brief = generate_shoot_brief(summary, all_ads, top_ad=top_ad)
+
+    return render_template(
+        "hooks.html",
+        summary=summary,
+        hook_perf=hook_perf,
+        fmt_perf=fmt_perf,
+        combos=combos,
+        untested_hooks=untested_hooks,
+        untested_formats=untested_formats,
+        shoot_brief=shoot_brief,
         is_demo=session.get("data_source") == "demo",
     )
 

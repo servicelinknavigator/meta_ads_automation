@@ -1,50 +1,27 @@
-import os
-import re
-import json
-import anthropic
+from models.campaign import Ad
+from core.ai_client import has_api, call_json
+from core.hook_analyzer import detect_hook, detect_format, get_untested_hooks, HOOK_TYPES
 
 
-def _has_api() -> bool:
-    k = os.getenv("ANTHROPIC_API_KEY", "")
-    return bool(k) and not k.startswith("sk-ant-your")
-
-
-def _extract_json(text: str) -> str:
-    text = re.sub(r"```(?:json)?", "", text).strip().strip("`").strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        return text[start:end + 1]
-    return text
-
-
-def _call(prompt: str) -> dict:
-    try:
-        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
-        msg = client.messages.create(
-            model=model,
-            max_tokens=700,
-            system="Je bent een Meta Ads creative director. Antwoord ALLEEN met geldig JSON, geen uitleg.",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return json.loads(_extract_json(msg.content[0].text))
-    except Exception:
-        return {}
-
-
-def map_axes(decoded: dict, ad_name: str) -> dict:
-    if not _has_api():
+def map_axes(decoded: dict, ad_name: str, all_ads: list[Ad] | None = None) -> dict:
+    if not has_api():
         return _fallback_axes(decoded)
 
-    prompt = f"""Winner ad: "{ad_name}"
+    untested = get_untested_hooks(all_ads) if all_ads else []
+    untested_str = f"\nNog niet geteste hooks in account: {', '.join(untested)}" if untested else ""
+
+    prompt = f"""Winnende Meta advertentie voor SLN Solutions: "{ad_name}"
 Hook: {decoded.get('hook_type', '')} — {decoded.get('hook_explanation', '')}
 Promise: {decoded.get('promise', '')}
 Pain: {decoded.get('audience_pain', '')}
 Format: {decoded.get('format', '')}
 Psychological driver: {decoded.get('psychological_driver', '')}
+Test hypothese: {decoded.get('test_hypothesis', '')}
+{untested_str}
 
-Genereer 6 creatieve test-assen voor variaties op deze winnende ad. Elk idee = 1 concrete zin.
+Genereer 6 creatieve test-assen voor variaties op deze winnende ad.
+Verwerk de ongeteste hooks waar relevant als nieuwe angles.
+Elk idee = 1 concrete, specifieke zin (geen vaagheden).
 
 Return ALLEEN dit JSON (geen tekst eromheen):
 {{
@@ -56,12 +33,11 @@ Return ALLEEN dit JSON (geen tekst eromheen):
   "F_new_segment": ["nieuw doelgroep segment 1", "ander segment 2"]
 }}"""
 
-    result = _call(prompt)
+    result = call_json(prompt, max_tokens=700)
     return result if result and "A_angle_variation" in result else _fallback_axes(decoded)
 
 
 def _fallback_axes(decoded: dict) -> dict:
-    hook = decoded.get("hook_type", "proof")
     pain = decoded.get("audience_pain", "onzekerheid")
     return {
         "A_angle_variation": [
@@ -71,7 +47,7 @@ def _fallback_axes(decoded: dict) -> dict:
         ],
         "B_pain_variation": [
             f"Tijdgebrek als pijn: geen tijd voor {pain}",
-            f"Onzekerheid als pijn: weet je zeker dat je aanpak werkt?",
+            "Onzekerheid als pijn: weet je zeker dat je aanpak werkt?",
             "Gemiste kansen als pijn: wat verlies je door te wachten?",
         ],
         "C_promise_variation": [

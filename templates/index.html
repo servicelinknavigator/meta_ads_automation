@@ -472,6 +472,9 @@
     <a href="/creative" class="btn-sln" style="font-size:.8rem;padding:.4rem 1rem;" onclick="showLoading()">
       <i class="bi bi-stars me-1"></i>Creative Report
     </a>
+    <a href="/hooks" class="btn-sln-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="showLoading()">
+      <i class="bi bi-lightning-charge me-1"></i>Hook Analyse
+    </a>
     <a href="/export/pdf" class="btn-sln-outline" style="font-size:.8rem;padding:.4rem 1rem;">
       <i class="bi bi-file-earmark-pdf me-1"></i>PDF
     </a>
@@ -1164,7 +1167,7 @@ function escHtml(s) {
 }
 
 function renderUrgentActions() {
-  const burning = adsData.filter(a => a.results === 0 && a.spend > 15);
+  const burning = adsData.filter(a => a.results === 0 && a.spend > 50);
   const fatigue = adsData.filter(a => a.frequency > 3.5 && a.results > 0);
   const el = document.getElementById('urgentActions');
   if (!el || (!burning.length && !fatigue.length)) return;

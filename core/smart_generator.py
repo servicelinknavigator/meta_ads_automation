@@ -1,46 +1,27 @@
-import os
-import re
-import json
-import anthropic
+from models.campaign import Ad, AnalysisSummary
+from core.ai_client import has_api, call_json, _SLN_SYSTEM_JSON
+from core.hook_analyzer import HOOK_TYPES, FORMAT_TYPES
 
-
-def _has_api() -> bool:
-    k = os.getenv("ANTHROPIC_API_KEY", "")
-    return bool(k) and not k.startswith("sk-ant-your")
-
-
-def _extract_json(text: str) -> str:
-    text = re.sub(r"```(?:json)?", "", text).strip().strip("`").strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        return text[start:end + 1]
-    return text
-
-
-def _call(prompt: str, max_tokens: int = 2500) -> dict:
-    try:
-        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
-        msg = client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            system=(
-                "Je bent een top Meta Ads creative director. "
-                "Schrijf originele, specifieke Nederlandstalige ad copy. "
-                "Hooks moeten concreet zijn — geen vage algemeenheden. "
-                "Antwoord ALLEEN met geldig JSON, geen uitleg eromheen."
-            ),
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return json.loads(_extract_json(msg.content[0].text))
-    except Exception as e:
-        return {"_error": str(e)}
+_CREATIVE_SYSTEM = (
+    _SLN_SYSTEM_JSON + " "
+    "Je schrijft scherpe, specifieke Nederlandstalige ad copy voor Meta. "
+    "Hooks zijn concreet en prikkelend — geen vage algemeenheden. "
+    "primary_text bevat emoji waar passend en is 3-4 zinnen."
+)
 
 
 def generate_testkit(ad_name: str, decoded: dict, axes: dict) -> dict:
-    if not _has_api():
+    if not has_api():
         return {"_no_api": True}
+
+    hook_type = decoded.get("hook_type", "")
+    hook_expl = decoded.get("hook_explanation", "")
+    promise   = decoded.get("promise", "")
+    pain      = decoded.get("audience_pain", "")
+    fmt       = decoded.get("format", "")
+    driver    = decoded.get("psychological_driver", "")
+    why_wins  = decoded.get("why_wins", "")
+    test_hyp  = decoded.get("test_hypothesis", "")
 
     axes_text = "\n".join([
         f"A – Angle variaties: {', '.join(axes.get('A_angle_variation', []))}",
@@ -51,41 +32,57 @@ def generate_testkit(ad_name: str, decoded: dict, axes: dict) -> dict:
         f"F – Nieuwe segmenten: {', '.join(axes.get('F_new_segment', []))}",
     ])
 
-    prompt = f"""Genereer een complete 11-item test kit voor deze winnende Meta advertentie.
+    prompt = f"""Genereer een complete test kit voor SLN Solutions op basis van deze winnende Meta advertentie.
 
 WINNAAR: "{ad_name}"
-DECODE:
-- Hook: {decoded.get('hook_type')} — {decoded.get('hook_explanation', '')}
-- Promise: {decoded.get('promise', '')}
-- Pain: {decoded.get('audience_pain', '')}
-- Format: {decoded.get('format', '')}
-- Driver: {decoded.get('psychological_driver', '')}
-- Waarom wint: {decoded.get('why_wins', '')}
+- Hook type: {hook_type} — {hook_expl}
+- Promise: {promise}
+- Pain: {pain}
+- Format: {fmt}
+- Driver: {driver}
+- Waarom wint: {why_wins}
+- Te testen hypothese: {test_hyp}
 
 CREATIEVE ASSEN:
 {axes_text}
 
 REGELS:
 - Alles in het Nederlands
-- Hooks zijn SPECIFIEK (geen "Ben jij ook..." of "Wil jij ook...")
+- Hooks zijn SPECIFIEK en prikkelend (geen "Ben jij ook..." of "Wil jij ook...")
 - primary_text = 3-4 zinnen volledige advertentietekst met emoji waar passend
-- safe_variants = bewezen angle, kleine variaties op het winnende concept
-- fresh_variants = zelfde psychologie, ander format/invalshoek
-- risky_variant = tegenovergesteld of onverwacht — kan floppen of winnen
+- safe_variants = kleine variaties op bewezen concept (andere formulering, zelfde hook)
+- fresh_variants = andere hook type of format, zelfde psychologie
+- risky_variant = tegenovergesteld of onverwacht — kan floppen maar ook uitblinken
+- Elke variant heeft een shoot_spec met praktische productie-instructies
+
+Beschikbare hook types: {', '.join(HOOK_TYPES)}
+Beschikbare formats: {', '.join(FORMAT_TYPES)}
 
 Return ALLEEN dit JSON:
 {{
   "safe_variants": [
-    {{"hook": "openingszin", "primary_text": "volledige ad tekst", "headline": "korte headline ≤40 tekens", "why_this_works": "1 zin"}},
-    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "..."}},
-    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "..."}}
+    {{
+      "hook": "exacte openingszin",
+      "primary_text": "volledige ad tekst (3-4 zinnen)",
+      "headline": "headline ≤40 tekens",
+      "why_this_works": "1 zin",
+      "shoot_spec": {{"format": "format type", "duur_seconden": 30, "aspect_ratio": "9:16", "talent": "wie", "locatie": "waar"}}
+    }},
+    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "...", "shoot_spec": {{"format": "...", "duur_seconden": 30, "aspect_ratio": "9:16", "talent": "...", "locatie": "..."}}}},
+    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "...", "shoot_spec": {{"format": "...", "duur_seconden": 30, "aspect_ratio": "9:16", "talent": "...", "locatie": "..."}}}}
   ],
   "fresh_variants": [
-    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "..."}},
-    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "..."}},
-    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "..."}}
+    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "...", "shoot_spec": {{"format": "...", "duur_seconden": 45, "aspect_ratio": "9:16", "talent": "...", "locatie": "..."}}}},
+    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "...", "shoot_spec": {{"format": "...", "duur_seconden": 30, "aspect_ratio": "9:16", "talent": "...", "locatie": "..."}}}},
+    {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "...", "shoot_spec": {{"format": "...", "duur_seconden": 30, "aspect_ratio": "9:16", "talent": "...", "locatie": "..."}}}}
   ],
-  "risky_variant": {{"hook": "...", "primary_text": "...", "headline": "...", "why_this_works": "..."}},
+  "risky_variant": {{
+    "hook": "...",
+    "primary_text": "...",
+    "headline": "...",
+    "why_this_works": "...",
+    "shoot_spec": {{"format": "...", "duur_seconden": 30, "aspect_ratio": "9:16", "talent": "...", "locatie": "..."}}
+  }},
   "testimonial_brief": {{
     "angle": "welk verhaal de klant moet vertellen (1-2 zinnen)",
     "questions": ["vraag 1", "vraag 2", "vraag 3"],
@@ -107,11 +104,11 @@ Return ALLEEN dit JSON:
   ],
   "test_priority": {{
     "first_3": ["naam/omschrijving van variant 1", "variant 2", "variant 3"],
-    "reasoning": "waarom deze 3 eerst — wat je wilt leren"
+    "reasoning": "waarom deze 3 eerst — wat je wilt leren en welke hypothese je test"
   }}
 }}"""
 
-    result = _call(prompt, max_tokens=2500)
+    result = call_json(prompt, system=_CREATIVE_SYSTEM, max_tokens=2800)
     if "_error" in result:
         return {"_no_api": True}
     return result

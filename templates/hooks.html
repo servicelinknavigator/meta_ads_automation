@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hook Intelligence — SLN Meta Ads</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:    #0D1B2A;
+      --navy:    #1A3A5C;
+      --accent:  #E8541A;
+      --accent2: #FF7043;
+      --bg:      #F4F6FA;
+      --surface: #FFFFFF;
+      --border:  #E2E8F0;
+      --text:    #0F172A;
+      --muted:   #64748B;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger:  #EF4444;
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+
+    .sln-nav {
+      background: var(--dark);
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06);
+    }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; color: #fff; letter-spacing: -.5px;
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.2; }
+    .sln-logo-sub  { color: rgba(255,255,255,.45); font-size: 10px; font-weight: 400; }
+    .btn-sln {
+      background: var(--accent); color: #fff; border: none;
+      padding: .55rem 1.3rem; border-radius: 8px; font-weight: 600;
+      font-size: .875rem; transition: background .15s, transform .1s; text-decoration: none;
+    }
+    .btn-sln:hover { background: var(--accent2); color: #fff; transform: translateY(-1px); }
+    .btn-sln-outline {
+      background: transparent; color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.25);
+      padding: .4rem 1rem; border-radius: 8px;
+      font-weight: 500; font-size: .8rem;
+      transition: all .15s; text-decoration: none;
+    }
+    .btn-sln-outline:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 60%, #1e4d8c 100%);
+      padding: 2.5rem 0 2rem;
+    }
+    .hero-title { font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -.4px; }
+    .hero-sub   { color: rgba(255,255,255,.55); font-size: .9rem; margin-top: .2rem; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(232,84,26,.2); border: 1px solid rgba(232,84,26,.4);
+      color: #ff9a78; font-size: .72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px; margin-bottom: .75rem;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+
+    .card-sln {
+      background: var(--surface);
+      border-radius: 14px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.055);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .card-header-sln {
+      background: var(--dark);
+      color: #fff;
+      padding: .75rem 1.2rem;
+      font-weight: 700;
+      font-size: .85rem;
+      letter-spacing: .03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Hook performance table */
+    .hook-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .hook-table th {
+      font-size: .7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted);
+      padding: .5rem .75rem; border-bottom: 1px solid var(--border);
+    }
+    .hook-table td {
+      padding: .55rem .75rem; font-size: .82rem;
+      border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+    }
+    .hook-table tr:last-child td { border-bottom: none; }
+    .hook-table tr:hover td { background: #f8fafc; }
+    .hook-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .cpl-bar-wrap { position: relative; width: 90px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .cpl-bar      { height: 100%; border-radius: 4px; }
+
+    /* Shoot brief cards */
+    .shoot-card {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .shoot-type-safe   { border-top: 4px solid var(--success); }
+    .shoot-type-new_hook { border-top: 4px solid var(--accent); }
+    .shoot-type-format_test { border-top: 4px solid #8b5cf6; }
+    .shoot-header { padding: 1rem 1.2rem .5rem; }
+    .shoot-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; margin-bottom: .3rem;
+    }
+    .shoot-label.safe        { color: var(--success); }
+    .shoot-label.new_hook    { color: var(--accent); }
+    .shoot-label.format_test { color: #8b5cf6; }
+    .shoot-name  { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .shoot-concept { font-size: .82rem; color: var(--muted); margin-top: .25rem; }
+    .shoot-body { padding: .75rem 1.2rem 1.2rem; }
+    .shoot-spec-row {
+      display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem;
+    }
+    .spec-chip {
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .shoot-section-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); margin-bottom: .3rem;
+    }
+    .shoot-opening {
+      font-size: .88rem; font-style: italic; color: var(--dark);
+      border-left: 3px solid var(--accent); padding-left: .75rem;
+      margin-bottom: .75rem; line-height: 1.5;
+    }
+    .shot-list { list-style: none; padding: 0; margin: 0; }
+    .shot-list li {
+      font-size: .78rem; color: #374151; padding: 3px 0;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .shot-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--dark); color: #fff;
+      font-size: .65rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .hyp-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: .6rem .85rem;
+      font-size: .78rem;
+      color: #92400e;
+      margin-top: .75rem;
+    }
+    .hyp-box strong { display: block; margin-bottom: 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+
+    .untested-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fef2f2; border: 1px solid #fecaca;
+      color: #dc2626; border-radius: 20px;
+      font-size: .72rem; font-weight: 600;
+      padding: 4px 10px; margin: 3px;
+    }
+
+    /* Winning combination badge */
+    .combo-card {
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: .85rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .combo-rank {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--dark); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 800; flex-shrink: 0;
+    }
+    .combo-rank.rank-1 { background: #f59e0b; }
+    .combo-rank.rank-2 { background: var(--muted); }
+    .combo-rank.rank-3 { background: #92400e; }
+
+    .section-title {
+      font-size: 1.1rem; font-weight: 800; color: var(--dark);
+      letter-spacing: -.3px; margin-bottom: 1rem;
+    }
+    .fallback-note {
+      font-size: .74rem; color: var(--muted);
+      background: #f8fafc; border: 1px solid var(--border);
+      border-radius: 6px; padding: .4rem .7rem;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="sln-nav">
+  <a class="sln-logo" href="/">
+    <div class="sln-logo-icon">SLN</div>
+    <div>
+      <div class="sln-logo-text">SLN Solutions</div>
+      <div class="sln-logo-sub">Hook Intelligence</div>
+    </div>
+  </a>
+  <div class="d-flex align-items-center gap-2">
+    <a href="/creative" class="btn-sln-outline">
+      <i class="bi bi-stars me-1"></i>Creative Report
+    </a>
+    <a href="/" class="btn-sln-outline">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-badge"><i class="bi bi-graph-up-arrow"></i>Hook Intelligence</div>
+    <div class="hero-title">Hook & Format Analyse</div>
+    <div class="hero-sub">
+      Welke hooks en formats presteren? Wat moet je nog testen? + Shoot brief voor de volgende ronde.
+    </div>
+    <div class="d-flex gap-3 mt-3" style="font-size:.8rem;color:rgba(255,255,255,.65);">
+      <span><i class="bi bi-play-circle me-1"></i>{{ summary.num_ads }} advertenties geanalyseerd</span>
+      <span><i class="bi bi-bullseye me-1"></i>{{ summary.total_results }} resultaten</span>
+      {% if is_demo %}<span style="color:#fbbf24;"><i class="bi bi-info-circle me-1"></i>Demo data</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+
+  <!-- ── Row 1: Hook performance + Format performance ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Hook Performance -->
+    <div class="col-lg-6">
+      <div class="card-sln">
+        <div class="card-header-sln">
+          <i class="bi bi-lightning-charge-fill" style="color:#fbbf24;"></i>
+          Hook Prestaties
+          <span style="margin-left:auto;font-weight:400;font-size:.72rem;color:rgba(255,255,255,.5);">gesorteerd op CPL</span>
+        </div>
+        <div class="p-0">
+          <table class="hook-table">
+            <thead>
+              <tr>
+                <th>Hook type</th>
+                <th class="text-end">Ads</th>
+                <th class="text-end">Spend</th>
+                <th class="text-end">Resultaten</th>
+                <th class="text-end">CPL</th>
+                <th class="text-end">CTR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in hook_perf %}
+              {% set has_results = row.results and row.results > 0 %}
+              <tr>
+                <td>
+                  <span class="hook-pill" style="background:{% if has_results and row.cpl %}#ecfdf5;color:#059669{% elif not has_results %}#fef2f2;color:#dc2626{% else %}#f1f5f9;color:#64748b{% endif %};">
+                    {{ row.hook_type.replace('_', ' ').title() }}
+                  </span>
+                </td>
+                <td class="text-end" style="color:var(--muted);">{{ row.ads }}</td>
+                <td class="text-end" style="font-weight:600;">€{{ "%.0f"|format(row.spend) }}</td>
+                <td class="text-end">{{ row.results or 0 }}</td>
+                <td class="text-end">
+                  {% if row.cpl %}
+                    <strong style="color:{% if row.cpl < 40 %}var(--success){% elif row.cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.cpl }}</strong>
+                  {% else %}
+                    <span style="color:var(--muted);">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-end" style="color:var(--muted);">{{ row.avg_ctr or '—' }}{% if row.avg_ctr %}%{% endif %}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:1.5rem;">Geen hook data beschikbaar</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Format Performance -->
+    <div class="col-lg-6">
+      <div class="card-sln">
+        <div class="card-header-sln">
+          <i class="bi bi-camera-video-fill" style="color:#a78bfa;"></i>
+          Format Prestaties
+          <span style="margin-left:auto;font-weight:400;font-size:.72rem;color:rgba(255,255,255,.5);">gesorteerd op CPL</span>
+        </div>
+        <div class="p-0">
+          <table class="hook-table">
+            <thead>
+              <tr>
+                <th>Format</th>
+                <th class="text-end">Ads</th>
+                <th class="text-end">Spend</th>
+                <th class="text-end">Resultaten</th>
+                <th class="text-end">CPL</th>
+                <th class="text-end">CTR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in fmt_perf %}
+              {% set has_results = row.results and row.results > 0 %}
+              <tr>
+                <td>
+                  <span class="hook-pill" style="background:{% if has_results and row.cpl %}#eff6ff;color:#2563eb{% elif not has_results %}#fef2f2;color:#dc2626{% else %}#f1f5f9;color:#64748b{% endif %};">
+                    {{ row.format_type.replace('_', ' ').title() }}
+                  </span>
+                </td>
+                <td class="text-end" style="color:var(--muted);">{{ row.ads }}</td>
+                <td class="text-end" style="font-weight:600;">€{{ "%.0f"|format(row.spend) }}</td>
+                <td class="text-end">{{ row.results or 0 }}</td>
+                <td class="text-end">
+                  {% if row.cpl %}
+                    <strong style="color:{% if row.cpl < 40 %}var(--success){% elif row.cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.cpl }}</strong>
+                  {% else %}
+                    <span style="color:var(--muted);">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-end" style="color:var(--muted);">{{ row.avg_ctr or '—' }}{% if row.avg_ctr %}%{% endif %}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:1.5rem;">Geen format data beschikbaar</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Row 2: Winning combos + Untested ── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Winning combinations -->
+    <div class="col-lg-6">
+      <div class="section-title"><i class="bi bi-trophy-fill me-2" style="color:#f59e0b;"></i>Winnende combinaties</div>
+      {% if combos %}
+      <div class="d-flex flex-column gap-2">
+        {% for c in combos %}
+        <div class="combo-card">
+          <div class="combo-rank rank-{{ loop.index }}">{{ loop.index }}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:.88rem;">
+              {{ c.hook_type.replace('_',' ').title() }}
+              <span style="color:var(--muted);font-weight:400;"> + </span>
+              {{ c.format_type.replace('_',' ').title() }}
+            </div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:2px;">
+              {{ c.ads }} ads · {{ c.results }} resultaten · Spend €{{ "%.0f"|format(c.spend) }}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            {% if c.cpl %}
+            <div style="font-size:1rem;font-weight:800;color:{% if c.cpl < 40 %}var(--success){% elif c.cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ c.cpl }}</div>
+            <div style="font-size:.7rem;color:var(--muted);">gem. CPL</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="color:var(--muted);font-size:.85rem;padding:1rem 0;">Nog geen combinaties met voldoende data.</div>
+      {% endif %}
+    </div>
+
+    <!-- Untested hooks & formats -->
+    <div class="col-lg-6">
+      <div class="section-title"><i class="bi bi-flask me-2" style="color:#dc2626;"></i>Nog niet getest</div>
+      {% if untested_hooks %}
+      <div style="font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em;">Hooks</div>
+      <div class="mb-3">
+        {% for h in untested_hooks %}
+        <span class="untested-pill"><i class="bi bi-x-circle"></i>{{ h.replace('_',' ').title() }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if untested_formats %}
+      <div style="font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em;">Formats</div>
+      <div>
+        {% for f in untested_formats %}
+        <span class="untested-pill" style="background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;"><i class="bi bi-x-circle"></i>{{ f.replace('_',' ').title() }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if not untested_hooks and not untested_formats %}
+      <div style="color:var(--success);font-size:.85rem;">
+        <i class="bi bi-check-circle-fill me-1"></i>Alle bekende hook types zijn getest. Goed bezig!
+      </div>
+      {% endif %}
+
+      {% if untested_hooks or untested_formats %}
+      <div class="mt-3" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.75rem 1rem;font-size:.8rem;color:#166534;">
+        <strong>Aanbeveling:</strong> Test ongeteste hooks in de komende shoot. De shoot brief hieronder houdt hier al rekening mee.
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ── Shoot Brief ── -->
+  <div class="mb-2 d-flex align-items-center justify-content-between">
+    <div class="section-title mb-0"><i class="bi bi-camera-fill me-2" style="color:var(--accent);"></i>Shoot Brief — volgende ronde</div>
+    {% if shoot_brief and shoot_brief[0].get('_fallback') %}
+    <span class="fallback-note"><i class="bi bi-info-circle"></i>Gegenereerd zonder AI — voeg ANTHROPIC_API_KEY toe voor betere briefs</span>
+    {% endif %}
+  </div>
+
+  {% if shoot_brief %}
+  <div class="row g-3 mb-5">
+    {% for shoot in shoot_brief %}
+    <div class="col-lg-4">
+      <div class="shoot-card shoot-type-{{ shoot.type }}">
+        <div class="shoot-header">
+          <div class="shoot-label {{ shoot.type }}">
+            {% if shoot.type == 'safe' %}<i class="bi bi-shield-check me-1"></i>Shoot 1 — Safe{% endif %}
+            {% if shoot.type == 'new_hook' %}<i class="bi bi-lightning me-1"></i>Shoot 2 — New Hook{% endif %}
+            {% if shoot.type == 'format_test' %}<i class="bi bi-camera-video me-1"></i>Shoot 3 — Format Test{% endif %}
+          </div>
+          <div class="shoot-name">{{ shoot.naam_suggestie }}</div>
+          <div class="shoot-concept">{{ shoot.concept }}</div>
+        </div>
+        <div class="shoot-body">
+
+          <!-- Specs -->
+          <div class="shoot-spec-row">
+            <span class="spec-chip"><i class="bi bi-aspect-ratio"></i>{{ shoot.aspect_ratio }}</span>
+            <span class="spec-chip"><i class="bi bi-clock"></i>{{ shoot.duur_seconden }}s</span>
+            <span class="spec-chip"><i class="bi bi-lightning"></i>{{ shoot.hook_type.replace('_',' ') }}</span>
+            <span class="spec-chip"><i class="bi bi-camera-video"></i>{{ shoot.format.replace('_',' ') }}</span>
+          </div>
+
+          <!-- Talent + Locatie -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <div class="shoot-section-label"><i class="bi bi-person me-1"></i>Talent</div>
+              <div style="font-size:.8rem;color:var(--text);">{{ shoot.talent }}</div>
+            </div>
+            <div class="col-6">
+              <div class="shoot-section-label"><i class="bi bi-geo-alt me-1"></i>Locatie</div>
+              <div style="font-size:.8rem;color:var(--text);">{{ shoot.locatie }}</div>
+            </div>
+          </div>
+
+          <!-- Opening -->
+          <div class="shoot-section-label"><i class="bi bi-quote me-1"></i>Openingszin</div>
+          <div class="shoot-opening mb-3">"{{ shoot.openingszin }}"</div>
+
+          <!-- Key message + CTA -->
+          <div class="row g-2 mb-3">
+            <div class="col-7">
+              <div class="shoot-section-label">Key Message</div>
+              <div style="font-size:.78rem;color:var(--text);">{{ shoot.key_message }}</div>
+            </div>
+            <div class="col-5">
+              <div class="shoot-section-label">CTA</div>
+              <div style="font-size:.78rem;font-weight:700;color:var(--accent);">{{ shoot.cta }}</div>
+            </div>
+          </div>
+
+          <!-- Shot list -->
+          <div class="shoot-section-label"><i class="bi bi-film me-1"></i>Shot list</div>
+          <ul class="shot-list mb-0">
+            {% for shot in shoot.shots %}
+            <li>
+              <span class="shot-num">{{ loop.index }}</span>
+              <span>{{ shot }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <!-- Hypothese -->
+          <div class="hyp-box">
+            <strong><i class="bi bi-lightbulb me-1"></i>Hypothese</strong>
+            {{ shoot.hypothese }}
+          </div>
+
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="color:var(--muted);font-size:.85rem;padding:1rem 0;">Shoot brief kon niet worden gegenereerd.</div>
+  {% endif %}
+
+</div><!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
