@@ -143,8 +143,10 @@ def _detect_campaign_type(rows: list[dict]) -> str:
     if not indicators:
         return "leads"
     purchases = sum(1 for i in indicators if "purchase" in i or "sale" in i)
-    awareness = sum(1 for i in indicators if "thruplay" in i or "reach" in i or "impression" in i or "view" in i)
-    leads = sum(1 for i in indicators if "lead" in i or "message" in i or "contact" in i or "form" in i)
+    awareness = sum(1 for i in indicators if "thruplay" in i or ("view" in i and "view_content" not in i))
+    leads = sum(1 for i in indicators if
+                "lead" in i or "message" in i or "contact" in i or "form" in i
+                or "custom" in i)  # custom conversies = doorgaans leads/signups
     counts = {"purchases": purchases, "awareness": awareness, "leads": leads}
     best_count = max(counts.values())
     if best_count == 0:
@@ -157,15 +159,24 @@ def _detect_campaign_type(rows: list[dict]) -> str:
 
 
 def _is_primary_result(result_indicator: str, campaign_type: str) -> bool:
-    ind = result_indicator.lower()
+    ind = result_indicator.lower().strip()
+
+    # Lege indicator → altijd meenemen
     if not ind:
+        return True
+
+    # view_content is nooit een primaire conversie
+    if "view_content" in ind:
         return False
+
+    # Purchases-campagne: alleen purchase/sale
     if campaign_type == "purchases":
         return "purchase" in ind or "sale" in ind
-    if campaign_type == "leads":
-        return any(k in ind for k in ["lead", "message", "contact", "form"])
-    if campaign_type == "awareness":
-        return any(k in ind for k in ["thruplay", "reach", "impression", "view"])
+
+    # Leads/awareness/custom: alles behalve expliciete purchases telt mee
+    if "purchase" in ind or "sale" in ind:
+        return False
+
     return True
 
 
