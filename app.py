@@ -104,7 +104,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
     # Urgent actions: geld-verbrandende ads en ad fatigue
     urgent_actions = []
     for a in all_ads:
-        if a.results == 0 and a.spend > 15:
+        if a.results == 0 and a.spend > 50:
             urgent_actions.append({
                 "type": "burning", "ad_name": a.ad_name,
                 "ad_set_name": a.ad_set_name, "spend": round(a.spend),
@@ -384,13 +384,13 @@ def _classify_ads(all_ads, summary):
     if is_leads:
         avg = summary.avg_cost_per_result
         winners = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0 and a.cost_per_result < avg * 0.85]
-        losers  = [a for a in all_ads if a.results == 0 and a.spend > 15]
+        losers  = [a for a in all_ads if a.results == 0 and a.spend > 50]
         if not winners:
             winners = sorted([a for a in all_ads if a.results > 0], key=lambda x: x.cost_per_result)[:3]
     else:
         avg = summary.avg_roas
         winners = [a for a in all_ads if a.roas > avg * 1.2 and a.roas > 0]
-        losers  = [a for a in all_ads if a.roas < avg * 0.5 and a.spend > 15]
+        losers  = [a for a in all_ads if a.roas < avg * 0.5 and a.spend > 50]
         if not winners:
             winners = sorted([a for a in all_ads if a.roas > 0], key=lambda x: x.roas, reverse=True)[:3]
     return winners[:4], losers[:3]

@@ -148,7 +148,7 @@ def _fallback_loser(ad: Ad, summary: AnalysisSummary) -> dict:
         "failure_reason": reason,
         "failure_explanation": expl,
         "fix_direction": fix,
-        "should_kill": ad.results == 0 and ad.spend > 25,
-        "kill_reasoning": "Geen resultaten bij voldoende budget — stop en herstructureer met nieuw concept." if ad.results == 0 and ad.spend > 25
+        "should_kill": ad.results == 0 and ad.spend > 50,
+        "kill_reasoning": "Geen resultaten bij voldoende budget — stop en herstructureer met nieuw concept." if ad.results == 0 and ad.spend > 50
                           else "Budget te laag voor conclusie — geef €30-50 meer en meet opnieuw.",
     }
