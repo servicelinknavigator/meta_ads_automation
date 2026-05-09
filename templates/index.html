@@ -997,7 +997,7 @@ const layout = (title) => ({
   yaxis: { gridcolor: '#F1F5F9', zeroline: false },
   bargap: 0.35,
 });
-const cfg = { responsive: true, displayModeBar: false };
+const cfg = { responsive: true, displayModeBar: false, staticPlot: true };
 
 Plotly.newPlot('chartSpend', [{
   type: 'bar', orientation: 'h',
