@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 COLUMN_MAP = {
+    # ── Engels ────────────────────────────────────────────────────────────────
     "campaign name": "campaign_name",
     "campaign id": "campaign_id",
     "ad set name": "ad_set_name",
@@ -41,7 +42,7 @@ COLUMN_MAP = {
     "result indicator": "result_indicator",
     "purchase roas (return on ad spend)": "roas",
     "website purchase roas (return on ad spend)": "roas",
-    # lead generation columns
+    # Engels — leads
     "leads": "results",
     "on-facebook leads": "results",
     "website leads": "results",
@@ -53,12 +54,82 @@ COLUMN_MAP = {
     "cost per messaging conversation started (usd)": "cost_per_result",
     "cost per on-facebook lead (eur)": "cost_per_result",
     "cost per on-facebook lead (usd)": "cost_per_result",
+
+    # ── Nederlands ────────────────────────────────────────────────────────────
+    "naam campagne": "campaign_name",
+    "campagnenaam": "campaign_name",
+    "campagne-id": "campaign_id",
+    "campagne id": "campaign_id",
+    "naam advertentieset": "ad_set_name",
+    "advertentiesetnaam": "ad_set_name",
+    "id advertentieset": "ad_set_id",
+    "advertentieset-id": "ad_set_id",
+    "naam advertentie": "ad_name",
+    "advertentienaam": "ad_name",
+    "advertentie-id": "ad_id",
+    "dag": "day",
+    "bereik": "reach",
+    "vertoningen": "impressions",
+    "frequentie": "frequency",
+    "besteed bedrag (eur)": "spend",
+    "besteed bedrag (usd)": "spend",
+    "besteed bedrag": "spend",
+    "klikken (alle)": "clicks",
+    "linkkliks": "link_clicks",
+    "link-kliks": "link_clicks",
+    "ctr (alle)(%)": "ctr",
+    "ctr (alle) (%)": "ctr",
+    "ctr (klikfrequentie van links)(%)": "ctr_link",
+    "ctr (klikfrequentie van links) (%)": "ctr_link",
+    "kpk (alle) (eur)": "cpc",
+    "kpk (alle) (usd)": "cpc",
+    "kpk (alle)": "cpc",
+    "kosten per linkklik (eur)": "cpc_link",
+    "kosten per linkklik (usd)": "cpc_link",
+    "kosten per linkklik": "cpc_link",
+    "kpm (kosten per 1.000 vertoningen bereikt) (eur)": "cpm",
+    "kpm (kosten per 1.000 vertoningen bereikt) (usd)": "cpm",
+    "kpm (kosten per 1.000 vertoningen bereikt)": "cpm",
+    "resultaten": "results",
+    "kosten per resultaat (eur)": "cost_per_result",
+    "kosten per resultaat (usd)": "cost_per_result",
+    "kosten per resultaat": "cost_per_result",
+    "resultaatindicator": "result_indicator",
+    "resultaat-indicator": "result_indicator",
+    "aankoop-roas (rendement op advertentie-uitgaven)": "roas",
+    "aankoop roas (rendement op advertentie-uitgaven)": "roas",
+    "website-aankoop-roas (rendement op advertentie-uitgaven)": "roas",
+    # Nederlands — leads
+    "leads": "results",
+    "facebook-leads": "results",
+    "websiteleads": "results",
+    "gestarte gesprekken via berichten": "results",
+    "kosten per lead (eur)": "cost_per_result",
+    "kosten per lead (usd)": "cost_per_result",
+    "kosten per lead": "cost_per_result",
+    "kosten per gestart gesprek via berichten (eur)": "cost_per_result",
+    "kosten per gestart gesprek via berichten (usd)": "cost_per_result",
+    "kosten per facebook-lead (eur)": "cost_per_result",
+    "kosten per facebook-lead (usd)": "cost_per_result",
 }
 
-_CLICK_COLUMNS = {"clicks (all)", "link clicks", "ctr (all)(%)", "ctr (all) (%)",
-                  "ctr (link click-through rate)(%)", "ctr (link click-through rate) (%)",
-                  "cpc (all) (eur)", "cpc (all) (usd)", "cpc (all)",
-                  "cost per link click (eur)", "cost per link click (usd)", "cost per link click"}
+# Kolomnamen die aangeven dat click-data aanwezig is (EN + NL)
+_CLICK_COLUMNS = {
+    # Engels
+    "clicks (all)", "link clicks",
+    "ctr (all)(%)", "ctr (all) (%)",
+    "ctr (link click-through rate)(%)", "ctr (link click-through rate) (%)",
+    "cpc (all) (eur)", "cpc (all) (usd)", "cpc (all)",
+    "cost per link click (eur)", "cost per link click (usd)", "cost per link click",
+    # Nederlands
+    "klikken (alle)", "linkkliks", "link-kliks",
+    "ctr (alle)(%)", "ctr (alle) (%)",
+    "kpk (alle) (eur)", "kpk (alle) (usd)", "kpk (alle)",
+    "kosten per linkklik (eur)", "kosten per linkklik (usd)", "kosten per linkklik",
+}
+
+# Nederlandse kolomnamen voor de advertentienaam (voor aggregate-row detectie)
+_AD_NAME_COLUMNS = {"ad name", "naam advertentie", "advertentienaam"}
 
 NUMERIC_FIELDS = [
     "reach", "impressions", "frequency", "spend", "clicks",
@@ -104,9 +175,9 @@ def _normalize_row(raw_row: dict) -> dict:
 
 
 def _is_aggregate_row(raw_row: dict) -> bool:
-    """Return True for Meta's summary/totals rows that have no Ad name."""
+    """Return True for Meta's summary/totals rows (no ad name, EN or NL)."""
     for key, val in raw_row.items():
-        if key.strip().lower() == "ad name":
+        if key.strip().lower() in _AD_NAME_COLUMNS:
             return not val or not val.strip()
     return False
 
