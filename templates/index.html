@@ -594,7 +594,7 @@
           </div>
           {% endif %}
         </div>
-        <div class="hero-title" style="font-size:1.5rem;">{{ s.num_campaigns }} campagne{{ 's' if s.num_campaigns != 1 }} &middot; {{ s.num_ad_sets }} ad sets &middot; {{ s.num_ads }} advertenties</div>
+        <div class="hero-title" style="font-size:1.5rem;">{{ s.num_campaigns }} campagne{{ 's' if s.num_campaigns != 1 }} &middot; {{ s.num_ad_sets }} ad sets &middot; {{ s.num_ads }} advertenties &middot; <span style="color:{% if s.total_results > 0 %}#6ee7b7{% else %}#fca5a5{% endif %};">{{ s.total_results }} {{ s.result_label | lower }}</span></div>
       </div>
     </div>
   </div>
