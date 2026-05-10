@@ -1,4 +1,5 @@
 import csv
+import io
 from pathlib import Path
 
 
@@ -216,14 +217,10 @@ def _is_aggregate_row(raw_row: dict) -> bool:
     return False
 
 
-def parse_csv(filepath: str | Path) -> list[dict]:
-    with open(filepath, newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        fieldnames_lower = {h.strip().lower() for h in (reader.fieldnames or [])}
-        raw_rows = list(reader)
-
+def _parse_reader(reader: csv.DictReader) -> list[dict]:
+    fieldnames_lower = {h.strip().lower() for h in (reader.fieldnames or [])}
+    raw_rows = list(reader)
     has_click_data = bool(fieldnames_lower & _CLICK_COLUMNS)
-
     rows = []
     for raw in raw_rows:
         if _is_aggregate_row(raw):
@@ -232,6 +229,18 @@ def parse_csv(filepath: str | Path) -> list[dict]:
         row["_has_click_data"] = has_click_data
         rows.append(row)
     return rows
+
+
+def parse_csv(filepath: str | Path) -> list[dict]:
+    with open(filepath, newline="", encoding="utf-8-sig") as f:
+        return _parse_reader(csv.DictReader(f))
+
+
+def parse_csv_string(content: str) -> list[dict]:
+    """Parse CSV from a string (e.g. retrieved from the database)."""
+    # Strip BOM if present
+    content = content.lstrip("﻿")
+    return _parse_reader(csv.DictReader(io.StringIO(content)))
 
 
 def load_dummy_data() -> list[dict]:

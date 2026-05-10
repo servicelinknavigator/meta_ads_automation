@@ -103,6 +103,8 @@ def init_schema() -> None:
             campaign_type VARCHAR(20)
         );
 
+        ALTER TABLE uploads ADD COLUMN IF NOT EXISTS csv_content TEXT;
+
         CREATE TABLE IF NOT EXISTS hook_snapshots (
             id          SERIAL PRIMARY KEY,
             client_id   INTEGER REFERENCES clients(id) ON DELETE CASCADE,
@@ -208,19 +210,30 @@ def delete_client(client_id: int) -> None:
 
 def save_upload(client_id: int, filename: str, date_from: str | None, date_to: str | None,
                 total_spend: float, total_results: int, avg_cpl: float, avg_roas: float,
-                avg_ctr: float, avg_frequency: float, num_ads: int, campaign_type: str) -> int:
+                avg_ctr: float, avg_frequency: float, num_ads: int, campaign_type: str,
+                csv_content: str | None = None) -> int:
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO uploads
                 (client_id, filename, date_from, date_to, total_spend, total_results,
-                 avg_cpl, avg_roas, avg_ctr, avg_frequency, num_ads, campaign_type)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+                 avg_cpl, avg_roas, avg_ctr, avg_frequency, num_ads, campaign_type, csv_content)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
         """, (client_id, filename, date_from, date_to, total_spend, total_results,
-              avg_cpl, avg_roas, avg_ctr, avg_frequency, num_ads, campaign_type))
+              avg_cpl, avg_roas, avg_ctr, avg_frequency, num_ads, campaign_type, csv_content))
         upload_id = cur.fetchone()[0]
         cur.close()
     return upload_id
+
+
+def get_upload_csv_content(upload_id: int) -> str | None:
+    """Return the stored CSV text for a historical upload, or None if not available."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT csv_content FROM uploads WHERE id = %s", (upload_id,))
+        row = cur.fetchone()
+        cur.close()
+    return row[0] if row else None
 
 
 def get_uploads(client_id: int) -> list[dict]:

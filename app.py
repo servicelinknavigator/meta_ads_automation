@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from core.csv_parser import parse_csv, load_dummy_data, validate_csv
+from core.csv_parser import parse_csv, parse_csv_string, load_dummy_data, validate_csv
 from core.analysis import (
     build_campaigns, build_summary, build_ad_chart_data, get_all_ads,
     get_date_range, filter_rows_by_date, build_wow_comparison,
@@ -115,7 +115,8 @@ def _compute_thresholds(form=None) -> dict:
 
 
 def _process_df(rows: list, campaign_type_override: str = "",
-                date_from: str = "", date_to: str = "") -> dict:
+                date_from: str = "", date_to: str = "",
+                csv_content: str | None = None) -> dict:
     valid, errors = validate_csv(rows)
     if not valid:
         return {"error": "; ".join(errors)}
@@ -226,6 +227,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
                 avg_frequency=summary.avg_frequency,
                 num_ads=summary.num_ads,
                 campaign_type=summary.campaign_type,
+                csv_content=csv_content,
             )
             session["upload_id"] = upload_id
 
@@ -553,27 +555,42 @@ def client_load_upload(client_id, upload_id):
         flash("Upload niet gevonden.", "danger")
         return redirect(url_for("client_profile", client_id=client_id))
 
-    # Try to find the file on disk
-    file_path = UPLOAD_FOLDER / upload["filename"] if upload.get("filename") else None
-    if file_path and file_path.exists():
-        try:
-            rows = parse_csv(file_path)
-            session["data_source"] = str(file_path)
-            session.permanent = True
-            result = _process_df(rows,
-                                  campaign_type_override=upload.get("campaign_type", ""),
-                                  date_from=upload.get("date_from") or "",
-                                  date_to=upload.get("date_to") or "")
-            if "error" in result:
-                flash(result["error"], "danger")
-                return redirect(url_for("client_profile", client_id=client_id))
-            thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
-            return render_template("index.html", result=result, demo=False, thresholds=thresholds)
-        except Exception as e:
-            logger.warning("Historical load failed: %s", e)
+    # 1. Try to load CSV content from database
+    rows = None
+    try:
+        csv_text = db.get_upload_csv_content(upload_id)
+        if csv_text:
+            rows = parse_csv_string(csv_text)
+            session["data_source"] = f"db:{upload_id}"
+    except Exception as e:
+        logger.warning("DB csv_content load failed: %s", e)
 
-    flash("CSV bestand niet meer beschikbaar op de server. Upload de export opnieuw.", "warning")
-    return redirect(url_for("client_profile", client_id=client_id))
+    # 2. Fall back to disk if DB content not available
+    if rows is None:
+        file_path = UPLOAD_FOLDER / upload["filename"] if upload.get("filename") else None
+        if file_path and file_path.exists():
+            try:
+                rows = parse_csv(file_path)
+                session["data_source"] = str(file_path)
+            except Exception as e:
+                logger.warning("Disk CSV load failed: %s", e)
+
+    if rows is None:
+        flash("CSV niet meer beschikbaar. Upload de export opnieuw.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    session.permanent = True
+    result = _process_df(rows,
+                         campaign_type_override=upload.get("campaign_type", ""),
+                         date_from=upload.get("date_from") or "",
+                         date_to=upload.get("date_to") or "")
+    if "error" in result:
+        flash(result["error"], "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+    thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
+    client = db.get_client(client_id)
+    return render_template("index.html", result=result, demo=False,
+                           thresholds=thresholds, active_client=client)
 
 
 # ── Main analysis routes ───────────────────────────────────────────────────────
@@ -648,9 +665,16 @@ def upload():
         flash(f"CSV bevat {len(rows):,} rijen — maximum is {max_rows:,}.", "danger")
         return redirect(url_for("index"))
 
+    # Read raw text for persistent storage in DB
+    try:
+        csv_text = save_path.read_text(encoding="utf-8-sig")
+    except Exception:
+        csv_text = None
+
     campaign_type_override = request.form.get("campaign_type_override", "")
     thresholds = _compute_thresholds(request.form)
-    result = _process_df(rows, campaign_type_override=campaign_type_override)
+    result = _process_df(rows, campaign_type_override=campaign_type_override,
+                         csv_content=csv_text)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
