@@ -495,6 +495,7 @@ def client_profile(client_id):
             flash("Klant niet gevonden.", "danger")
             return redirect(url_for("clients"))
         session["client_id"] = client_id
+        session.pop("guest_mode", None)
         uploads      = db.get_uploads(client_id)
         shoot_briefs = db.get_shoot_briefs(client_id)
         hook_perf    = db.get_all_hook_performance(client_id)
@@ -580,7 +581,12 @@ def client_load_upload(client_id, upload_id):
 @app.route("/", methods=["GET"])
 @login_required
 def index():
-    # Show active client badge if one is selected
+    # Redirect to client overview when there's no active context
+    has_client = bool(session.get("client_id"))
+    is_guest   = bool(session.get("guest_mode"))
+    if not has_client and not is_guest:
+        return redirect(url_for("clients"))
+
     client = None
     client_id = session.get("client_id")
     if client_id and db.is_available():
@@ -589,6 +595,14 @@ def index():
         except Exception:
             pass
     return render_template("index.html", result=None, thresholds=None, active_client=client)
+
+
+@app.route("/guest")
+@login_required
+def guest():
+    session.pop("client_id", None)
+    session["guest_mode"] = True
+    return redirect(url_for("index"))
 
 
 @app.route("/demo", methods=["GET"])

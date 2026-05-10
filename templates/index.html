@@ -497,6 +497,24 @@
   </div>
 </nav>
 
+<!-- Active client banner -->
+{% if not result and active_client %}
+<div style="background:linear-gradient(90deg,var(--navy) 0%,#1e4d8c 100%);padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.08);">
+  <div class="container-xl d-flex align-items-center justify-content-between">
+    <span style="color:#fff;font-size:.83rem;font-weight:600;">
+      <i class="bi bi-building me-2" style="color:var(--accent);"></i>
+      Je analyseert voor: <strong>{{ active_client.name }}</strong>
+      {% if active_client.cpl_benchmark %}
+      <span style="margin-left:.75rem;font-size:.72rem;font-weight:400;color:rgba(255,255,255,.55);">Benchmark CPL €{{ active_client.cpl_benchmark }}</span>
+      {% endif %}
+    </span>
+    <a href="/clients" style="font-size:.75rem;color:rgba(255,255,255,.5);text-decoration:none;display:flex;align-items:center;gap:5px;">
+      <i class="bi bi-arrow-left-right"></i>Andere klant
+    </a>
+  </div>
+</div>
+{% endif %}
+
 <!-- Demo bar -->
 {% if result and demo %}
 <div class="demo-bar">
@@ -936,6 +954,22 @@ function setType(val, btn) {
 }
 
 const PRESETS = { fit20: [40, 60], belladonna: [30, 50] };
+
+{% if active_client and active_client.cpl_benchmark and not result %}
+// Pre-fill thresholds from client benchmark
+(function() {
+  const bench = {{ active_client.cpl_benchmark | float }};
+  const winVal = Math.round(bench);
+  const midVal = Math.round(bench * 1.5);
+  const inpWin = document.getElementById('inp_winner');
+  const inpMid = document.getElementById('inp_mid');
+  if (inpWin) inpWin.value = winVal;
+  if (inpMid) inpMid.value = midVal;
+  // Activate the custom preset button
+  const customBtn = document.querySelector('.preset-btn[onclick*="custom"]');
+  if (customBtn) setPreset('custom', customBtn);
+})();
+{% endif %}
 
 function setPreset(preset, btn) {
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
