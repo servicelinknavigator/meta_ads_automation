@@ -69,33 +69,126 @@ _FORMAT_KEYWORDS: list[tuple[list[str], str]] = [
 # Version pattern: V1, V2, V3, v1, version 1, hook 1, etc.
 _VERSION_RE = re.compile(r"\b[vV](\d+)\b|\bversie\s*(\d+)\b|\bhook\s*(\d+)\b", re.IGNORECASE)
 
+# ── Structured name parser ─────────────────────────────────────────────────────
+# Convention: "Format - Hook - V# - Beschrijving"
 
-# ── Detection helpers ─────────────────────────────────────────────────────────
+_STRUCTURED_FORMAT_MAP: dict[str, str] = {
+    "static":        "static",
+    "short":         "reels",
+    "reel":          "reels",
+    "reels":         "reels",
+    "ugc":           "ugc",
+    "testimonial":   "testimonial",
+    "carousel":      "carousel",
+    "talking head":  "talking_head",
+    "th":            "talking_head",
+    "animation":     "animation",
+    "before after":  "before_after",
+    "product demo":  "product_demo",
+    "demo":          "product_demo",
+}
+
+_STRUCTURED_HOOK_MAP: dict[str, str] = {
+    "proof":         "proof",
+    "promise":       "promise",
+    "frustration":   "frustration",
+    "frust":         "frustration",
+    "recognition":   "recognition",
+    "recog":         "recognition",
+    "curiosity":     "curiosity",
+    "curio":         "curiosity",
+    "social proof":  "social_proof",
+    "social":        "social_proof",
+    "problem solve": "problem_solve",
+    "problem":       "problem_solve",
+    "educational":   "educational",
+    "edu":           "educational",
+    "confrontation": "confrontation",
+    "confr":         "confrontation",
+    "urgency":       "urgency",
+}
+
+_parsed_cache: dict[str, dict] = {}
+
+
+def parse_ad_name(ad_name: str) -> dict:
+    """
+    Parse a structured ad name: "Format - Hook - V# - Beschrijving"
+    Returns {hook, format, version, description, structured}.
+    Falls back to keyword matching when the name doesn't follow the convention.
+    """
+    if ad_name in _parsed_cache:
+        return _parsed_cache[ad_name]
+
+    parts = [p.strip() for p in ad_name.split(" - ")]
+    result = None
+
+    if len(parts) >= 3:
+        fmt_key  = parts[0].lower()
+        hook_key = parts[1].lower()
+        fmt  = _STRUCTURED_FORMAT_MAP.get(fmt_key)
+        hook = _STRUCTURED_HOOK_MAP.get(hook_key)
+
+        if fmt and hook:
+            version = None
+            desc_start = 2
+            v_match = re.match(r"[vV](\d+)$", parts[2])
+            if v_match:
+                version = int(v_match.group(1))
+                desc_start = 3
+            description = " - ".join(parts[desc_start:]) if len(parts) > desc_start else ""
+            result = {
+                "hook": hook,
+                "format": fmt,
+                "version": version,
+                "description": description,
+                "structured": True,
+            }
+
+    if result is None:
+        # Keyword fallback
+        lower = ad_name.lower()
+        hook = "unknown"
+        for keywords, hook_type in _HOOK_KEYWORDS:
+            if any(kw in lower for kw in keywords):
+                hook = hook_type
+                break
+        if hook == "unknown" and "?" in ad_name:
+            hook = "curiosity"
+
+        fmt = "talking_head"
+        for keywords, fmt_type in _FORMAT_KEYWORDS:
+            if any(kw in lower for kw in keywords):
+                fmt = fmt_type
+                break
+
+        m = _VERSION_RE.search(ad_name)
+        version = int(m.group(1) or m.group(2) or m.group(3)) if m else None
+
+        result = {
+            "hook": hook,
+            "format": fmt,
+            "version": version,
+            "description": ad_name,
+            "structured": False,
+        }
+
+    _parsed_cache[ad_name] = result
+    return result
+
+
+# ── Detection helpers (thin wrappers around parse_ad_name) ───────────────────
 
 def detect_hook(ad_name: str) -> str:
-    lower = ad_name.lower()
-    for keywords, hook_type in _HOOK_KEYWORDS:
-        if any(kw in lower for kw in keywords):
-            return hook_type
-    if "?" in ad_name:
-        return "curiosity"
-    return "unknown"
+    return parse_ad_name(ad_name)["hook"]
 
 
 def detect_format(ad_name: str) -> str:
-    lower = ad_name.lower()
-    for keywords, fmt in _FORMAT_KEYWORDS:
-        if any(kw in lower for kw in keywords):
-            return fmt
-    return "talking_head"  # SLN default
+    return parse_ad_name(ad_name)["format"]
 
 
 def detect_version(ad_name: str) -> int | None:
-    m = _VERSION_RE.search(ad_name)
-    if m:
-        v = m.group(1) or m.group(2) or m.group(3)
-        return int(v)
-    return None
+    return parse_ad_name(ad_name)["version"]
 
 
 # ── Aggregate performance ─────────────────────────────────────────────────────
