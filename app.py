@@ -499,6 +499,7 @@ def client_new():
             cpl_benchmark=cpl,
             roas_benchmark=roas,
             notes=request.form.get("notes", ""),
+            client_context=request.form.get("client_context", ""),
         )
         session["client_id"] = client_id
         flash(f"{name} aangemaakt.", "success")
@@ -544,6 +545,7 @@ def client_edit(client_id):
             cpl_benchmark=cpl,
             roas_benchmark=roas,
             notes=request.form.get("notes", ""),
+            client_context=request.form.get("client_context", ""),
         )
         flash("Klant bijgewerkt.", "success")
     except Exception as e:
@@ -948,7 +950,18 @@ def hooks():
     untested_formats = get_untested_formats(all_ads, overrides=name_overrides)
 
     top_ad = next((a for a in all_ads if a.results > 0 and a.cost_per_result > 0), None)
-    shoot_brief = generate_shoot_brief(summary, all_ads, top_ad=top_ad)
+    client_id = session.get("client_id")
+    _client = None
+    if client_id and db.is_available():
+        try:
+            _client = db.get_client(client_id)
+        except Exception:
+            pass
+    shoot_brief = generate_shoot_brief(
+        summary, all_ads, top_ad=top_ad,
+        client_name=_client["name"] if _client else "",
+        client_context=_client.get("client_context") or "" if _client else "",
+    )
 
     # Save shoot brief to DB if client is active
     client_id = session.get("client_id")

@@ -631,8 +631,19 @@
             </div>
           </div>
           <div class="mb-2">
-            <label class="form-label">Notities</label>
-            <textarea name="notes" class="form-control" rows="3">{{ client.notes or '' }}</textarea>
+            <label class="form-label">Notities <span style="font-weight:400;color:var(--muted);">(intern)</span></label>
+            <textarea name="notes" class="form-control" rows="2">{{ client.notes or '' }}</textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">
+              Klant context <span style="font-weight:400;color:var(--muted);">— voor shoot brief scripts</span>
+            </label>
+            <textarea name="client_context" class="form-control" rows="7"
+              placeholder="Beschrijf de klant zodat scripts vanuit hun perspectief geschreven worden:&#10;&#10;Wat doen ze: ...&#10;Doelgroep: ...&#10;Resultaat dat ze verkopen: ...&#10;USP: ...&#10;Tone of voice: ...&#10;CTA: ...">{{ client.client_context or '' }}</textarea>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:.3rem;">
+              <i class="bi bi-info-circle me-1"></i>
+              Wordt gebruikt door de AI om scripts te schrijven vanuit het perspectief van deze klant, niet van SLN.
+            </div>
           </div>
         </div>
         <div class="modal-footer justify-content-between">

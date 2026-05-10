@@ -83,8 +83,11 @@ def init_schema() -> None:
             cpl_benchmark FLOAT,
             roas_benchmark FLOAT,
             notes       TEXT,
+            client_context TEXT,
             created_at  TIMESTAMP DEFAULT NOW()
         );
+
+        ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_context TEXT;
 
         CREATE TABLE IF NOT EXISTS uploads (
             id            SERIAL PRIMARY KEY,
@@ -185,27 +188,29 @@ def get_client(client_id: int) -> dict | None:
 
 def create_client(name: str, industry: str = "", campaign_type: str = "leads",
                   cpl_benchmark: float | None = None, roas_benchmark: float | None = None,
-                  notes: str = "") -> int:
+                  notes: str = "", client_context: str = "") -> int:
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO clients (name, industry, campaign_type, cpl_benchmark, roas_benchmark, notes)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
-        """, (name, industry, campaign_type, cpl_benchmark, roas_benchmark, notes))
+            INSERT INTO clients (name, industry, campaign_type, cpl_benchmark, roas_benchmark, notes, client_context)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+        """, (name, industry, campaign_type, cpl_benchmark, roas_benchmark, notes, client_context))
         client_id = cur.fetchone()[0]
         cur.close()
     return client_id
 
 
 def update_client(client_id: int, name: str, industry: str, campaign_type: str,
-                  cpl_benchmark: float | None, roas_benchmark: float | None, notes: str) -> None:
+                  cpl_benchmark: float | None, roas_benchmark: float | None,
+                  notes: str, client_context: str = "") -> None:
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             UPDATE clients SET name=%s, industry=%s, campaign_type=%s,
-                cpl_benchmark=%s, roas_benchmark=%s, notes=%s
+                cpl_benchmark=%s, roas_benchmark=%s, notes=%s, client_context=%s
             WHERE id=%s
-        """, (name, industry, campaign_type, cpl_benchmark, roas_benchmark, notes, client_id))
+        """, (name, industry, campaign_type, cpl_benchmark, roas_benchmark,
+              notes, client_context, client_id))
         cur.close()
 
 
