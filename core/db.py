@@ -13,33 +13,44 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 _pool = None
+_pool_error: str = ""   # stores last connection error for diagnostics
 
 
 def _get_pool():
-    global _pool
+    global _pool, _pool_error
     if _pool is not None:
         return _pool
     url = os.getenv("DATABASE_URL", "")
     if not url:
+        _pool_error = "DATABASE_URL is niet ingesteld in de omgevingsvariabelen."
         return None
     # Supabase requires SSL — append sslmode if not present
     if "supabase" in url and "sslmode" not in url:
-        url += "?sslmode=require"
+        sep = "&" if "?" in url else "?"
+        url += f"{sep}sslmode=require"
     try:
         from psycopg2 import pool as pg_pool
         _pool = pg_pool.SimpleConnectionPool(1, 5, url)
+        _pool_error = ""
         logger.info("DB pool created OK")
         return _pool
     except Exception as e:
+        _pool_error = str(e)
         logger.error("DB pool init failed: %s", e)
         return None
+
+
+def get_connection_error() -> str:
+    """Returns the last DB connection error, empty string if OK."""
+    _get_pool()  # trigger attempt if not yet tried
+    return _pool_error
 
 
 @contextmanager
 def _conn():
     pool = _get_pool()
     if pool is None:
-        raise RuntimeError("DB niet beschikbaar — controleer DATABASE_URL en Supabase verbinding.")
+        raise RuntimeError(f"DB niet beschikbaar: {_pool_error or 'onbekende fout'}")
     conn = pool.getconn()
     try:
         yield conn

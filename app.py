@@ -415,6 +415,36 @@ def logout():
 
 # ── Client routes ──────────────────────────────────────────────────────────────
 
+@app.route("/debug/db")
+@login_required
+def debug_db():
+    url_raw = os.getenv("DATABASE_URL", "")
+    url_safe = ""
+    if url_raw:
+        # mask password for display
+        import re as _re
+        url_safe = _re.sub(r"://([^:]+):([^@]+)@", r"://\1:***@", url_raw)
+    err = db.get_connection_error()
+    available = db.is_available()
+    return f"""<pre style="font-family:monospace;padding:2rem;font-size:.9rem;">
+DB Diagnostiek
+==============
+DATABASE_URL ingesteld : {'JA' if url_raw else 'NEE'}
+DATABASE_URL (masked)  : {url_safe or '(leeg)'}
+Pool beschikbaar       : {'JA' if available else 'NEE'}
+Laatste fout           : {err or '(geen)'}
+psycopg2 versie        : {_psycopg2_version()}
+</pre>"""
+
+
+def _psycopg2_version() -> str:
+    try:
+        import psycopg2
+        return psycopg2.__version__
+    except ImportError:
+        return "NIET GEINSTALLEERD"
+
+
 @app.route("/clients")
 @login_required
 def clients():
@@ -422,8 +452,11 @@ def clients():
         client_list = db.get_clients() if db.is_available() else []
     except Exception as e:
         logger.error("DB get_clients failed: %s", e)
-        flash(f"Database niet bereikbaar: {e}", "danger")
+        flash(f"Database fout: {e}", "danger")
         client_list = []
+    if not db.is_available():
+        err = db.get_connection_error()
+        flash(f"Database niet bereikbaar — {err} (ga naar /debug/db voor details)", "danger")
     return render_template("clients.html", clients=client_list)
 
 
