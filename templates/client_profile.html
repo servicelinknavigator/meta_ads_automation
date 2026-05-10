@@ -320,7 +320,61 @@
     <div class="col-lg-7">
 
       <!-- Upload history -->
-      <div class="section-title"><i class="bi bi-upload" style="color:var(--accent);"></i>Upload history</div>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="section-title" style="margin-bottom:0;"><i class="bi bi-upload" style="color:var(--accent);"></i>Upload history</div>
+        <button class="btn-nav-accent" style="font-size:.75rem;padding:.3rem .85rem;"
+                onclick="document.getElementById('inlineUpload').classList.toggle('d-none')">
+          <i class="bi bi-plus-lg me-1"></i>Nieuwe upload
+        </button>
+      </div>
+
+      <!-- Inline upload form -->
+      <div id="inlineUpload" class="{% if not uploads %}{% else %}d-none{% endif %} mb-3"
+           style="background:#fff;border:1.5px dashed var(--accent);border-radius:12px;padding:1.25rem 1.5rem;">
+        <form action="/upload" method="POST" enctype="multipart/form-data"
+              onsubmit="this.querySelector('.upload-btn').disabled=true;this.querySelector('.upload-btn').innerHTML='<i class=\'bi bi-hourglass-split me-1\'></i>Analyseren...';">
+          <div style="font-weight:700;font-size:.85rem;color:var(--dark);margin-bottom:.9rem;">
+            <i class="bi bi-file-earmark-spreadsheet me-2" style="color:var(--accent);"></i>CSV uploaden voor {{ client.name }}
+          </div>
+
+          <div class="mb-3">
+            <label style="font-size:.75rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem;">Bestand</label>
+            <input type="file" name="csv_file" accept=".csv" required
+                   style="font-size:.8rem;border:1.5px solid var(--border);border-radius:8px;padding:.4rem .6rem;width:100%;background:#f8fafc;" />
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-6">
+              <label style="font-size:.75rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem;">Campagnetype</label>
+              <select name="campaign_type_override"
+                      style="width:100%;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;padding:.4rem .6rem;background:#fff;">
+                <option value="">Auto-detect</option>
+                <option value="leads" {% if client.campaign_type == 'leads' %}selected{% endif %}>Leads / CPL</option>
+                <option value="purchases" {% if client.campaign_type == 'purchases' %}selected{% endif %}>E-Commerce / ROAS</option>
+                <option value="awareness" {% if client.campaign_type == 'awareness' %}selected{% endif %}>Awareness</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label style="font-size:.75rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem;">CPL drempel (winnaar)</label>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:.8rem;color:var(--muted);">€</span>
+                <input type="number" name="threshold_winner" min="1"
+                       value="{{ client.cpl_benchmark|int if client.cpl_benchmark else 30 }}"
+                       style="width:80px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;padding:.4rem .5rem;" />
+                <input type="hidden" name="threshold_preset" value="custom" />
+                <input type="number" name="threshold_mid" min="2"
+                       value="{{ (client.cpl_benchmark * 1.5)|int if client.cpl_benchmark else 50 }}"
+                       class="d-none" />
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-nav-accent upload-btn" style="width:100%;justify-content:center;padding:.55rem;">
+            <i class="bi bi-graph-up me-2"></i>Analyseren
+          </button>
+        </form>
+      </div>
+
       <div class="card-sln mb-4">
         {% if uploads %}
         <table class="upload-table">
@@ -374,7 +428,7 @@
         {% else %}
         <div class="empty-note">
           <i class="bi bi-upload" style="font-size:1.5rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
-          Nog geen uploads voor deze klant.<br>Upload een CSV via het dashboard.
+          Nog geen uploads — gebruik het formulier hierboven.
         </div>
         {% endif %}
       </div>
