@@ -30,7 +30,7 @@ class _PDF(FPDF):
         self.set_font("Helvetica", "B", 13)
         self.set_text_color(255, 255, 255)
         self.set_xy(10, 4)
-        self.cell(0, 10, "Meta Ads Rapport — SLN Solutions", align="L")
+        self.cell(0, 10, _t("Meta Ads Rapport — SLN Solutions"), align="L")
         self.set_font("Helvetica", "", 9)
         self.set_xy(0, 4)
         self.cell(200, 10, date.today().strftime("%d-%m-%Y"), align="R")
