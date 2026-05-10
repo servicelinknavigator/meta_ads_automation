@@ -67,6 +67,81 @@ def _best_format(fmt_perf: list[dict]) -> str:
     return "talking_head"
 
 
+_DEFAULT_SCRIPTS: dict[str, list[dict]] = {
+    "recognition": [
+        {"time": "0-5s",   "tekst": "Ken jij dat gevoel dat je weet dat er meer in zit, maar je weet niet hoe je de volgende stap zet?"},
+        {"time": "5-18s",  "tekst": "Veel ondernemers herkennen dit. Ze hebben een goed product, een goede dienst — maar de advertenties brengen niet de klanten die ze zoeken. En dat is frustrerend, want je weet dat het potentieel er is."},
+        {"time": "18-25s", "tekst": "Wij helpen bedrijven om precies die klanten te bereiken. Met een bewezen aanpak die specifiek op jouw doelgroep is afgestemd."},
+        {"time": "25-30s", "tekst": "Plan een gratis gesprek via de link in de bio — en ontdek wat er mogelijk is voor jouw business."},
+    ],
+    "frustration": [
+        {"time": "0-5s",   "tekst": "Ziek van advertenties die veel kosten maar niks opleveren?"},
+        {"time": "5-18s",  "tekst": "Je bent niet de enige. Het probleem zit bijna nooit in je product — het zit in de boodschap en de targeting. Verkeerde hook, verkeerde doelgroep, te weinig testen. Dat kost je elke dag omzet."},
+        {"time": "18-25s", "tekst": "Wij hebben een systeem ontwikkeld dat exact test wat werkt voor jouw markt — en wat je kunt stoppen."},
+        {"time": "25-30s", "tekst": "Gebruik de link in de bio voor een gratis analyse van jouw advertenties."},
+    ],
+    "curiosity": [
+        {"time": "0-5s",   "tekst": "Wist je dat 80% van de Meta advertenties faalt om één reden — en dat de meeste ondernemers die reden nooit ontdekken?"},
+        {"time": "5-18s",  "tekst": "Het zit in de eerste drie seconden. Als je kijker in dat moment niet stopt met scrollen, is het geld weg. Maar als je weet welke hook werkt voor jouw doelgroep, verandert alles."},
+        {"time": "18-25s", "tekst": "Wij testen systematisch welke opening converteert — en schalen wat werkt."},
+        {"time": "25-30s", "tekst": "Benieuwd wat jouw best converterende hook is? Plan een gratis gesprek via de link."},
+    ],
+    "proof": [
+        {"time": "0-5s",   "tekst": "Deze klant daalde zijn CPL met 43% in zes weken — zonder extra budget."},
+        {"time": "5-18s",  "tekst": "Niet door meer geld uit te geven, maar door beter te testen. We analyseerden welke advertenties werkten en waarom, stopten met de rest, en schaalden wat bewezen was. Het resultaat spreekt voor zich."},
+        {"time": "18-25s", "tekst": "Dit is het systeem dat wij bij elke klant toepassen — data-gedreven, zonder giswerk."},
+        {"time": "25-30s", "tekst": "Wil je weten wat dit voor jouw account kan betekenen? Plan een gratis gesprek via de link in de bio."},
+    ],
+    "promise": [
+        {"time": "0-5s",   "tekst": "Binnen 30 dagen meetbaar resultaat — of we stoppen er samen mee."},
+        {"time": "5-18s",  "tekst": "Dat is geen loze belofte. Het is een systeem. In de eerste week analyseren we je huidige advertenties. In week twee testen we nieuwe hooks. Vanaf week drie schalen we wat werkt. Na 30 dagen weet je exact wat je account nodig heeft."},
+        {"time": "18-25s", "tekst": "Geen langlopende contracten, geen vage beloftes — alleen aantoonbare resultaten."},
+        {"time": "25-30s", "tekst": "Plan nu een gratis gesprek via de link in de bio."},
+    ],
+    "confrontation": [
+        {"time": "0-5s",   "tekst": "Stop met geld weggooien aan advertenties die niemand aanspreken."},
+        {"time": "5-18s",  "tekst": "Hard om te horen, maar de meeste Meta campagnes zijn simpelweg slecht geconfigureerd. Verkeerde boodschap, verkeerd moment, verkeerde doelgroep. En terwijl jij wacht, groeit je concurrent die het wél goed doet."},
+        {"time": "18-25s", "tekst": "Wij laten je zien waar het misgaat — en hoe je het omkeert met een bewezen aanpak."},
+        {"time": "25-30s", "tekst": "Gebruik de link in de bio voor een gratis advertentie-analyse."},
+    ],
+    "urgency": [
+        {"time": "0-5s",   "tekst": "Er zijn nog maar vijf plekken beschikbaar voor nieuwe klanten deze maand."},
+        {"time": "5-18s",  "tekst": "We werken bewust met een beperkt aantal klanten tegelijk — zodat we elk account de aandacht kunnen geven die het verdient. Vorige maand waren alle plekken binnen tien dagen bezet. Dit is je kans om dit kwartaal nog resultaat te boeken."},
+        {"time": "18-25s", "tekst": "Plan een gratis kennismakingsgesprek en ontdek of we een match zijn."},
+        {"time": "25-30s", "tekst": "Gebruik de link in de bio — voor de plaatsen vol zijn."},
+    ],
+    "problem_solve": [
+        {"time": "0-5s",   "tekst": "Dit is het probleem dat bijna elke ondernemer heeft met Meta advertenties — en zo los je het op."},
+        {"time": "5-18s",  "tekst": "Je gooit geld in een systeem dat je niet begrijpt, en hoopt op resultaat. Maar Meta beloont wie test. Wie data gebruikt. Wie weet welke boodschap aanslaat bij welke doelgroep. Dat is precies wat wij voor je doen."},
+        {"time": "18-25s", "tekst": "Stap één is simpel: analyseer wat je nu hebt. Stap twee: test wat werkt. Stap drie: schaal en win."},
+        {"time": "25-30s", "tekst": "Plan een gratis gesprek via de link en we beginnen volgende week."},
+    ],
+    "social_proof": [
+        {"time": "0-5s",   "tekst": "Meer dan 500 ondernemers gingen je al voor — dit is waarom ze kozen voor deze aanpak."},
+        {"time": "5-18s",  "tekst": "Ze hadden allemaal hetzelfde probleem: te hoge CPL, te weinig leads, te veel giswerk. Door systematisch te testen — hook na hook, format na format — zagen ze gemiddeld 35% daling in advertentiekosten binnen 60 dagen."},
+        {"time": "18-25s", "tekst": "Geen uitzondering. Geen toeval. Een bewezen systeem dat voor elke markt werkt."},
+        {"time": "25-30s", "tekst": "Plan een gratis gesprek via de link en zie wat het voor jou kan doen."},
+    ],
+    "educational": [
+        {"time": "0-5s",   "tekst": "Ik ga je in 30 seconden uitleggen waarom je Meta advertenties waarschijnlijk te duur zijn."},
+        {"time": "5-18s",  "tekst": "Het probleem zit in de hook — de eerste drie seconden van je advertentie. Als die niet resoneert, stopt de kijker niet. En als hij niet stopt, betaal jij voor niets. De meeste adverteerders testen nooit hun hook systematisch, en betalen daarvoor de prijs."},
+        {"time": "18-25s", "tekst": "Wij doen niets anders dan dit testen — en optimaliseren op basis van echte data."},
+        {"time": "25-30s", "tekst": "Wil je weten welke hook voor jóuw doelgroep werkt? Plan een gratis gesprek via de link."},
+    ],
+}
+
+
+def _default_script(hook: str, cta: str) -> list[dict]:
+    if hook in _DEFAULT_SCRIPTS:
+        return _DEFAULT_SCRIPTS[hook]
+    return [
+        {"time": "0-5s",   "tekst": _default_opening(hook)},
+        {"time": "5-20s",  "tekst": "Wij hebben een bewezen aanpak ontwikkeld die specifiek op jouw situatie is afgestemd — data-gedreven en zonder giswerk."},
+        {"time": "20-25s", "tekst": "Onze klanten zien gemiddeld binnen vier weken meetbaar verschil."},
+        {"time": "25-30s", "tekst": f"{cta} — gebruik de link in de bio."},
+    ]
+
+
 def _summary_context(summary: AnalysisSummary, hook_perf: list[dict], fmt_perf: list[dict],
                      untested_hooks: list[str]) -> str:
     is_leads = summary.campaign_type != "purchases"
@@ -139,7 +214,13 @@ Return ALLEEN dit JSON:
       "shots": ["shot 1 beschrijving", "shot 2", "shot 3", "shot 4", "shot 5"],
       "key_message": "de kern van het ad in 1 zin",
       "cta": "call-to-action tekst",
-      "hypothese": "wat je wilt bewijzen met deze shoot"
+      "hypothese": "wat je wilt bewijzen met deze shoot",
+      "script": [
+        {{"time": "0-5s",  "tekst": "exacte openingsregels die de presenter uitspreekt"}},
+        {{"time": "5-18s", "tekst": "body: probleem, context of bewijs in spreektaal"}},
+        {{"time": "18-25s","tekst": "oplossing of sociale bewijskracht"}},
+        {{"time": "25-30s","tekst": "CTA: wat de kijker nu moet doen"}}
+      ]
     }},
     {{
       "type": "new_hook",
@@ -155,7 +236,13 @@ Return ALLEEN dit JSON:
       "shots": ["...", "...", "...", "...", "..."],
       "key_message": "...",
       "cta": "...",
-      "hypothese": "..."
+      "hypothese": "...",
+      "script": [
+        {{"time": "0-5s",  "tekst": "..."}},
+        {{"time": "5-18s", "tekst": "..."}},
+        {{"time": "18-25s","tekst": "..."}},
+        {{"time": "25-30s","tekst": "..."}}
+      ]
     }},
     {{
       "type": "format_test",
@@ -171,7 +258,13 @@ Return ALLEEN dit JSON:
       "shots": ["...", "...", "...", "...", "..."],
       "key_message": "...",
       "cta": "...",
-      "hypothese": "..."
+      "hypothese": "...",
+      "script": [
+        {{"time": "0-5s",  "tekst": "..."}},
+        {{"time": "5-20s", "tekst": "..."}},
+        {{"time": "20-35s","tekst": "..."}},
+        {{"time": "35-45s","tekst": "..."}}
+      ]
     }}
   ]
 }}"""
@@ -213,6 +306,7 @@ def _fallback_brief(
             "key_message": f"SLN helpt je {summary.campaign_type}-resultaten te verbeteren.",
             "cta": cta,
             "hypothese": f"Test of de {hook}-hook beter converteert dan het huidige gemiddelde (CPL €{summary.avg_cost_per_result}).",
+            "script": _default_script(hook, cta),
             "_fallback": True,
         }
 

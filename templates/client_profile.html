@@ -183,6 +183,36 @@
     .empty-note {
       text-align:center; padding:2rem; color:var(--muted); font-size:.83rem;
     }
+    .merge-bar {
+      background:linear-gradient(90deg,#1e3a5c,#1a4f8a);
+      border-radius:10px; padding:.6rem 1rem;
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:.75rem; display:none;
+    }
+    .merge-bar-text { color:rgba(255,255,255,.9); font-size:.8rem; font-weight:600; }
+    .btn-merge {
+      background:var(--accent); color:#fff; border:none;
+      padding:.35rem .9rem; border-radius:7px; font-size:.78rem;
+      font-weight:700; cursor:pointer; white-space:nowrap;
+    }
+    .btn-merge:hover { background:var(--accent2); }
+    .script-mini { display:none; }
+    .script-mini.open { display:block; }
+    .script-mini-line {
+      display:flex; gap:6px; font-size:.72rem; padding:3px 0;
+      border-bottom:1px solid #e0f2fe;
+    }
+    .script-mini-line:last-child { border-bottom:none; }
+    .script-mini-time {
+      flex-shrink:0; font-size:.62rem; font-weight:700; color:#0284c7;
+      background:#e0f2fe; padding:1px 5px; border-radius:4px;
+      white-space:nowrap; margin-top:1px; height:fit-content;
+    }
+    .script-mini-tekst { color:#374151; font-style:italic; line-height:1.4; }
+    .btn-script-mini {
+      font-size:.67rem; color:#0284c7; background:none; border:none;
+      padding:0; cursor:pointer; font-weight:600; text-decoration:underline;
+    }
   </style>
 </head>
 <body>
@@ -375,11 +405,20 @@
         </form>
       </div>
 
+      {% if uploads|length >= 2 %}
+      <form id="mergeForm" method="POST" action="/clients/{{ client.id }}/merge">
+        <div class="merge-bar" id="mergeBar">
+          <span class="merge-bar-text"><i class="bi bi-layers me-2"></i><span id="mergeCount">0</span> uploads geselecteerd</span>
+          <button type="submit" class="btn-merge"><i class="bi bi-graph-up-arrow me-1"></i>Samenvoegen &amp; analyseren</button>
+        </div>
+      {% endif %}
+
       <div class="card-sln mb-4">
         {% if uploads %}
         <table class="upload-table">
           <thead>
             <tr>
+              {% if uploads|length >= 2 %}<th style="width:36px;"></th>{% endif %}
               <th>Periode</th>
               <th class="text-end">Spend</th>
               <th class="text-end">Resultaten</th>
@@ -391,6 +430,13 @@
           <tbody>
             {% for u in uploads %}
             <tr onclick="loadUpload({{ u.id }})" style="cursor:pointer;">
+              {% if uploads|length >= 2 %}
+              <td onclick="event.stopPropagation();" style="padding:.4rem .5rem;">
+                <input type="checkbox" name="upload_ids" value="{{ u.id }}"
+                       class="merge-cb form-check-input" style="cursor:pointer;"
+                       onchange="updateMergeBar()">
+              </td>
+              {% endif %}
               <td>
                 <div style="font-weight:600;font-size:.8rem;">
                   {% if u.date_from %}{{ u.date_from }} – {{ u.date_to }}{% else %}{{ u.uploaded_at.strftime('%d %b %Y') }}{% endif %}
@@ -432,6 +478,10 @@
         </div>
         {% endif %}
       </div>
+
+      {% if uploads|length >= 2 %}
+      </form>
+      {% endif %}
 
       <!-- Hook performance across all uploads -->
       {% if hook_perf %}
@@ -493,6 +543,7 @@
           </div>
           <div class="brief-body" id="brief-{{ loop.index0 }}">
             {% for shoot in brief.brief_json %}
+            {% set sid = 'sb' ~ loop.index0 ~ '-' ~ loop.index %}
             <div class="shoot-mini">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="shoot-type-badge shoot-{{ shoot.type }}">
@@ -502,6 +553,21 @@
               </div>
               <div class="shoot-mini-name">{{ shoot.naam_suggestie }}</div>
               <div class="shoot-mini-hyp">{{ shoot.hypothese }}</div>
+              {% if shoot.script %}
+              <div class="mt-2">
+                <button class="btn-script-mini" onclick="toggleScriptMini('{{ sid }}')">
+                  <i class="bi bi-mic me-1"></i>script bekijken
+                </button>
+                <div class="script-mini" id="{{ sid }}" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:.5rem .6rem;margin-top:.4rem;">
+                  {% for line in shoot.script %}
+                  <div class="script-mini-line">
+                    <span class="script-mini-time">{{ line.time }}</span>
+                    <span class="script-mini-tekst">"{{ line.tekst }}"</span>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
             </div>
             {% endfor %}
           </div>
@@ -591,6 +657,21 @@ function toggleBrief(i) {
 }
 function loadUpload(id) {
   window.location.href = '/clients/{{ client.id }}/load/' + id;
+}
+function updateMergeBar() {
+  const bar = document.getElementById('mergeBar');
+  if (!bar) return;
+  const checked = document.querySelectorAll('.merge-cb:checked').length;
+  document.getElementById('mergeCount').textContent = checked;
+  bar.style.display = checked >= 2 ? 'flex' : 'none';
+}
+function toggleScriptMini(id) {
+  const el = document.getElementById(id);
+  const btn = el.previousElementSibling;
+  el.classList.toggle('open');
+  btn.innerHTML = el.classList.contains('open')
+    ? '<i class="bi bi-mic me-1"></i>script verbergen'
+    : '<i class="bi bi-mic me-1"></i>script bekijken';
 }
 </script>
 </body>

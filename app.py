@@ -564,6 +564,67 @@ def client_delete(client_id):
     return redirect(url_for("clients"))
 
 
+@app.route("/clients/<int:client_id>/merge", methods=["POST"])
+@login_required
+def client_merge_uploads(client_id):
+    upload_ids = request.form.getlist("upload_ids", type=int)
+    if len(upload_ids) < 2:
+        flash("Selecteer minimaal 2 uploads om samen te voegen.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    session["client_id"] = client_id
+    name_overrides = _load_name_overrides()
+
+    all_rows: list = []
+    seen_keys: set = set()
+    loaded_count = 0
+
+    for uid in sorted(upload_ids):  # oldest first → consistent dedup order
+        try:
+            csv_text = db.get_upload_csv_content(uid)
+            if not csv_text:
+                flash(f"Upload {uid} heeft geen opgeslagen CSV — sla op via de Laad-knop.", "warning")
+                continue
+            rows = parse_csv_string(csv_text)
+            for row in rows:
+                key = (
+                    row.get("ad_id") or row.get("ad_name", ""),
+                    row.get("campaign_id") or row.get("campaign_name", ""),
+                    row.get("day", ""),
+                )
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_rows.append(row)
+            loaded_count += 1
+        except Exception as e:
+            logger.warning("Merge: upload %s laden mislukt: %s", uid, e)
+
+    if not all_rows:
+        flash("Geen data beschikbaar voor de geselecteerde uploads.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    # Run analysis without saving a new DB upload (temporarily unset client_id)
+    session.pop("client_id", None)
+    result = _process_df(all_rows, name_overrides=name_overrides)
+    session["client_id"] = client_id
+
+    if "error" in result:
+        flash(result["error"], "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    session.permanent = True
+    thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
+    session["thresholds"] = thresholds
+    session["data_source"] = f"merged:{','.join(str(i) for i in upload_ids)}"
+
+    client = db.get_client(client_id)
+    return render_template("index.html", result=result, demo=False,
+                           thresholds=thresholds, active_client=client,
+                           unknown_ads=result.get("unknown_ads", []),
+                           tag_suggestions=result.get("tag_suggestions", {}),
+                           merged_uploads=loaded_count)
+
+
 @app.route("/clients/<int:client_id>/uploads/<int:upload_id>/delete", methods=["POST"])
 @login_required
 def upload_delete(client_id, upload_id):
