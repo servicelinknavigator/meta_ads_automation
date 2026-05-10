@@ -798,6 +798,112 @@
     <!-- Left: Charts + Table -->
     <div class="col-xl-8">
 
+      <!-- ── Tagging panel ───────────────────────────────────────────── -->
+      {% if unknown_ads %}
+      <div class="sln-card mb-4" id="tagPanel">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div style="font-size:.95rem;font-weight:800;color:var(--dark);display:flex;align-items:center;gap:8px;">
+            <i class="bi bi-tags-fill" style="color:var(--accent);"></i>
+            {{ unknown_ads|length }} advertentie{{ 's' if unknown_ads|length != 1 }} niet herkend
+            <span style="font-size:.72rem;font-weight:500;color:var(--muted);">— AI heeft een voorstel gemaakt</span>
+          </div>
+          <button onclick="document.getElementById('tagPanel').style.display='none'"
+                  style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0;">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;">
+          Controleer en bevestig de categorieën. Eenmalig opgeslagen → volgende uploads automatisch correct.
+        </div>
+
+        <div id="tagRows">
+          {% set hooks = ['proof','promise','frustration','recognition','curiosity','social_proof','problem_solve','educational','confrontation','urgency','unknown'] %}
+          {% set formats = ['static','reels','ugc','testimonial','carousel','talking_head','animation','before_after','product_demo'] %}
+          {% for ad in unknown_ads %}
+          {% set sug = tag_suggestions.get(ad.ad_name, {}) %}
+          <div class="tag-row" data-idx="{{ loop.index0 }}">
+            <div class="tag-adname">
+              <div style="font-weight:600;font-size:.82rem;color:var(--dark);">{{ ad.ad_name }}</div>
+              <div style="font-size:.7rem;color:var(--muted);">{{ ad.campaign_name }} · €{{ ad.spend }} · {{ ad.results }} resultaten</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <select class="tag-select hook-sel" data-name="{{ ad.ad_name }}">
+                {% for h in hooks %}
+                <option value="{{ h }}" {% if sug.get('hook','unknown') == h %}selected{% endif %}>{{ h }}</option>
+                {% endfor %}
+              </select>
+              <select class="tag-select fmt-sel" data-name="{{ ad.ad_name }}">
+                {% for f in formats %}
+                <option value="{{ f }}" {% if sug.get('format','talking_head') == f %}selected{% endif %}>{{ f }}</option>
+                {% endfor %}
+              </select>
+              <span class="tag-ai-badge" title="AI suggestie">
+                <i class="bi bi-stars"></i> AI
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex align-items-center gap-3 mt-3">
+          <button class="btn-sln" style="padding:.5rem 1.4rem;font-size:.83rem;" onclick="saveTaggings()">
+            <i class="bi bi-check2 me-1"></i>Opslaan
+          </button>
+          <span id="tagSaveStatus" style="font-size:.78rem;color:var(--success);display:none;">
+            <i class="bi bi-check-circle-fill me-1"></i>Opgeslagen — volgende upload automatisch herkend
+          </span>
+        </div>
+      </div>
+
+      <style>
+        .tag-row {
+          display:flex; align-items:center; justify-content:space-between;
+          padding:.55rem .75rem; border-radius:8px; margin-bottom:.4rem;
+          background:#f8fafc; border:1px solid var(--border); flex-wrap:wrap; gap:.5rem;
+        }
+        .tag-adname { flex:1; min-width:180px; }
+        .tag-select {
+          border:1.5px solid var(--border); border-radius:7px;
+          font-size:.75rem; padding:.3rem .5rem; background:#fff;
+          color:var(--text); cursor:pointer;
+        }
+        .tag-select:focus { border-color:var(--accent); outline:none; }
+        .tag-ai-badge {
+          font-size:.68rem; font-weight:600; color:var(--accent);
+          background:rgba(232,84,26,.08); border-radius:20px;
+          padding:2px 8px; white-space:nowrap;
+        }
+      </style>
+
+      <script>
+      function saveTaggings() {
+        const rows = document.querySelectorAll('.tag-row');
+        const mappings = [];
+        rows.forEach(row => {
+          const hookSel = row.querySelector('.hook-sel');
+          const fmtSel  = row.querySelector('.fmt-sel');
+          if (!hookSel || !fmtSel) return;
+          const name = hookSel.dataset.name;
+          if (hookSel.value && hookSel.value !== 'unknown') {
+            mappings.push({ ad_name: name, hook_type: hookSel.value, format_type: fmtSel.value });
+          }
+        });
+        if (!mappings.length) return;
+        const form = new FormData();
+        form.append('mappings', JSON.stringify(mappings));
+        fetch('/tag-ads', { method: 'POST', body: form })
+          .then(r => r.json())
+          .then(d => {
+            if (d.ok) {
+              document.getElementById('tagSaveStatus').style.display = 'inline-flex';
+              document.querySelectorAll('.tag-row').forEach(r => r.style.opacity = '.4');
+            }
+          });
+      }
+      </script>
+      {% endif %}
+
       <!-- Charts -->
       <div class="sln-card mb-4">
         <div class="sln-card-title"><i class="bi bi-bar-chart-fill"></i>Prestaties per advertentie (top 10 op spend)</div>

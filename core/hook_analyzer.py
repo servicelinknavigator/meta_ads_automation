@@ -219,10 +219,19 @@ def _finalize(rec: dict) -> dict:
     }
 
 
-def aggregate_hook_performance(ads: list[Ad]) -> list[dict]:
+def _resolve_hook(ad_name: str, overrides: dict) -> str:
+    return overrides.get(ad_name, {}).get("hook") or detect_hook(ad_name)
+
+
+def _resolve_format(ad_name: str, overrides: dict) -> str:
+    return overrides.get(ad_name, {}).get("format") or detect_format(ad_name)
+
+
+def aggregate_hook_performance(ads: list[Ad], overrides: dict | None = None) -> list[dict]:
+    overrides = overrides or {}
     buckets: dict[str, dict] = defaultdict(_perf_record)
     for ad in ads:
-        hook = detect_hook(ad.ad_name)
+        hook = _resolve_hook(ad.ad_name, overrides)
         _add_to(buckets[hook], ad)
     rows = []
     for hook, rec in buckets.items():
@@ -233,10 +242,11 @@ def aggregate_hook_performance(ads: list[Ad]) -> list[dict]:
     return rows
 
 
-def aggregate_format_performance(ads: list[Ad]) -> list[dict]:
+def aggregate_format_performance(ads: list[Ad], overrides: dict | None = None) -> list[dict]:
+    overrides = overrides or {}
     buckets: dict[str, dict] = defaultdict(_perf_record)
     for ad in ads:
-        fmt = detect_format(ad.ad_name)
+        fmt = _resolve_format(ad.ad_name, overrides)
         _add_to(buckets[fmt], ad)
     rows = []
     for fmt, rec in buckets.items():
@@ -247,10 +257,11 @@ def aggregate_format_performance(ads: list[Ad]) -> list[dict]:
     return rows
 
 
-def get_winning_combinations(ads: list[Ad], top_n: int = 3) -> list[dict]:
+def get_winning_combinations(ads: list[Ad], top_n: int = 3, overrides: dict | None = None) -> list[dict]:
+    overrides = overrides or {}
     buckets: dict[tuple[str, str], dict] = defaultdict(_perf_record)
     for ad in ads:
-        key = (detect_hook(ad.ad_name), detect_format(ad.ad_name))
+        key = (_resolve_hook(ad.ad_name, overrides), _resolve_format(ad.ad_name, overrides))
         _add_to(buckets[key], ad)
     combos = []
     for (hook, fmt), rec in buckets.items():
@@ -261,14 +272,35 @@ def get_winning_combinations(ads: list[Ad], top_n: int = 3) -> list[dict]:
     return combos[:top_n]
 
 
-def get_untested_hooks(ads: list[Ad]) -> list[str]:
-    tested = {detect_hook(a.ad_name) for a in ads}
+def get_untested_hooks(ads: list[Ad], overrides: dict | None = None) -> list[str]:
+    overrides = overrides or {}
+    tested = {_resolve_hook(a.ad_name, overrides) for a in ads}
     return [h for h in HOOK_TYPES if h not in tested and h != "unknown"]
 
 
-def get_untested_formats(ads: list[Ad]) -> list[str]:
-    tested = {detect_format(a.ad_name) for a in ads}
+def get_untested_formats(ads: list[Ad], overrides: dict | None = None) -> list[str]:
+    overrides = overrides or {}
+    tested = {_resolve_format(a.ad_name, overrides) for a in ads}
     return [f for f in FORMAT_TYPES if f not in tested]
+
+
+def get_unknown_ads(ads: list[Ad], overrides: dict | None = None) -> list[dict]:
+    """Return unique ads with hook=unknown that are not in overrides, sorted by spend desc."""
+    overrides = overrides or {}
+    seen: set[str] = set()
+    result = []
+    for ad in sorted(ads, key=lambda a: a.spend, reverse=True):
+        if ad.ad_name in seen:
+            continue
+        seen.add(ad.ad_name)
+        if ad.ad_name not in overrides and detect_hook(ad.ad_name) == "unknown" and ad.spend > 0:
+            result.append({
+                "ad_name": ad.ad_name,
+                "campaign_name": ad.campaign_name,
+                "spend": round(ad.spend, 2),
+                "results": ad.results,
+            })
+    return result[:30]
 
 
 def get_version_distribution(ads: list[Ad]) -> dict[str, int]:

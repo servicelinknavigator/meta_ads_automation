@@ -47,6 +47,57 @@ def call_json(prompt: str, system: str = _SLN_SYSTEM_JSON, max_tokens: int = 800
         return {"_error": str(e)}
 
 
+def suggest_ad_tags(ads_info: list[dict]) -> dict[str, dict]:
+    """
+    Batch-suggest hook and format for unknown ad names.
+    ads_info: [{"ad_name": str, "campaign_name": str, "spend": float, "results": int}]
+    Returns: {ad_name: {"hook": str, "format": str}}
+    """
+    if not ads_info or not has_api():
+        return {}
+
+    lines = "\n".join(
+        f"{i + 1}. \"{a['ad_name']}\" | campagne: {a['campaign_name']} | "
+        f"spend: €{a['spend']:.0f} | resultaten: {a['results']}"
+        for i, a in enumerate(ads_info)
+    )
+
+    hook_opts = "proof, promise, frustration, recognition, curiosity, social_proof, problem_solve, educational, confrontation, urgency"
+    fmt_opts  = "static, reels, ugc, testimonial, carousel, talking_head, animation, before_after, product_demo"
+
+    prompt = f"""Categoriseer deze Meta advertenties op basis van naam, campagne en prestaties.
+Kies voor elke advertentie het meest waarschijnlijke hook type en format type.
+
+Hook opties: {hook_opts}
+Format opties: {fmt_opts}
+
+Advertenties:
+{lines}
+
+Return uitsluitend dit JSON object (sleutels zijn de nummers als string):
+{{
+  "1": {{"hook": "...", "format": "..."}},
+  "2": {{"hook": "...", "format": "..."}}
+}}"""
+
+    raw = call_json(prompt, max_tokens=800)
+    if "_error" in raw:
+        return {}
+
+    result: dict[str, dict] = {}
+    for idx_str, tags in raw.items():
+        try:
+            i = int(idx_str) - 1
+            if 0 <= i < len(ads_info):
+                result[ads_info[i]["ad_name"]] = {
+                    "hook":   tags.get("hook", "unknown"),
+                    "format": tags.get("format", "talking_head"),
+                }
+        except (ValueError, KeyError):
+            continue
+    return result
+
+
 def call_text(prompt: str, system: str = _SLN_SYSTEM_TEXT, max_tokens: int = 1200) -> str:
     try:
         model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")

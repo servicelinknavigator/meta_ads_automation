@@ -32,7 +32,9 @@ from core.smart_generator import generate_testkit
 from core.hook_analyzer import (
     aggregate_hook_performance, aggregate_format_performance,
     get_winning_combinations, get_untested_hooks, get_untested_formats,
+    get_unknown_ads,
 )
+from core.ai_client import suggest_ad_tags
 from core.shoot_brief import generate_shoot_brief
 import core.db as db
 
@@ -116,7 +118,8 @@ def _compute_thresholds(form=None) -> dict:
 
 def _process_df(rows: list, campaign_type_override: str = "",
                 date_from: str = "", date_to: str = "",
-                csv_content: str | None = None) -> dict:
+                csv_content: str | None = None,
+                name_overrides: dict | None = None) -> dict:
     valid, errors = validate_csv(rows)
     if not valid:
         return {"error": "; ".join(errors)}
@@ -231,9 +234,9 @@ def _process_df(rows: list, campaign_type_override: str = "",
             )
             session["upload_id"] = upload_id
 
-            # Hook + format snapshots
-            hook_perf = aggregate_hook_performance(all_ads)
-            fmt_perf  = aggregate_format_performance(all_ads)
+            # Hook + format snapshots (use overrides so snapshots are correctly labelled)
+            hook_perf = aggregate_hook_performance(all_ads, overrides=name_overrides)
+            fmt_perf  = aggregate_format_performance(all_ads, overrides=name_overrides)
             db.save_hook_snapshots(client_id, upload_id, hook_perf)
             db.save_hook_snapshots(client_id, upload_id,
                                    [{**r, "hook_type": None} for r in fmt_perf])
@@ -241,6 +244,10 @@ def _process_df(rows: list, campaign_type_override: str = "",
             db.save_insights(client_id, upload_id, insights)
         except Exception as e:
             logger.warning("DB save failed: %s", e)
+
+    # Detect unknown ads for tagging UI
+    unknown_ads = get_unknown_ads(all_ads, overrides=name_overrides)
+    tag_suggestions = suggest_ad_tags(unknown_ads) if unknown_ads else {}
 
     return {
         "summary":        summary,
@@ -250,6 +257,8 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "date_range":     date_range,
         "wow":            wow,
         "urgent_actions": urgent_actions,
+        "unknown_ads":    unknown_ads,
+        "tag_suggestions": tag_suggestions,
     }
 
 
@@ -673,8 +682,18 @@ def upload():
 
     campaign_type_override = request.form.get("campaign_type_override", "")
     thresholds = _compute_thresholds(request.form)
+
+    # Load client's saved ad name mappings
+    name_overrides: dict = {}
+    _client_id_for_upload = session.get("client_id")
+    if _client_id_for_upload and db.is_available():
+        try:
+            name_overrides = db.get_ad_name_mappings(_client_id_for_upload)
+        except Exception:
+            pass
+
     result = _process_df(rows, campaign_type_override=campaign_type_override,
-                         csv_content=csv_text)
+                         csv_content=csv_text, name_overrides=name_overrides)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
@@ -692,7 +711,23 @@ def upload():
             pass
 
     return render_template("index.html", result=result, demo=False,
-                           thresholds=thresholds, active_client=client)
+                           thresholds=thresholds, active_client=client,
+                           unknown_ads=result.get("unknown_ads", []),
+                           tag_suggestions=result.get("tag_suggestions", {}))
+
+
+@app.route("/tag-ads", methods=["POST"])
+@login_required
+def tag_ads():
+    client_id = session.get("client_id")
+    if not client_id or not db.is_available():
+        return {"ok": False, "error": "Geen actieve klant"}, 400
+    try:
+        mappings = json.loads(request.form.get("mappings", "[]"))
+        saved = db.save_ad_name_mappings(client_id, mappings)
+        return {"ok": True, "saved": saved}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}, 500
 
 
 @app.route("/reanalyze", methods=["POST"])

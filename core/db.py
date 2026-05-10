@@ -105,6 +105,16 @@ def init_schema() -> None:
 
         ALTER TABLE uploads ADD COLUMN IF NOT EXISTS csv_content TEXT;
 
+        CREATE TABLE IF NOT EXISTS ad_name_mappings (
+            id          SERIAL PRIMARY KEY,
+            client_id   INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+            ad_name     VARCHAR(500) NOT NULL,
+            hook_type   VARCHAR(50),
+            format_type VARCHAR(50),
+            created_at  TIMESTAMP DEFAULT NOW(),
+            UNIQUE(client_id, ad_name)
+        );
+
         CREATE TABLE IF NOT EXISTS hook_snapshots (
             id          SERIAL PRIMARY KEY,
             client_id   INTEGER REFERENCES clients(id) ON DELETE CASCADE,
@@ -246,6 +256,42 @@ def get_uploads(client_id: int) -> list[dict]:
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
         cur.close()
     return rows
+
+
+# ── Ad name mappings ──────────────────────────────────────────────────────────
+
+def get_ad_name_mappings(client_id: int) -> dict[str, dict]:
+    """Return {ad_name: {hook, format}} for all saved mappings of this client."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT ad_name, hook_type, format_type FROM ad_name_mappings
+            WHERE client_id = %s
+        """, (client_id,))
+        rows = cur.fetchall()
+        cur.close()
+    return {r[0]: {"hook": r[1], "format": r[2]} for r in rows}
+
+
+def save_ad_name_mappings(client_id: int, mappings: list[dict]) -> int:
+    """
+    Upsert a list of {ad_name, hook_type, format_type} dicts.
+    Returns the number of rows saved.
+    """
+    if not mappings:
+        return 0
+    with _conn() as conn:
+        cur = conn.cursor()
+        for m in mappings:
+            cur.execute("""
+                INSERT INTO ad_name_mappings (client_id, ad_name, hook_type, format_type)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (client_id, ad_name)
+                DO UPDATE SET hook_type = EXCLUDED.hook_type,
+                              format_type = EXCLUDED.format_type
+            """, (client_id, m["ad_name"], m["hook_type"], m["format_type"]))
+        cur.close()
+    return len(mappings)
 
 
 # ── Hook snapshots ────────────────────────────────────────────────────────────
