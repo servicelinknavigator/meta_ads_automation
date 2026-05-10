@@ -67,82 +67,93 @@ def _best_format(fmt_perf: list[dict]) -> str:
     return "talking_head"
 
 
+def _strip_em_dashes(text: str) -> str:
+    """Replace em dashes with natural spoken alternatives."""
+    return text.replace(" — ", ". ").replace("— ", ". ").replace(" —", ".")
+
+
+def _clean_script(script: list[dict]) -> list[dict]:
+    """Remove em dashes from all script lines."""
+    return [{"time": s["time"], "tekst": _strip_em_dashes(s["tekst"])} for s in script]
+
+
 def _build_script(hook: str, cta: str, client_name: str) -> list[dict]:
     """
-    Returns a fallback script written from the CLIENT's perspective —
-    the client is advertising to their own customers, not SLN to leads.
-    Scripts are intentionally calm, personal and recognition-based (fit20 ICP-inspired).
+    Returns a fallback script written from the CLIENT's perspective.
+    The client is advertising to their own customers, not SLN to leads.
+    Scripts are calm, personal and recognition-based (fit20 ICP-inspired).
+    No em dashes anywhere.
     """
     n = client_name or "ons"
 
     scripts: dict[str, list[dict]] = {
         "recognition": [
-            {"time": "0-5s",   "tekst": "Herken je dat gevoel? Je wil wél iets doen, maar de drempel voelt groot."},
-            {"time": "5-18s",  "tekst": f"Veel mensen denken: 'Ik moet eigenlijk iets doen' — maar weten niet waar te beginnen. Of ze hebben het al geprobeerd en het hield toch niet vol. Bij {n} snappen we dat. Daarom doen we het anders."},
+            {"time": "0-5s",   "tekst": "Herken je dat gevoel? Je wil wel iets doen, maar de drempel voelt groot."},
+            {"time": "5-18s",  "tekst": f"Veel mensen denken: ik moet eigenlijk iets doen. Maar ze weten niet waar te beginnen. Of ze hebben het al geprobeerd en het hield toch niet vol. Bij {n} snappen we dat. Daarom doen we het anders."},
             {"time": "18-25s", "tekst": f"Persoonlijke begeleiding, op jouw tempo, zonder dat het je leven overneemt. Dat is wat {n} biedt."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link in de bio."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link in de bio."},
         ],
         "frustration": [
             {"time": "0-5s",   "tekst": "Je hebt het al zo vaak geprobeerd. En het houdt toch nooit vol."},
-            {"time": "5-18s",  "tekst": "Dat frustrerende gevoel is begrijpelijk. En het ligt niet aan jou — de meeste aanpakken zijn gewoon niet gemaakt voor mensen met een druk leven, lichamelijke klachten, of een hekel aan de sportschool."},
-            {"time": "18-25s", "tekst": f"Bij {n} is het anders. Laagdrempelig, persoonlijk, en wél vol te houden."},
-            {"time": "25-30s", "tekst": f"{cta} — link in de bio."},
+            {"time": "5-18s",  "tekst": "Dat frustrerende gevoel is begrijpelijk. En het ligt echt niet aan jou. De meeste aanpakken zijn gewoon niet gemaakt voor mensen met een druk leven, lichamelijke klachten, of een hekel aan de sportschool."},
+            {"time": "18-25s", "tekst": f"Bij {n} is het anders. Laagdrempelig, persoonlijk, en wel vol te houden."},
+            {"time": "25-30s", "tekst": f"{cta}. Link in de bio."},
         ],
         "curiosity": [
-            {"time": "0-5s",   "tekst": "Wist je dat je maar 20 minuten per week nodig hebt om écht sterker te worden?"},
-            {"time": "5-18s",  "tekst": f"De meeste mensen denken dat je uren moet investeren om resultaat te zien. Dat is een misvatting. Bij {n} werken we met een wetenschappelijk onderbouwde methode die in 20 minuten méér doet dan een uur in de sportschool."},
+            {"time": "0-5s",   "tekst": "Wist je dat je maar 20 minuten per week nodig hebt om echt sterker te worden?"},
+            {"time": "5-18s",  "tekst": f"De meeste mensen denken dat je uren moet investeren om resultaat te zien. Dat is een misvatting. Bij {n} werken we met een wetenschappelijk onderbouwde methode die in 20 minuten meer doet dan een uur in de sportschool."},
             {"time": "18-25s", "tekst": "Geen zweten, geen gedoe, geen volle zaal. Gewoon resultaat."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link."},
         ],
         "proof": [
             {"time": "0-5s",   "tekst": "Dit is wat onze leden zeggen na een paar maanden."},
-            {"time": "5-18s",  "tekst": "'Eindelijk iets dat ik volhoud.' 'Ik loop de trap op zonder moeite.' 'Ik voel me sterker dan in jaren.' Geen grote beloftes — gewoon wat mensen ervaren als ze beginnen met een aanpak die écht bij ze past."},
+            {"time": "5-18s",  "tekst": f"Eindelijk iets dat ik volhoud. Ik loop de trap op zonder moeite. Ik voel me sterker dan in jaren. Geen grote beloftes, gewoon wat mensen ervaren als ze beginnen met een aanpak die echt bij ze past. Bij {n}."},
             {"time": "18-25s", "tekst": f"Bij {n} staat persoonlijke begeleiding centraal. Niet een schema, maar een trainer die echt naar jou kijkt."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link in de bio."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link in de bio."},
         ],
         "promise": [
             {"time": "0-5s",   "tekst": "Stel je voor: in 20 minuten per week fitter, sterker en meer energie."},
-            {"time": "5-18s",  "tekst": f"Dat klinkt bijna te goed om waar te zijn. Maar het is precies wat onze leden ervaren. {n} werkt met EMS-technologie die in één sessie 90% van je spieren activeert. Wetenschappelijk bewezen, veilig en effectief — ook voor 50+."},
+            {"time": "5-18s",  "tekst": f"Dat klinkt bijna te goed om waar te zijn. Maar het is precies wat onze leden ervaren. {n} werkt met EMS-technologie die in één sessie 90% van je spieren activeert. Wetenschappelijk bewezen, veilig en effectief. Ook voor 50 plus."},
             {"time": "18-25s", "tekst": "Geen lange contracten. Geen gedoe. Gewoon resultaat dat je voelt."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link."},
         ],
         "confrontation": [
             {"time": "0-5s",   "tekst": "Stop met wachten op het perfecte moment. Dat moment komt toch niet."},
-            {"time": "5-18s",  "tekst": "Elke maand dat je wacht, is een maand dat je je minder fit voelt. Minder energie. Meer stijfheid. Dat hoeft niet. Een kleine stap — gewoon eens kennismaken — kan alles veranderen."},
+            {"time": "5-18s",  "tekst": "Elke maand dat je wacht, is een maand dat je je minder fit voelt. Minder energie. Meer stijfheid. Dat hoeft niet. Een kleine stap, gewoon eens kennismaken, kan alles veranderen."},
             {"time": "18-25s", "tekst": f"Bij {n} is de eerste stap gratis. Geen verplichtingen, geen druk."},
-            {"time": "25-30s", "tekst": f"{cta} — link in de bio."},
+            {"time": "25-30s", "tekst": f"{cta}. Link in de bio."},
         ],
         "urgency": [
             {"time": "0-5s",   "tekst": "We hebben nog een beperkt aantal plekken beschikbaar voor nieuwe leden."},
-            {"time": "5-18s",  "tekst": f"Bij {n} werken we bewust met kleine groepen — zodat je altijd persoonlijke aandacht krijgt. Dat betekent dat we niet onbeperkt nieuwe leden aannemen. En elke maand zijn die plekken snel bezet."},
+            {"time": "5-18s",  "tekst": f"Bij {n} werken we bewust met kleine groepen, zodat je altijd persoonlijke aandacht krijgt. Dat betekent dat we niet onbeperkt nieuwe leden aannemen. En elke maand zijn die plekken snel bezet."},
             {"time": "18-25s", "tekst": "Wil je dit kwartaal nog beginnen? Dan is nu het moment."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link voor de plekken vol zijn."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link voordat de plekken vol zijn."},
         ],
         "problem_solve": [
-            {"time": "0-5s",   "tekst": "Dit is het probleem dat veel mensen hebben — en zo lossen we het op."},
-            {"time": "5-18s",  "tekst": "Je wil fitter worden, maar een drukke sportschool past niet bij je. Je hebt weinig tijd. Je hebt misschien lichamelijke klachten. Je wil begeleiding die écht naar jou kijkt — niet een schema dat voor iedereen hetzelfde is."},
-            {"time": "18-25s", "tekst": f"Dat is precies waarom {n} bestaat. Persoonlijk, laagdrempelig, en vol te houden."},
-            {"time": "25-30s", "tekst": f"{cta} — link in de bio."},
+            {"time": "0-5s",   "tekst": "Dit is het probleem dat veel mensen hebben. En zo lossen we het op."},
+            {"time": "5-18s",  "tekst": f"Je wil fitter worden, maar een drukke sportschool past niet bij je. Je hebt weinig tijd. Je hebt misschien lichamelijke klachten. Je wil begeleiding die echt naar jou kijkt, niet een schema dat voor iedereen hetzelfde is. Dat is precies waarom {n} bestaat."},
+            {"time": "18-25s", "tekst": f"Persoonlijk, laagdrempelig, en vol te houden. Dat is {n}."},
+            {"time": "25-30s", "tekst": f"{cta}. Link in de bio."},
         ],
         "social_proof": [
             {"time": "0-5s",   "tekst": "Honderden mensen gingen je al voor. Dit is waarom ze bleven."},
-            {"time": "5-18s",  "tekst": f"Ze kwamen bij {n} met twijfels. 'Is dit iets voor mij?' 'Houd ik het vol?' Maar na de eerste proefles wisten ze het: dit is anders. Persoonlijk. Rustig. Zonder oordeel. Met aantoonbaar resultaat."},
+            {"time": "5-18s",  "tekst": f"Ze kwamen bij {n} met twijfels. Is dit iets voor mij? Houd ik het vol? Maar na de eerste proefles wisten ze het: dit is anders. Persoonlijk. Rustig. Zonder oordeel. Met aantoonbaar resultaat."},
             {"time": "18-25s", "tekst": "Geen hype. Geen grote beloftes. Gewoon tevreden leden die zich eindelijk sterker voelen."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link."},
         ],
         "educational": [
-            {"time": "0-5s",   "tekst": "Ik leg je in 30 seconden uit waarom 20 minuten per week écht genoeg is."},
-            {"time": "5-18s",  "tekst": f"EMS-training — die gebruikt {n} — activeert 90% van je spiergroepen tegelijk. Bij gewone training is dat zo'n 30-40%. Dat betekent: in één sessie van 20 minuten doe je effectief wat je normaal in 90 minuten zou doen. Zonder je te versleten te voelen."},
+            {"time": "0-5s",   "tekst": "Ik leg je in 30 seconden uit waarom 20 minuten per week echt genoeg is."},
+            {"time": "5-18s",  "tekst": f"De EMS-methode van {n} activeert 90% van je spiergroepen tegelijk. Bij gewone training is dat zo'n 30 tot 40 procent. Dat betekent: in één sessie van 20 minuten doe je effectief wat je normaal in 90 minuten zou doen. Zonder je versleten te voelen."},
             {"time": "18-25s", "tekst": "Wetenschappelijk onderbouwd, veilig, en al bewezen bij duizenden mensen."},
-            {"time": "25-30s", "tekst": f"{cta} — gebruik de link om het zelf te ervaren."},
+            {"time": "25-30s", "tekst": f"{cta}. Gebruik de link om het zelf te ervaren."},
         ],
     }
 
     return scripts.get(hook, [
         {"time": "0-5s",   "tekst": _default_opening(hook)},
-        {"time": "5-18s",  "tekst": f"Bij {n} staat persoonlijke begeleiding centraal. Op jouw tempo, afgestemd op jouw situatie — zonder gedoe."},
+        {"time": "5-18s",  "tekst": f"Bij {n} staat persoonlijke begeleiding centraal. Op jouw tempo, afgestemd op jouw situatie, zonder gedoe."},
         {"time": "18-25s", "tekst": "Mensen die twijfelden, zijn nu onze trouwste leden. Gewoon omdat het bij ze past."},
-        {"time": "25-30s", "tekst": f"{cta} — link in de bio."},
+        {"time": "25-30s", "tekst": f"{cta}. Link in de bio."},
     ])
 
 
@@ -205,6 +216,7 @@ KRITISCH: Schrijf alle scripts en openingszinnen vanuit het perspectief van de K
 De klant adverteert aan hun eigen doelgroep voor hun eigen product/dienst.
 NIET vanuit het perspectief van een marketingbureau.
 De kijker van de advertentie is een potentiële klant van {client_name}, geen ondernemer die advertentiediensten zoekt.
+Gebruik NOOIT em dashes (het teken —) in scripts of openingszinnen. Gebruik in plaats daarvan een punt of komma.
 """
 
     prompt = f"""Genereer een shoot planning met 3 shoots op basis van deze performance data:
@@ -291,8 +303,16 @@ Return ALLEEN dit JSON:
 
     result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=2000)
     if "_error" in result or "shoots" not in result:
-        return _fallback_brief(safe_hook, safe_format, new_hook, test_format, summary, top_ad)
-    return result["shoots"]
+        return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
+                               summary, top_ad, client_name)
+    # Sanitize AI output: strip em dashes from all script lines and openingszin
+    shoots = result["shoots"]
+    for shoot in shoots:
+        if shoot.get("script"):
+            shoot["script"] = _clean_script(shoot["script"])
+        if shoot.get("openingszin"):
+            shoot["openingszin"] = _strip_em_dashes(shoot["openingszin"])
+    return shoots
 
 
 def _fallback_brief(
