@@ -8,7 +8,7 @@ import os
 import json
 import logging
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, date as dt, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -271,17 +271,73 @@ def save_hook_snapshots(client_id: int, upload_id: int, hook_perf: list[dict]) -
         cur.close()
 
 
+def _non_redundant_upload_ids(client_id: int) -> list[int]:
+    """
+    Return upload IDs to use for trend/aggregate analysis without double-counting.
+
+    Strategy: greedily include uploads from newest to oldest.
+    An upload is kept only if it covers at least one day not already covered
+    by a newer upload. This makes the newest upload authoritative for any
+    date it contains, while older uploads fill in uncovered periods.
+    """
+    def _parse(s) -> dt | None:
+        try:
+            return dt.fromisoformat(str(s)[:10]) if s else None
+        except ValueError:
+            return None
+
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, date_from, date_to
+            FROM uploads
+            WHERE client_id = %s
+            ORDER BY uploaded_at DESC
+        """, (client_id,))
+        rows = cur.fetchall()
+        cur.close()
+
+    covered: set[dt] = set()
+    selected: list[int] = []
+
+    for uid, date_from, date_to in rows:
+        d_from = _parse(date_from)
+        d_to   = _parse(date_to)
+
+        if d_from is None or d_to is None:
+            selected.append(uid)  # no date info → always include
+            continue
+
+        days: set[dt] = set()
+        d = d_from
+        while d <= d_to:
+            days.add(d)
+            d += timedelta(days=1)
+
+        new_days = days - covered
+        if new_days:
+            selected.append(uid)
+            covered |= days
+        else:
+            logger.debug("Upload %s skipped (all dates already covered by newer upload)", uid)
+
+    return selected
+
+
 def get_hook_trend(client_id: int, hook_type: str) -> list[dict]:
-    """CPL trend for a specific hook across all uploads."""
+    """CPL trend for a specific hook, using only non-overlapping uploads."""
+    valid_ids = _non_redundant_upload_ids(client_id)
+    if not valid_ids:
+        return []
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             SELECT h.cpl, h.results, h.spend, h.avg_ctr, u.date_from, u.date_to, u.uploaded_at
             FROM hook_snapshots h
             JOIN uploads u ON u.id = h.upload_id
-            WHERE h.client_id = %s AND h.hook_type = %s
-            ORDER BY u.uploaded_at ASC
-        """, (client_id, hook_type))
+            WHERE h.client_id = %s AND h.hook_type = %s AND h.upload_id = ANY(%s)
+            ORDER BY u.date_from ASC NULLS LAST
+        """, (client_id, hook_type, valid_ids))
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
         cur.close()
@@ -289,7 +345,10 @@ def get_hook_trend(client_id: int, hook_type: str) -> list[dict]:
 
 
 def get_all_hook_performance(client_id: int) -> list[dict]:
-    """Aggregate hook performance across ALL uploads for this client."""
+    """Aggregate hook performance using only non-overlapping uploads to avoid double-counting."""
+    valid_ids = _non_redundant_upload_ids(client_id)
+    if not valid_ids:
+        return []
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
@@ -302,9 +361,10 @@ def get_all_hook_performance(client_id: int) -> list[dict]:
                    COUNT(DISTINCT upload_id) AS upload_count
             FROM hook_snapshots
             WHERE client_id = %s AND hook_type IS NOT NULL AND format_type IS NULL
+              AND upload_id = ANY(%s)
             GROUP BY hook_type
             ORDER BY overall_cpl ASC NULLS LAST
-        """, (client_id,))
+        """, (client_id, valid_ids))
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
         cur.close()
