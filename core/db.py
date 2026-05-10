@@ -22,9 +22,13 @@ def _get_pool():
     url = os.getenv("DATABASE_URL", "")
     if not url:
         return None
+    # Supabase requires SSL — append sslmode if not present
+    if "supabase" in url and "sslmode" not in url:
+        url += "?sslmode=require"
     try:
         from psycopg2 import pool as pg_pool
         _pool = pg_pool.SimpleConnectionPool(1, 5, url)
+        logger.info("DB pool created OK")
         return _pool
     except Exception as e:
         logger.error("DB pool init failed: %s", e)
@@ -35,7 +39,7 @@ def _get_pool():
 def _conn():
     pool = _get_pool()
     if pool is None:
-        raise RuntimeError("DATABASE_URL niet ingesteld — database niet beschikbaar.")
+        raise RuntimeError("DB niet beschikbaar — controleer DATABASE_URL en Supabase verbinding.")
     conn = pool.getconn()
     try:
         yield conn
@@ -48,7 +52,8 @@ def _conn():
 
 
 def is_available() -> bool:
-    return os.getenv("DATABASE_URL", "") != ""
+    """Returns True only if the pool can actually be created."""
+    return _get_pool() is not None
 
 
 # ── Schema init ───────────────────────────────────────────────────────────────

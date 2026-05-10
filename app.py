@@ -418,7 +418,12 @@ def logout():
 @app.route("/clients")
 @login_required
 def clients():
-    client_list = db.get_clients() if db.is_available() else []
+    try:
+        client_list = db.get_clients() if db.is_available() else []
+    except Exception as e:
+        logger.error("DB get_clients failed: %s", e)
+        flash(f"Database niet bereikbaar: {e}", "danger")
+        client_list = []
     return render_template("clients.html", clients=client_list)
 
 
@@ -451,14 +456,19 @@ def client_new():
 @app.route("/clients/<int:client_id>")
 @login_required
 def client_profile(client_id):
-    client = db.get_client(client_id)
-    if not client:
-        flash("Klant niet gevonden.", "danger")
+    try:
+        client = db.get_client(client_id)
+        if not client:
+            flash("Klant niet gevonden.", "danger")
+            return redirect(url_for("clients"))
+        session["client_id"] = client_id
+        uploads      = db.get_uploads(client_id)
+        shoot_briefs = db.get_shoot_briefs(client_id)
+        hook_perf    = db.get_all_hook_performance(client_id)
+    except Exception as e:
+        logger.error("DB client_profile failed: %s", e)
+        flash(f"Database fout: {e}", "danger")
         return redirect(url_for("clients"))
-    session["client_id"] = client_id
-    uploads      = db.get_uploads(client_id)
-    shoot_briefs = db.get_shoot_briefs(client_id)
-    hook_perf    = db.get_all_hook_performance(client_id)
     return render_template("client_profile.html",
                            client=client, uploads=uploads,
                            shoot_briefs=shoot_briefs, hook_perf=hook_perf)
