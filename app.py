@@ -100,6 +100,17 @@ def login_required(f):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+def _load_name_overrides() -> dict:
+    """Load client's saved ad name mappings from DB for current session client."""
+    client_id = session.get("client_id")
+    if client_id and db.is_available():
+        try:
+            return db.get_ad_name_mappings(client_id)
+        except Exception:
+            pass
+    return {}
+
+
 def _compute_thresholds(form=None) -> dict:
     preset = (form.get("threshold_preset", "auto") if form else "auto")
     if preset == "fit20":
@@ -600,17 +611,21 @@ def client_load_upload(client_id, upload_id):
         return redirect(url_for("client_profile", client_id=client_id))
 
     session.permanent = True
+    name_overrides = _load_name_overrides()
     result = _process_df(rows,
                          campaign_type_override=upload.get("campaign_type", ""),
                          date_from=upload.get("date_from") or "",
-                         date_to=upload.get("date_to") or "")
+                         date_to=upload.get("date_to") or "",
+                         name_overrides=name_overrides)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("client_profile", client_id=client_id))
     thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
     client = db.get_client(client_id)
     return render_template("index.html", result=result, demo=False,
-                           thresholds=thresholds, active_client=client)
+                           thresholds=thresholds, active_client=client,
+                           unknown_ads=result.get("unknown_ads", []),
+                           tag_suggestions=result.get("tag_suggestions", {}))
 
 
 # ── Main analysis routes ───────────────────────────────────────────────────────
@@ -631,7 +646,8 @@ def index():
             client = db.get_client(client_id)
         except Exception:
             pass
-    return render_template("index.html", result=None, thresholds=None, active_client=client)
+    return render_template("index.html", result=None, thresholds=None, active_client=client,
+                           unknown_ads=[], tag_suggestions={})
 
 
 @app.route("/guest")
@@ -655,7 +671,9 @@ def demo():
     session["data_source"] = "demo"
     session["thresholds"] = thresholds
     return render_template("index.html", result=result, demo=True,
-                           thresholds=thresholds, active_client=None)
+                           thresholds=thresholds, active_client=None,
+                           unknown_ads=result.get("unknown_ads", []),
+                           tag_suggestions=result.get("tag_suggestions", {}))
 
 
 @app.route("/upload", methods=["POST"])
@@ -694,15 +712,7 @@ def upload():
     campaign_type_override = request.form.get("campaign_type_override", "")
     thresholds = _compute_thresholds(request.form)
 
-    # Load client's saved ad name mappings
-    name_overrides: dict = {}
-    _client_id_for_upload = session.get("client_id")
-    if _client_id_for_upload and db.is_available():
-        try:
-            name_overrides = db.get_ad_name_mappings(_client_id_for_upload)
-        except Exception:
-            pass
-
+    name_overrides = _load_name_overrides()
     result = _process_df(rows, campaign_type_override=campaign_type_override,
                          csv_content=csv_text, name_overrides=name_overrides)
     if "error" in result:
@@ -752,8 +762,10 @@ def reanalyze():
     date_to   = request.form.get("date_to",   "").strip()
     campaign_type_override = request.form.get("campaign_type_override", "")
     thresholds = _compute_thresholds(request.form)
+    name_overrides = _load_name_overrides()
     result = _process_df(rows, campaign_type_override=campaign_type_override,
-                         date_from=date_from, date_to=date_to)
+                         date_from=date_from, date_to=date_to,
+                         name_overrides=name_overrides)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
@@ -769,7 +781,9 @@ def reanalyze():
             pass
 
     return render_template("index.html", result=result, demo=False,
-                           thresholds=thresholds, active_client=client)
+                           thresholds=thresholds, active_client=client,
+                           unknown_ads=result.get("unknown_ads", []),
+                           tag_suggestions=result.get("tag_suggestions", {}))
 
 
 @app.route("/export/pdf", methods=["GET"])
@@ -865,11 +879,12 @@ def hooks():
     summary   = build_summary(rows, campaigns)
     all_ads   = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
 
-    hook_perf        = aggregate_hook_performance(all_ads)
-    fmt_perf         = aggregate_format_performance(all_ads)
-    combos           = get_winning_combinations(all_ads)
-    untested_hooks   = get_untested_hooks(all_ads)
-    untested_formats = get_untested_formats(all_ads)
+    name_overrides   = _load_name_overrides()
+    hook_perf        = aggregate_hook_performance(all_ads, overrides=name_overrides)
+    fmt_perf         = aggregate_format_performance(all_ads, overrides=name_overrides)
+    combos           = get_winning_combinations(all_ads, overrides=name_overrides)
+    untested_hooks   = get_untested_hooks(all_ads, overrides=name_overrides)
+    untested_formats = get_untested_formats(all_ads, overrides=name_overrides)
 
     top_ad = next((a for a in all_ads if a.results > 0 and a.cost_per_result > 0), None)
     shoot_brief = generate_shoot_brief(summary, all_ads, top_ad=top_ad)
