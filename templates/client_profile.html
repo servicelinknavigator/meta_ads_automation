@@ -355,10 +355,17 @@
                 {% endif %}
               </td>
               <td class="text-end" style="color:var(--muted);">{{ u.avg_ctr }}%</td>
-              <td class="text-end">
+              <td class="text-end" style="white-space:nowrap;">
                 <a href="/clients/{{ client.id }}/load/{{ u.id }}" class="btn-load" onclick="event.stopPropagation();">
                   <i class="bi bi-play-fill me-1"></i>Laad
                 </a>
+                <form method="POST" action="/clients/{{ client.id }}/uploads/{{ u.id }}/delete"
+                      style="display:inline;" onclick="event.stopPropagation();"
+                      onsubmit="return confirm('Upload verwijderen? Dit kan niet ongedaan worden gemaakt.')">
+                  <button type="submit" style="background:none;border:none;color:var(--muted);padding:3px 6px;cursor:pointer;font-size:.85rem;" title="Verwijderen">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
               </td>
             </tr>
             {% endfor %}

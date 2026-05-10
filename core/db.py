@@ -209,6 +209,13 @@ def update_client(client_id: int, name: str, industry: str, campaign_type: str,
         cur.close()
 
 
+def delete_upload(upload_id: int) -> None:
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM uploads WHERE id = %s", (upload_id,))
+        cur.close()
+
+
 def delete_client(client_id: int) -> None:
     with _conn() as conn:
         cur = conn.cursor()
