@@ -210,6 +210,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "frequency":     a.frequency,
     } for a in all_ads])
 
+    # Limit top_ads to 5 entries to avoid session cookie overflow (4 KB browser limit)
     session["top_ads"] = [{
         "ad_name":         a.ad_name,
         "ad_set_name":     a.ad_set_name,
@@ -220,7 +221,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "roas":            a.roas,
         "ctr":             a.ctr,
         "frequency":       a.frequency,
-    } for a in all_ads[:10]]
+    } for a in all_ads[:5]]
     session["date_range"] = date_range
     session["summary"] = {
         "total_spend":         summary.total_spend,
@@ -245,7 +246,9 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "worst_ad_set":        summary.worst_ad_set,
         "has_click_data":      summary.has_click_data,
     }
-    session["insights"] = insights
+    # Do NOT store full insights in session cookie — Claude output can be 4 KB+
+    # which pushes the signed cookie over the 4 KB browser limit, silently dropping
+    # the entire session on the next request. Insights are persisted in DB instead.
 
     # ── Persist to DB if a client is active ──────────────────────────────────
     client_id = session.get("client_id")
@@ -957,13 +960,31 @@ def reanalyze():
 @login_required
 def export_pdf():
     summary_data = session.get("summary")
-    insights_raw = session.get("insights", "Geen inzichten beschikbaar.")
     if not summary_data:
         flash("Geen actieve analyse. Upload eerst een CSV.", "warning")
         return redirect(url_for("index"))
     summary   = _session_to_summary(summary_data)
     top_ads   = session.get("top_ads", [])
     date_range = session.get("date_range")
+
+    # Insights are NOT stored in session (cookie size limit). Load from DB.
+    insights_raw = "Geen inzichten beschikbaar."
+    client_id = session.get("client_id")
+    upload_id = session.get("upload_id")
+    if client_id and upload_id and db.is_available():
+        try:
+            hist = db.get_insights_history(client_id, limit=1)
+            if hist:
+                insights_raw = hist[0]["insights_text"] or insights_raw
+        except Exception:
+            pass
+    if insights_raw == "Geen inzichten beschikbaar.":
+        # Last-resort: regenerate from session summary (no API call, uses fallback)
+        try:
+            insights_raw = generate_insights(summary)
+        except Exception:
+            pass
+
     pdf_bytes = generate_pdf(summary, insights_raw, top_ads=top_ads, date_range=date_range)
     return send_file(
         io.BytesIO(pdf_bytes),
