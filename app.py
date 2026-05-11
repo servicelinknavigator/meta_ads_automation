@@ -475,6 +475,32 @@ def logout():
 
 # ── Client routes ──────────────────────────────────────────────────────────────
 
+@app.route("/debug/upload/<int:upload_id>")
+@login_required
+def debug_upload(upload_id):
+    """Diagnostic: show what's stored for a specific upload."""
+    if not db.is_available():
+        return "<pre>DB niet beschikbaar</pre>"
+    try:
+        csv_text = db.get_upload_csv_content(upload_id)
+        if not csv_text:
+            return f"<pre>Upload {upload_id}: csv_content is NULL (geen CSV opgeslagen)</pre>"
+        lines = csv_text.splitlines()
+        preview = "\n".join(lines[:10])
+        rows = parse_csv_string(csv_text)
+        total_spend = sum(float(r.get("spend", 0) or 0) for r in rows)
+        return (
+            f"<pre style='font-family:monospace;padding:1rem;font-size:.85rem;'>"
+            f"Upload ID  : {upload_id}\n"
+            f"CSV regels : {len(lines)}\n"
+            f"Parsed rows: {len(rows)}\n"
+            f"Totaal spend: €{total_spend:.2f}\n\n"
+            f"--- Eerste 10 regels CSV ---\n{preview}\n</pre>"
+        )
+    except Exception as e:
+        return f"<pre>Fout: {e}</pre>"
+
+
 @app.route("/debug/db")
 @login_required
 def debug_db():
@@ -626,6 +652,7 @@ def client_merge_uploads(client_id):
                 flash(f"Upload {uid} heeft geen opgeslagen CSV — sla op via de Laad-knop.", "warning")
                 continue
             rows = parse_csv_string(csv_text)
+            added = 0
             for row in rows:
                 key = (
                     row.get("ad_id") or row.get("ad_name", ""),
@@ -635,12 +662,25 @@ def client_merge_uploads(client_id):
                 if key not in seen_keys:
                     seen_keys.add(key)
                     all_rows.append(row)
-            loaded_count += 1
+                    added += 1
+            if added > 0 or rows:
+                loaded_count += 1
         except Exception as e:
             logger.warning("Merge: upload %s laden mislukt: %s", uid, e)
 
     if not all_rows:
-        flash("Geen data beschikbaar voor de geselecteerde uploads.", "danger")
+        if loaded_count > 0:
+            flash(
+                f"{loaded_count} upload(s) gevonden maar bevatten geen bruikbare rijen. "
+                "Controleer of de CSV-exports spend-data bevatten voor de gekozen periode.",
+                "warning",
+            )
+        else:
+            flash(
+                "Geen opgeslagen CSV gevonden voor de geselecteerde uploads. "
+                "Laad elke upload eerst afzonderlijk via de Laad-knop.",
+                "danger",
+            )
         return redirect(url_for("client_profile", client_id=client_id))
 
     # Run analysis without saving a new DB upload (temporarily unset client_id)
