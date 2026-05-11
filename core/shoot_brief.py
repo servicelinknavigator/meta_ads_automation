@@ -362,16 +362,17 @@ def _fallback_brief(
 
 
 def _default_opening(hook: str) -> str:
+    """Fallback opening lines written from the client's perspective. No em dashes."""
     defaults = {
-        "recognition": "Ken jij dat gevoel dat je weet dat er meer in zit, maar je weet niet hoe?",
-        "frustration": "Ik was ook gefrustreerd toen mijn advertenties niks deden — totdat ik dit ontdekte.",
-        "curiosity": "Wist je dat 80% van de Meta advertenties faalt om één reden?",
-        "proof": "Deze klant behaalde €X resultaat in Y weken — dit is hoe.",
-        "promise": "Binnen 30 dagen meetbaar resultaat — of je geld terug.",
-        "confrontation": "Stop met geld weggooien aan advertenties die niet werken.",
-        "urgency": "Er zijn nog maar 5 plekken beschikbaar deze maand.",
-        "problem_solve": "Dit is het probleem dat bijna elke ondernemer heeft — en zo los je het op.",
-        "social_proof": "500+ tevreden klanten gingen je al voor. Dit is waarom zij kozen voor ons.",
-        "educational": "Ik ga je in 30 seconden uitleggen waarom je Meta advertenties waarschijnlijk te duur zijn.",
+        "recognition": "Herken je dat gevoel? Je wil iets veranderen, maar weet niet waar te beginnen.",
+        "frustration": "Je hebt het al zo vaak geprobeerd. En het houdt toch nooit vol.",
+        "curiosity": "Wist je dat je maar 20 minuten per week nodig hebt om echt resultaat te zien?",
+        "proof": "Dit zeggen onze klanten na een paar maanden.",
+        "promise": "Stel je voor: in 20 minuten per week fitter, sterker en meer energie.",
+        "confrontation": "Stop met wachten op het perfecte moment. Dat moment komt toch niet.",
+        "urgency": "We hebben nog een beperkt aantal plekken beschikbaar voor nieuwe leden.",
+        "problem_solve": "Dit is het probleem dat veel mensen hebben. En zo lossen we het op.",
+        "social_proof": "Honderden mensen gingen je al voor. Dit is waarom ze bleven.",
+        "educational": "Ik leg je in 30 seconden uit waarom 20 minuten per week echt genoeg is.",
     }
     return defaults.get(hook, "Heb jij dit ook? Dan is dit iets voor jou.")

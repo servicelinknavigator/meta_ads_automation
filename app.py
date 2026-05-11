@@ -135,7 +135,8 @@ def _compute_thresholds(form=None, client=None) -> dict:
 def _process_df(rows: list, campaign_type_override: str = "",
                 date_from: str = "", date_to: str = "",
                 csv_content: str | None = None,
-                name_overrides: dict | None = None) -> dict:
+                name_overrides: dict | None = None,
+                skip_db_save: bool = False) -> dict:
     valid, errors = validate_csv(rows)
     if not valid:
         return {"error": "; ".join(errors)}
@@ -230,7 +231,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
 
     # ── Persist to DB if a client is active ──────────────────────────────────
     client_id = session.get("client_id")
-    if client_id and db.is_available():
+    if client_id and db.is_available() and not skip_db_save:
         try:
             filename = Path(session.get("data_source", "")).name
             upload_id = db.save_upload(
@@ -374,6 +375,38 @@ def _load_rows_from_session() -> list | None:
         return None
     if source == "demo":
         return load_dummy_data()
+    # Merged uploads (data_source = "merged:1,2,3")
+    if source.startswith("merged:"):
+        upload_ids = [int(x) for x in source[7:].split(",") if x.strip().isdigit()]
+        all_rows: list = []
+        seen_keys: set = set()
+        for uid in sorted(upload_ids):
+            try:
+                csv_text = db.get_upload_csv_content(uid)
+                if csv_text:
+                    for row in parse_csv_string(csv_text):
+                        key = (
+                            row.get("ad_id") or row.get("ad_name", ""),
+                            row.get("campaign_id") or row.get("campaign_name", ""),
+                            row.get("day", ""),
+                        )
+                        if key not in seen_keys:
+                            seen_keys.add(key)
+                            all_rows.append(row)
+            except Exception:
+                logger.warning("Merged row reload: upload %s failed", uid)
+        return all_rows if all_rows else None
+    # DB-stored single upload (data_source = "db:123")
+    if source.startswith("db:"):
+        try:
+            uid = int(source[3:])
+            csv_text = db.get_upload_csv_content(uid)
+            if csv_text:
+                return parse_csv_string(csv_text)
+        except Exception:
+            logger.warning("DB row reload failed for source: %s", source)
+        return None
+    # Local file path
     try:
         return parse_csv(Path(source))
     except Exception:
@@ -614,6 +647,7 @@ def client_merge_uploads(client_id):
     session.pop("client_id", None)
     result = _process_df(all_rows, name_overrides=name_overrides)
     session["client_id"] = client_id
+    session.pop("upload_id", None)  # no single upload_id for a merged analysis
 
     if "error" in result:
         flash(result["error"], "danger")
@@ -684,10 +718,13 @@ def client_load_upload(client_id, upload_id):
                          campaign_type_override=upload.get("campaign_type", ""),
                          date_from=upload.get("date_from") or "",
                          date_to=upload.get("date_to") or "",
-                         name_overrides=name_overrides)
+                         name_overrides=name_overrides,
+                         skip_db_save=True)  # avoid creating duplicate upload records
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("client_profile", client_id=client_id))
+    # Keep the original upload_id in session so hooks/creative link to the right upload
+    session["upload_id"] = upload_id
     thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
     client = db.get_client(client_id)
     return render_template("index.html", result=result, demo=False,
