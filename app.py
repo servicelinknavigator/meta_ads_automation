@@ -1085,6 +1085,8 @@ def hooks():
         except Exception as e:
             logger.warning("Shoot brief save failed: %s", e)
 
+    thresholds = session.get("thresholds", {"winner": 30, "mid": 50})
+
     return render_template(
         "hooks.html",
         summary=summary,
@@ -1097,6 +1099,8 @@ def hooks():
         is_demo=session.get("data_source") == "demo",
         active_client=_client,
         date_range=session.get("date_range"),
+        t_win=thresholds.get("winner", 30),
+        t_mid=thresholds.get("mid", 50),
     )
 
 

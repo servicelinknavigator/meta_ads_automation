@@ -1086,7 +1086,7 @@
           <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Bereik</div><div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div></div></div>
           <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Clicks</div><div class="stat-chip-val">{% if s.has_click_data %}{{ "{:,}".format(s.total_clicks).replace(",", ".") }}{% else %}—{% endif %}</div></div></div>
           <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. CPC</div><div class="stat-chip-val">{% if s.has_click_data %}€{{ "%.2f"|format(s.avg_cpc) }}{% else %}—{% endif %}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. Freq.</div><div class="stat-chip-val">{% if s.has_click_data %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div></div></div>
+          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. Freq.</div><div class="stat-chip-val">{% if s.avg_frequency > 0 %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div></div></div>
         </div>
       </div>
     </div>
@@ -1220,8 +1220,9 @@ Plotly.newPlot('chartSpend', [{
   type: 'bar', orientation: 'h',
   x: cd.spend, y: cd.labels,
   marker: { color: '#1A3A5C' },
-  text: cd.spend.map(v => '€' + Math.round(v)),
+  text: cd.spend.map(v => '€' + Math.round(v).toLocaleString('nl-NL')),
   textposition: 'outside', textfont: { size: 10 },
+  cliponaxis: false,
 }], layout('Budget per advertentie (€)'), cfg);
 
 Plotly.newPlot('chartMetric', [{
@@ -1233,6 +1234,7 @@ Plotly.newPlot('chartMetric', [{
   },
   text: cd.metric.map(v => v > 0 ? '€' + v.toFixed(2) : '—'),
   textposition: 'outside', textfont: { size: 10 },
+  cliponaxis: false,
 }], layout(metricLabel + ' per advertentie'), cfg);
 
 if (hasClickData) {
@@ -1242,6 +1244,7 @@ if (hasClickData) {
     marker: { color: '#E8541A' },
     text: cd.ctr.map(v => v.toFixed(2) + '%'),
     textposition: 'outside', textfont: { size: 10 },
+    cliponaxis: false,
   }], layout('CTR per advertentie (%)'), cfg);
 } else {
   document.getElementById('chartCtr').innerHTML =
@@ -1254,6 +1257,7 @@ Plotly.newPlot('chartResults', [{
   marker: { color: '#7C3AED' },
   text: cd.results.map(v => v.toString()),
   textposition: 'outside', textfont: { size: 10 },
+  cliponaxis: false,
 }], layout(resultLabel + ' per advertentie'), cfg);
 
 // ── JS Table ─────────────────────────────────────────────────────────────
@@ -1327,7 +1331,7 @@ function renderTable() {
     : `${rows.length} van ${adsData.length} advertenties`;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="tbl-empty"><i class="bi bi-search"></i>Geen advertenties gevonden</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11"><div class="tbl-empty"><i class="bi bi-search"></i>Geen advertenties gevonden</div></td></tr>`;
     return;
   }
 

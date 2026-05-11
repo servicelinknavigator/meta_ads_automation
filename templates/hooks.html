@@ -287,7 +287,7 @@
 
 {% if active_client %}
 <div class="ctx-strip">
-  <div class="container ctx-inner">
+  <div class="container-xl ctx-inner">
     <div class="d-flex align-items-stretch">
       <a href="/clients/{{ active_client.id }}" class="ctx-client">
         <i class="bi bi-chevron-left" style="font-size:.7rem;opacity:.6;"></i>
@@ -314,7 +314,7 @@
 
 <!-- Hero -->
 <div class="hero">
-  <div class="container">
+  <div class="container-xl">
     <div class="hero-badge"><i class="bi bi-graph-up-arrow"></i>Hook Intelligence</div>
     <div class="hero-title">Hook & Format Analyse</div>
     <div class="hero-sub">
@@ -328,7 +328,7 @@
   </div>
 </div>
 
-<div class="container py-4">
+<div class="container-xl py-4">
 
   <!-- ── Row 1: Hook performance + Format performance ── -->
   <div class="row g-3 mb-4">
@@ -367,7 +367,7 @@
                 <td class="text-end">{{ row.results or 0 }}</td>
                 <td class="text-end">
                   {% if row.cpl %}
-                    <strong style="color:{% if row.cpl < 40 %}var(--success){% elif row.cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.cpl }}</strong>
+                    <strong style="color:{% if row.cpl < t_win %}var(--success){% elif row.cpl < t_mid %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.cpl }}</strong>
                   {% else %}
                     <span style="color:var(--muted);">—</span>
                   {% endif %}
@@ -417,7 +417,7 @@
                 <td class="text-end">{{ row.results or 0 }}</td>
                 <td class="text-end">
                   {% if row.cpl %}
-                    <strong style="color:{% if row.cpl < 40 %}var(--success){% elif row.cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.cpl }}</strong>
+                    <strong style="color:{% if row.cpl < t_win %}var(--success){% elif row.cpl < t_mid %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.cpl }}</strong>
                   {% else %}
                     <span style="color:var(--muted);">—</span>
                   {% endif %}
@@ -458,7 +458,7 @@
           </div>
           <div style="text-align:right;">
             {% if c.cpl %}
-            <div style="font-size:1rem;font-weight:800;color:{% if c.cpl < 40 %}var(--success){% elif c.cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ c.cpl }}</div>
+            <div style="font-size:1rem;font-weight:800;color:{% if c.cpl < t_win %}var(--success){% elif c.cpl < t_mid %}var(--warning){% else %}var(--danger){% endif %};">€{{ c.cpl }}</div>
             <div style="font-size:.7rem;color:var(--muted);">gem. CPL</div>
             {% endif %}
           </div>
@@ -606,7 +606,7 @@
   <div style="color:var(--muted);font-size:.85rem;padding:1rem 0;">Shoot brief kon niet worden gegenereerd.</div>
   {% endif %}
 
-</div><!-- /container -->
+</div><!-- /container-xl -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
