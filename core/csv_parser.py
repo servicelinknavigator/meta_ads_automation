@@ -12,6 +12,10 @@ COLUMN_MAP = {
     "ad name": "ad_name",
     "ad id": "ad_id",
     "day": "day",
+    # Meta summary-format exports (one row per ad for entire period, no Day column)
+    "reporting starts": "day",          # use period start as the day for dedup/range
+    "reporting period start date": "day",
+    "reporting ends": "reporting_ends",  # keep but don't use as day
     "reach": "reach",
     "impressions": "impressions",
     "frequency": "frequency",

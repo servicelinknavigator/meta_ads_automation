@@ -100,6 +100,24 @@ def login_required(f):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+def _dedup_key(row: dict) -> tuple:
+    """
+    Build a dedup key for merge operations.
+    Falls back to name when the ID column is absent or defaulted to '0'.
+    This handles both day-by-day exports (have real ad_id + day) and
+    summary-format exports (no ad_id/campaign_id/day column → all default to '0'/empty).
+    """
+    ad_key = str(row.get("ad_id", "") or "")
+    if not ad_key or ad_key == "0":
+        ad_key = row.get("ad_name", "")
+
+    camp_key = str(row.get("campaign_id", "") or "")
+    if not camp_key or camp_key == "0":
+        camp_key = row.get("campaign_name", "")
+
+    return (ad_key, camp_key, row.get("day", ""))
+
+
 def _load_name_overrides() -> dict:
     """Load client's saved ad name mappings from DB for current session client."""
     client_id = session.get("client_id")
@@ -385,11 +403,7 @@ def _load_rows_from_session() -> list | None:
                 csv_text = db.get_upload_csv_content(uid)
                 if csv_text:
                     for row in parse_csv_string(csv_text):
-                        key = (
-                            row.get("ad_id") or row.get("ad_name", ""),
-                            row.get("campaign_id") or row.get("campaign_name", ""),
-                            row.get("day", ""),
-                        )
+                        key = _dedup_key(row)
                         if key not in seen_keys:
                             seen_keys.add(key)
                             all_rows.append(row)
@@ -654,11 +668,7 @@ def client_merge_uploads(client_id):
             rows = parse_csv_string(csv_text)
             added = 0
             for row in rows:
-                key = (
-                    row.get("ad_id") or row.get("ad_name", ""),
-                    row.get("campaign_id") or row.get("campaign_name", ""),
-                    row.get("day", ""),
-                )
+                key = _dedup_key(row)
                 if key not in seen_keys:
                     seen_keys.add(key)
                     all_rows.append(row)

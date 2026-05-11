@@ -98,29 +98,40 @@ def t_validate_missing_column():
     return True
 
 def t_dedup_logic():
+    from app import _dedup_key
     rows = load_dummy_data()
     seen_keys = set()
     deduped = []
     for row in rows:
-        key = (
-            row.get("ad_id") or row.get("ad_name", ""),
-            row.get("campaign_id") or row.get("campaign_name", ""),
-            row.get("day", ""),
-        )
+        key = _dedup_key(row)
         if key not in seen_keys:
             seen_keys.add(key)
             deduped.append(row)
     # Same data twice should deduplicate
     for row in rows:
-        key = (
-            row.get("ad_id") or row.get("ad_name", ""),
-            row.get("campaign_id") or row.get("campaign_name", ""),
-            row.get("day", ""),
-        )
+        key = _dedup_key(row)
         if key not in seen_keys:
             seen_keys.add(key)
             deduped.append(row)
     assert len(deduped) == len(rows), f"Dedup werkte niet: {len(deduped)} vs {len(rows)} orig"
+    return True
+
+def t_dedup_key_zero_id_falls_back_to_name():
+    """ad_id='0' and campaign_id='0' must use names, not the literal '0'."""
+    from app import _dedup_key
+    row_a = {"ad_id": "0", "ad_name": "Ad A", "campaign_id": "0", "campaign_name": "Camp X", "day": ""}
+    row_b = {"ad_id": "0", "ad_name": "Ad B", "campaign_id": "0", "campaign_name": "Camp X", "day": ""}
+    row_c = {"ad_id": "0", "ad_name": "Ad A", "campaign_id": "0", "campaign_name": "Camp X", "day": ""}
+    assert _dedup_key(row_a) != _dedup_key(row_b), "Verschillende ad namen mogen niet dezelfde key geven"
+    assert _dedup_key(row_a) == _dedup_key(row_c), "Zelfde ad naam moet zelfde key geven"
+    return True
+
+def t_dedup_key_summary_format_different_months():
+    """Summary-format rows from different months must have different dedup keys."""
+    from app import _dedup_key
+    march = {"ad_id": "0", "ad_name": "Ad A", "campaign_id": "0", "campaign_name": "Camp", "day": "2026-03-01"}
+    april = {"ad_id": "0", "ad_name": "Ad A", "campaign_id": "0", "campaign_name": "Camp", "day": "2026-04-01"}
+    assert _dedup_key(march) != _dedup_key(april), "Verschillende maanden moeten verschillende keys geven"
     return True
 
 def t_bom_stripped():
@@ -144,6 +155,8 @@ test("Validatie: geldige CSV", t_validate_valid)
 test("Validatie: lege CSV afgekeurd", t_validate_empty)
 test("Validatie: ontbrekende kolom afgekeurd", t_validate_missing_column)
 test("Dedup: dubbele rows worden gefilterd", t_dedup_logic)
+test("Dedup: ad_id='0' valt terug op ad_name", t_dedup_key_zero_id_falls_back_to_name)
+test("Dedup: samenvatting-export verschillende maanden = verschillende keys", t_dedup_key_summary_format_different_months)
 test("CSV: BOM wordt gestript", t_bom_stripped)
 test("CSV: _has_click_data flag aanwezig", t_has_click_data_flag)
 
