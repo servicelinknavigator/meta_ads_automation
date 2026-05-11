@@ -1206,12 +1206,12 @@ const cd = {{ result.ad_chart_data | safe }};
 
 const layout = (title) => ({
   title: { text: title, font: { size: 12, color: '#64748B', family: 'Inter' } },
-  margin: { t: 36, b: 50, l: 8, r: 50 },
+  margin: { t: 36, b: 50, l: 20, r: 80 },
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor:  'rgba(0,0,0,0)',
   font: { family: 'Inter', size: 10, color: '#64748B' },
   xaxis: { gridcolor: '#F1F5F9', zeroline: false },
-  yaxis: { gridcolor: '#F1F5F9', zeroline: false },
+  yaxis: { gridcolor: '#F1F5F9', zeroline: false, automargin: true },
   bargap: 0.35,
 });
 const cfg = { responsive: true, displayModeBar: false, staticPlot: true };

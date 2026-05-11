@@ -240,7 +240,7 @@ def build_ad_chart_data(campaigns: list[Campaign], campaign_type: str, top_n: in
     ads_by_spend = sorted(all_ads, key=lambda a: a.spend, reverse=True)[:top_n]
 
     def short(name: str) -> str:
-        return name[:22] + "…" if len(name) > 22 else name
+        return name[:30] + "…" if len(name) > 30 else name
 
     labels = [short(a.ad_name) for a in ads_by_spend]
     metric_values = [
