@@ -927,9 +927,12 @@ def reanalyze():
     campaign_type_override = request.form.get("campaign_type_override", "")
     thresholds = _compute_thresholds(request.form)
     name_overrides = _load_name_overrides()
+    # For merged or db sources, skip saving a new upload record (avoid duplicates)
+    is_merged = session.get("data_source", "").startswith("merged:")
     result = _process_df(rows, campaign_type_override=campaign_type_override,
                          date_from=date_from, date_to=date_to,
-                         name_overrides=name_overrides)
+                         name_overrides=name_overrides,
+                         skip_db_save=is_merged)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))

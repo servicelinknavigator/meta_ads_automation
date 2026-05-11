@@ -443,6 +443,7 @@
               <td onclick="event.stopPropagation();" style="padding:.4rem .5rem;">
                 <input type="checkbox" name="upload_ids" value="{{ u.id }}"
                        class="merge-cb form-check-input" style="cursor:pointer;"
+                       onclick="event.stopPropagation();"
                        onchange="updateMergeBar()">
               </td>
               {% endif %}
