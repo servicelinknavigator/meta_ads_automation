@@ -352,14 +352,23 @@
       <!-- Upload history -->
       <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="section-title" style="margin-bottom:0;"><i class="bi bi-upload" style="color:var(--accent);"></i>Upload history</div>
-        <button class="btn-nav-accent" style="font-size:.75rem;padding:.3rem .85rem;"
-                onclick="document.getElementById('inlineUpload').classList.toggle('d-none')">
-          <i class="bi bi-plus-lg me-1"></i>Nieuwe upload
-        </button>
+        <div class="d-flex gap-2">
+          {% if uploads %}
+          <a href="/clients/{{ client.id }}/load/{{ uploads[0].id }}"
+             class="btn-nav" style="font-size:.75rem;padding:.3rem .85rem;background:rgba(255,255,255,.06);"
+             title="Laad de meest recente upload opnieuw">
+            <i class="bi bi-play-fill me-1"></i>Laatste analyse
+          </a>
+          {% endif %}
+          <button class="btn-nav-accent" style="font-size:.75rem;padding:.3rem .85rem;"
+                  onclick="document.getElementById('inlineUpload').classList.toggle('d-none');this.textContent=document.getElementById('inlineUpload').classList.contains('d-none')?'+ Nieuwe upload':'✕ Sluiten'">
+            <i class="bi bi-plus-lg me-1"></i>Nieuwe upload
+          </button>
+        </div>
       </div>
 
       <!-- Inline upload form -->
-      <div id="inlineUpload" class="{% if not uploads %}{% else %}d-none{% endif %} mb-3"
+      <div id="inlineUpload" class="{% if not uploads %}{% else %}d-none{% endif %} mb-3" style="transition:all .2s;"
            style="background:#fff;border:1.5px dashed var(--accent);border-radius:12px;padding:1.25rem 1.5rem;">
         <form action="/upload" method="POST" enctype="multipart/form-data"
               onsubmit="this.querySelector('.upload-btn').disabled=true;this.querySelector('.upload-btn').innerHTML='<i class=\'bi bi-hourglass-split me-1\'></i>Analyseren...';">

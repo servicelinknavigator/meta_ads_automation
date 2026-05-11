@@ -317,6 +317,46 @@
     .stat-chip-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
     .stat-chip-val   { font-size: 1rem; font-weight: 700; color: var(--text); }
 
+    /* ── Context strip (active client + workflow tabs) ── */
+    .ctx-strip {
+      background: #0f2137;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 0 0;
+    }
+    .ctx-inner {
+      display: flex; align-items: stretch; justify-content: space-between;
+      height: 42px;
+    }
+    .ctx-client {
+      display: flex; align-items: center; gap: 8px;
+      color: rgba(255,255,255,.8); font-size: .78rem; font-weight: 600;
+      text-decoration: none; padding: 0 1.5rem;
+      border-right: 1px solid rgba(255,255,255,.08);
+      transition: background .15s;
+    }
+    .ctx-client:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .ctx-client-name { color: #fff; }
+    .ctx-period {
+      display: flex; align-items: center; gap: 5px;
+      font-size: .72rem; color: rgba(255,255,255,.4);
+      padding: 0 1rem;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+    .ctx-tabs { display: flex; align-items: stretch; }
+    .ctx-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 1.1rem; font-size: .78rem; font-weight: 500;
+      color: rgba(255,255,255,.45); text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: all .15s; white-space: nowrap;
+    }
+    .ctx-tab:hover { color: rgba(255,255,255,.8); background: rgba(255,255,255,.04); }
+    .ctx-tab.active {
+      color: #fff; border-bottom-color: var(--accent);
+      background: rgba(232,84,26,.08);
+    }
+    .ctx-tab .ctx-check { color: var(--success); font-size: .7rem; }
+
     /* ── Demo alert ── */
     .demo-bar {
       background: linear-gradient(90deg, #1e3a5c, #1a4f8a);
@@ -497,20 +537,38 @@
   </div>
 </nav>
 
-<!-- Active client banner -->
-{% if not result and active_client %}
-<div style="background:linear-gradient(90deg,var(--navy) 0%,#1e4d8c 100%);padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.08);">
-  <div class="container-xl d-flex align-items-center justify-content-between">
-    <span style="color:#fff;font-size:.83rem;font-weight:600;">
-      <i class="bi bi-building me-2" style="color:var(--accent);"></i>
-      Je analyseert voor: <strong>{{ active_client.name }}</strong>
-      {% if active_client.cpl_benchmark %}
-      <span style="margin-left:.75rem;font-size:.72rem;font-weight:400;color:rgba(255,255,255,.55);">Benchmark CPL €{{ active_client.cpl_benchmark }}</span>
+<!-- Context strip -->
+{% if active_client %}
+<div class="ctx-strip">
+  <div class="container-xl ctx-inner">
+    <div class="d-flex align-items-stretch">
+      <a href="/clients/{{ active_client.id }}" class="ctx-client">
+        <i class="bi bi-chevron-left" style="font-size:.7rem;opacity:.6;"></i>
+        <span class="ctx-client-name">{{ active_client.name }}</span>
+        {% if active_client.cpl_benchmark %}
+        <span style="font-size:.68rem;font-weight:400;color:rgba(255,255,255,.35);margin-left:4px;">CPL €{{ active_client.cpl_benchmark }}</span>
+        {% endif %}
+      </a>
+      {% if result and result.date_range %}
+      <div class="ctx-period">
+        <i class="bi bi-calendar3" style="font-size:.7rem;"></i>
+        {{ result.date_range.from }} t/m {{ result.date_range.to }}
+      </div>
       {% endif %}
-    </span>
-    <a href="/clients" style="font-size:.75rem;color:rgba(255,255,255,.5);text-decoration:none;display:flex;align-items:center;gap:5px;">
-      <i class="bi bi-arrow-left-right"></i>Andere klant
-    </a>
+    </div>
+    {% if result %}
+    <div class="ctx-tabs">
+      <a href="/" class="ctx-tab active">
+        <i class="bi bi-bar-chart-fill"></i> Overzicht
+      </a>
+      <a href="/creative" class="ctx-tab" onclick="showLoading()">
+        <i class="bi bi-stars"></i> Creatief
+      </a>
+      <a href="/hooks" class="ctx-tab" onclick="showLoading()">
+        <i class="bi bi-lightning-charge-fill"></i> Hooks & Brief
+      </a>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endif %}

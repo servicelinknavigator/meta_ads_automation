@@ -111,7 +111,7 @@ def _load_name_overrides() -> dict:
     return {}
 
 
-def _compute_thresholds(form=None) -> dict:
+def _compute_thresholds(form=None, client=None) -> dict:
     preset = (form.get("threshold_preset", "auto") if form else "auto")
     if preset == "fit20":
         return {"winner": 40, "mid": 60, "preset": "fit20"}
@@ -124,6 +124,11 @@ def _compute_thresholds(form=None) -> dict:
             return {"winner": w, "mid": m, "preset": "custom"}
         except (ValueError, TypeError):
             pass
+    # Auto: use client CPL benchmark if available
+    if preset == "auto" and client and client.get("cpl_benchmark"):
+        w = max(1, int(client["cpl_benchmark"]))
+        m = max(w + 1, int(client["cpl_benchmark"] * 1.5))
+        return {"winner": w, "mid": m, "preset": "auto", "from_benchmark": True}
     return {"winner": 30, "mid": 50, "preset": "auto"}
 
 
@@ -773,7 +778,16 @@ def upload():
         csv_text = None
 
     campaign_type_override = request.form.get("campaign_type_override", "")
-    thresholds = _compute_thresholds(request.form)
+
+    # Auto-threshold: load client to use CPL benchmark as default
+    _upload_client = None
+    _upload_client_id = session.get("client_id")
+    if _upload_client_id and db.is_available():
+        try:
+            _upload_client = db.get_client(_upload_client_id)
+        except Exception:
+            pass
+    thresholds = _compute_thresholds(request.form, client=_upload_client)
 
     name_overrides = _load_name_overrides()
     result = _process_df(rows, campaign_type_override=campaign_type_override,
@@ -914,6 +928,12 @@ def creative():
 
     patterns   = _extract_patterns(winner_results)
     thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
+    active_client = None
+    if session.get("client_id") and db.is_available():
+        try:
+            active_client = db.get_client(session["client_id"])
+        except Exception:
+            pass
     return render_template(
         "creative.html",
         summary=summary,
@@ -922,6 +942,8 @@ def creative():
         patterns=patterns,
         thresholds=thresholds,
         is_demo=session.get("data_source") == "demo",
+        active_client=active_client,
+        date_range=session.get("date_range"),
     )
 
 
@@ -963,12 +985,13 @@ def hooks():
         client_context=_client.get("client_context") or "" if _client else "",
     )
 
-    # Save shoot brief to DB if client is active
-    client_id = session.get("client_id")
+    # Save shoot brief to DB — only once per upload (avoid duplicates on page refresh)
     upload_id = session.get("upload_id")
-    if client_id and db.is_available():
+    last_saved_id = session.get("last_brief_upload_id")
+    if client_id and db.is_available() and upload_id != last_saved_id:
         try:
             db.save_shoot_brief(client_id, upload_id, shoot_brief)
+            session["last_brief_upload_id"] = upload_id
         except Exception as e:
             logger.warning("Shoot brief save failed: %s", e)
 
@@ -982,6 +1005,8 @@ def hooks():
         untested_formats=untested_formats,
         shoot_brief=shoot_brief,
         is_demo=session.get("data_source") == "demo",
+        active_client=_client,
+        date_range=session.get("date_range"),
     )
 
 
