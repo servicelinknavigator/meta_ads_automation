@@ -434,9 +434,14 @@
       <div class="sln-logo-sub">Creative Intelligence</div>
     </div>
   </a>
-  <div class="d-flex gap-2">
+  <div class="d-flex align-items-center gap-2">
     <a href="/export/pdf" class="btn-nav"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
-    <a href="/clients" class="btn-nav"><i class="bi bi-people me-1"></i>Klanten</a>
+    <a href="/hooks" class="btn-nav"><i class="bi bi-lightning-charge me-1"></i>Hook Analyse</a>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 .1rem;"></div>
+    <span style="font-size:.72rem;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;">
+      <i class="bi bi-person-circle"></i>{{ session.username }}
+    </span>
+    <a href="/logout" class="btn-nav" style="padding:.35rem .7rem;" title="Uitloggen"><i class="bi bi-box-arrow-right"></i></a>
   </div>
 </nav>
 

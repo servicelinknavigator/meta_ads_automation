@@ -242,7 +242,11 @@
     <button class="btn-nav" data-bs-toggle="modal" data-bs-target="#editModal">
       <i class="bi bi-pencil me-1"></i>Bewerken
     </button>
-    <a href="/clients" class="btn-nav"><i class="bi bi-arrow-left me-1"></i>Alle klanten</a>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 .1rem;"></div>
+    <span style="font-size:.72rem;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;">
+      <i class="bi bi-person-circle"></i>{{ session.username }}
+    </span>
+    <a href="/logout" class="btn-nav" style="padding:.35rem .7rem;" title="Uitloggen"><i class="bi bi-box-arrow-right"></i></a>
   </div>
 </nav>
 
