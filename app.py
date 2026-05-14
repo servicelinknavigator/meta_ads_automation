@@ -1428,6 +1428,21 @@ def new_ads_content(client_id):
         flash("Klant niet gevonden.", "danger")
         return redirect(url_for("clients"))
     pending = session.get(f"pending_new_ads_{client_id}", [])
+    if not pending and db.is_available():
+        # Sessie leeg (bijv. na herdeployment): herlaad vanuit laatste upload
+        uploads = db.get_uploads(client_id)
+        if uploads:
+            last_upload_id = uploads[0]["id"]
+            try:
+                csv_content = db.get_upload_csv_content(last_upload_id)
+                if csv_content:
+                    from core.csv_parser import parse_csv_string
+                    rows = parse_csv_string(csv_content)
+                    pending = _get_new_ad_names(client_id, rows)
+                    if pending:
+                        session[f"pending_new_ads_{client_id}"] = pending
+            except Exception:
+                pass
     if not pending:
         flash("Geen nieuwe advertenties gevonden die content nodig hebben.", "info")
         return redirect(url_for("client_profile", client_id=client_id))
@@ -1445,6 +1460,7 @@ def new_ads_content_save(client_id):
 
     pending = session.get(f"pending_new_ads_{client_id}", [])
     saved_count = 0
+    remaining = []
 
     for idx, ad_naam in enumerate(pending, start=1):
         script    = request.form.get(f"script_{idx}", "").strip()
@@ -1460,8 +1476,14 @@ def new_ads_content_save(client_id):
                 saved_count += 1
             except Exception as e:
                 logger.warning("Creative save failed for '%s': %s", ad_naam, e)
+                remaining.append(ad_naam)
+        else:
+            remaining.append(ad_naam)
 
-    session.pop(f"pending_new_ads_{client_id}", None)
+    if remaining:
+        session[f"pending_new_ads_{client_id}"] = remaining
+    else:
+        session.pop(f"pending_new_ads_{client_id}", None)
 
     if saved_count:
         flash(f"Content opgeslagen voor {saved_count} advertentie(s).", "success")
