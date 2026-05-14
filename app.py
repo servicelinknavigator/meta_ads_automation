@@ -226,7 +226,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
 
     urgent_actions = []
     for a in all_ads:
-        delivery = ad_delivery_map.get(a.ad_name, "active").lower()
+        delivery = (a.delivery_status or "").lower().strip() or ad_delivery_map.get(a.ad_name, "active").lower()
         is_inactive = delivery in _INACTIVE_STATUSES
         is_low_data = a.ad_name in low_data_ads
 
