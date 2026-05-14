@@ -6,112 +6,187 @@
   <title>Nieuwe Ads — {{ client.name }} — SLN Meta Ads</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --dark:#0D1B2A; --navy:#1A3A5C; --accent:#E8541A; --accent2:#FF7043;
-      --bg:#F4F6FA; --surface:#FFFFFF; --border:#E2E8F0;
-      --text:#0F172A; --muted:#64748B; --success:#10B981; --warning:#F59E0B;
+      --glass:        rgba(255,255,255,.72);
+      --glass-border: rgba(255,255,255,.55);
+      --glass-dark:   rgba(6,13,26,.84);
+      --blur:         blur(28px) saturate(200%);
+      --accent:       #ff5c2b;
+      --accent2:      #ff8c5a;
+      --radius-lg:    20px;
+      --radius-md:    14px;
+      --radius-sm:    10px;
+      --shadow-card:  0 4px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
     }
-    * { font-family:'Inter',system-ui,sans-serif; }
-    body { background:var(--bg); color:var(--text); }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
 
+    body {
+      background-color: #e8eaf6;
+      background-image:
+        radial-gradient(ellipse 70% 55% at 15% 8%,  rgba(99,102,241,.22)  0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 85% 18%, rgba(255,92,43,.16)   0%, transparent 50%),
+        radial-gradient(ellipse 60% 50% at 50% 92%, rgba(16,185,129,.10)  0%, transparent 55%),
+        radial-gradient(ellipse 45% 40% at 78% 72%, rgba(139,92,246,.12)  0%, transparent 50%),
+        linear-gradient(160deg, #e8eaf6 0%, #dde1f5 100%);
+      min-height: 100vh; color: #0f172a;
+    }
+
+    /* ── Navbar ── */
     .sln-nav {
-      background:var(--dark); padding:0 2rem; height:58px;
-      display:flex; align-items:center; justify-content:space-between;
-      position:sticky; top:0; z-index:100;
+      background: var(--glass-dark);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
     }
-    .sln-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-    .sln-logo-icon { width:34px; height:34px; background:var(--accent); border-radius:8px;
-      display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; color:#fff; }
-    .sln-logo-text { color:#fff; font-weight:700; font-size:15px; }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px; color: #fff;
+      box-shadow: 0 4px 12px rgba(255,92,43,.35);
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; }
     .btn-nav {
-      background:transparent; color:rgba(255,255,255,.8);
-      border:1px solid rgba(255,255,255,.2); padding:.35rem .9rem;
-      border-radius:7px; font-size:.78rem; font-weight:500; text-decoration:none;
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.14);
+      padding: .35rem .9rem; border-radius: 8px;
+      font-size: .78rem; font-weight: 500; text-decoration: none; transition: all .15s;
     }
-    .btn-nav:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .btn-nav:hover { background: rgba(255,255,255,.14); color: #fff; }
 
+    /* ── Hero ── */
     .hero {
-      background:linear-gradient(135deg,var(--dark) 0%,var(--navy) 60%,#1e4d8c 100%);
-      padding:2rem 0 1.75rem;
+      background: linear-gradient(135deg, rgba(6,13,26,.88) 0%, rgba(26,42,76,.85) 60%, rgba(30,60,110,.8) 100%);
+      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 2rem 0 1.75rem; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -40px; right: -60px;
+      width: 220px; height: 220px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,92,43,.15) 0%, transparent 70%);
+      pointer-events: none;
     }
     .hero-badge {
-      display:inline-flex; align-items:center; gap:6px;
-      background:rgba(232,84,26,.2); border:1px solid rgba(232,84,26,.4);
-      color:#ff9a78; font-size:.7rem; font-weight:600;
-      padding:3px 10px; border-radius:20px; margin-bottom:.6rem;
-      text-transform:uppercase; letter-spacing:.08em;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,92,43,.18); border: 1px solid rgba(255,92,43,.35);
+      color: #ff9a78; font-size: .7rem; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px; margin-bottom: .6rem;
+      text-transform: uppercase; letter-spacing: .08em;
     }
-    .hero-name { font-size:1.75rem; font-weight:800; color:#fff; }
-    .hero-meta { color:rgba(255,255,255,.55); font-size:.85rem; margin-top:.2rem; }
+    .hero-name { font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -.4px; }
+    .hero-meta { color: rgba(255,255,255,.5); font-size: .85rem; margin-top: .2rem; }
 
+    /* ── Ad cards ── */
     .ad-card {
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:14px; overflow:hidden; margin-bottom:1.25rem;
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden; margin-bottom: 1.25rem;
+      transition: box-shadow .18s;
     }
+    .ad-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.9); }
     .ad-card-header {
-      background:#F8FAFC; padding:.9rem 1.2rem;
-      display:flex; align-items:center; justify-content:space-between;
-      border-bottom:1px solid var(--border);
+      background: rgba(255,255,255,.5);
+      padding: .9rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,.06);
     }
-    .ad-card-name { font-size:.9rem; font-weight:700; color:var(--dark); }
-    .ad-card-body { padding:1.2rem; }
+    .ad-card-name { font-size: .9rem; font-weight: 700; color: #0f172a; }
+    .ad-card-body { padding: 1.2rem; }
 
-    .form-label-sm { font-size:.75rem; font-weight:600; color:var(--muted);
-      text-transform:uppercase; letter-spacing:.05em; margin-bottom:.3rem; }
-    .form-control-sm { font-size:.82rem; border-radius:8px; border:1px solid var(--border); }
-    .form-control-sm:focus { border-color:var(--navy); box-shadow:0 0 0 3px rgba(26,58,92,.1); }
-    textarea.form-control-sm { resize:vertical; min-height:90px; }
+    /* ── Form elements ── */
+    .form-label-sm {
+      font-size: .75rem; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem;
+    }
+    .form-control {
+      font-size: .82rem; border-radius: 9px;
+      border: 1.5px solid rgba(0,0,0,.1);
+      background: rgba(255,255,255,.7);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-control:focus {
+      border-color: rgba(255,92,43,.5);
+      box-shadow: 0 0 0 3px rgba(255,92,43,.1);
+      background: rgba(255,255,255,.9);
+    }
+    textarea.form-control { resize: vertical; min-height: 90px; }
 
+    /* ── Badges ── */
     .optional-badge {
-      font-size:.65rem; font-weight:600; color:var(--muted);
-      background:#F1F5F9; padding:1px 6px; border-radius:4px; margin-left:.4rem;
+      font-size: .65rem; font-weight: 600; color: #64748b;
+      background: rgba(241,245,249,.8); padding: 1px 6px; border-radius: 4px; margin-left: .4rem;
+      border: 1px solid rgba(0,0,0,.07);
     }
     .rotate-badge {
-      font-size:.65rem; font-weight:600; color:#0369a1;
-      background:#e0f2fe; padding:1px 6px; border-radius:4px; margin-left:.4rem;
+      font-size: .65rem; font-weight: 600; color: #0369a1;
+      background: rgba(224,242,254,.8); padding: 1px 6px; border-radius: 4px; margin-left: .4rem;
+    }
+    .required-badge {
+      font-size: .65rem; font-weight: 600; color: #dc2626;
+      background: rgba(254,242,242,.8); padding: 1px 6px; border-radius: 4px; margin-left: .4rem;
     }
 
+    /* ── Buttons ── */
     .btn-save-all {
-      background:var(--accent); color:#fff; border:none;
-      padding:.75rem 2rem; border-radius:10px; font-size:.9rem; font-weight:700;
-      cursor:pointer; transition:background .15s;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
+      color: #fff; border: none;
+      padding: .75rem 2rem; border-radius: 11px; font-size: .9rem; font-weight: 700;
+      cursor: pointer; transition: all .18s;
+      box-shadow: 0 6px 20px rgba(255,92,43,.3), inset 0 1px 0 rgba(255,255,255,.2);
     }
-    .btn-save-all:hover { background:var(--accent2); }
+    .btn-save-all:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,92,43,.4); }
     .btn-skip {
-      background:transparent; color:var(--muted); border:1px solid var(--border);
-      padding:.75rem 1.5rem; border-radius:10px; font-size:.9rem; font-weight:500;
-      cursor:pointer; text-decoration:none; display:inline-block;
+      background: rgba(255,255,255,.6);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      color: #64748b; border: 1px solid rgba(0,0,0,.1);
+      padding: .75rem 1.5rem; border-radius: 11px; font-size: .9rem; font-weight: 500;
+      cursor: pointer; text-decoration: none; display: inline-block; transition: all .15s;
     }
-    .btn-skip:hover { background:#F8FAFC; color:var(--text); }
-
-    .progress-indicator {
-      display:flex; gap:.5rem; align-items:center; margin-bottom:1.5rem;
-    }
-    .prog-dot {
-      width:8px; height:8px; border-radius:50%; background:var(--border);
-    }
-    .prog-dot.active { background:var(--accent); width:24px; border-radius:4px; }
-    .prog-dot.done { background:var(--success); }
+    .btn-skip:hover { background: rgba(255,255,255,.8); color: #0f172a; }
 
     .collapse-toggle {
-      background:none; border:none; color:var(--navy); font-size:.78rem; font-weight:600;
-      cursor:pointer; padding:0; display:flex; align-items:center; gap:.3rem;
+      background: rgba(255,255,255,.5); border: 1px solid rgba(0,0,0,.08);
+      color: #374151; font-size: .78rem; font-weight: 600;
+      cursor: pointer; padding: 4px 12px; border-radius: 7px;
+      display: flex; align-items: center; gap: .3rem; transition: all .15s;
     }
+    .collapse-toggle:hover { background: rgba(255,255,255,.8); }
+
     .help-icon {
       display: inline-flex; align-items: center; justify-content: center;
       width: 15px; height: 15px; border-radius: 50%;
-      background: rgba(100,116,139,.15); color: var(--muted);
+      background: rgba(100,116,139,.15); color: #64748b;
       font-size: 9px; cursor: pointer; border: none; padding: 0;
       vertical-align: middle; margin-left: 3px;
       transition: background .15s, color .15s; line-height: 1;
     }
-    .help-icon:hover { background: var(--navy); color: #fff; }
-    .required-badge {
-      font-size:.65rem; font-weight:600; color:#dc2626;
-      background:#fef2f2; padding:1px 6px; border-radius:4px; margin-left:.4rem;
+    .help-icon:hover { background: rgba(6,13,26,.7); color: #fff; }
+
+    /* ── Info bar ── */
+    .info-bar {
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-card);
+      padding: .7rem 1rem;
+      display: flex; align-items: flex-start; gap: .75rem;
     }
+
+    /* ── Flash alerts ── */
+    .alert { border-radius: var(--radius-sm); font-size: .83rem; }
+    .alert-success { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.25); color: #065f46; }
+    .alert-danger  { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.25); color: #991b1b; }
   </style>
 </head>
 <body>
@@ -125,8 +200,8 @@
     <a href="{{ url_for('client_profile', client_id=client.id) }}" class="btn-nav">
       <i class="bi bi-arrow-left"></i> Profiel van {{ client.name }}
     </a>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 .1rem;"></div>
-    <span style="font-size:.72rem;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;">
+    <div style="width:1px;height:18px;background:rgba(255,255,255,.12);margin:0 .1rem;"></div>
+    <span style="font-size:.72rem;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:4px;">
       <i class="bi bi-person-circle"></i>{{ session.username }}
     </span>
     <a href="/logout" class="btn-nav" style="padding:.35rem .7rem;" title="Uitloggen"><i class="bi bi-box-arrow-right"></i></a>
@@ -159,9 +234,9 @@
 
 <div class="container py-4">
 
-  <div class="d-flex align-items-center gap-2 mb-3">
-    <i class="bi bi-info-circle" style="color:var(--navy)"></i>
-    <span style="font-size:.82rem;color:var(--muted)">
+  <div class="info-bar mb-4">
+    <i class="bi bi-info-circle" style="color:#6366f1;font-size:1rem;flex-shrink:0;margin-top:2px;"></i>
+    <span style="font-size:.82rem;color:#374151;line-height:1.6;">
       Meta roteert <strong>Ad copy 1, 2 en 3 willekeurig</strong> per advertentie — ze wegen even zwaar.
       Vul er zoveel in als je hebt. Script en headline worden gebruikt voor de shoot brief op de Hooks-pagina.
     </span>
@@ -173,7 +248,7 @@
       <div class="ad-card">
         <div class="ad-card-header">
           <div>
-            <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Advertentie</div>
+            <div style="font-size:.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Advertentie</div>
             <div class="ad-card-name">{{ ad_naam }}</div>
           </div>
           <button type="button" class="collapse-toggle" data-bs-toggle="collapse"
@@ -184,48 +259,44 @@
         </div>
         <div class="collapse show ad-card-body" id="ad-{{ loop.index }}">
           <div class="row g-3">
-            <!-- Script (voor reels/video ads) -->
             <div class="col-12">
               <div class="form-label-sm">
                 Script <span class="optional-badge">reels / video</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="De gesproken tekst van je video ad. Wordt gebruikt op de Hooks-pagina: de AI baseert nieuwe shoot-scripts op bestaande winnende video scripts. Niet invullen voor statics.">
+                  title="De gesproken tekst van je video ad. Wordt gebruikt op de Hooks-pagina: de AI baseert nieuwe shoot-scripts op bestaande winnende video scripts.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
-              <textarea class="form-control form-control-sm"
+              <textarea class="form-control"
                         name="script_{{ safe_key }}"
                         placeholder="Heb jij ook het gevoel dat je al maanden traint zonder resultaat?…"
                         rows="3"></textarea>
             </div>
-            <!-- Headline (voor statics) -->
             <div class="col-md-6">
               <div class="form-label-sm">
                 Headline <span class="optional-badge">statics</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="De vetgedrukte kopregel van een static advertentie — max. 40 tekens. Niet van toepassing op video/reels.">
+                  title="De vetgedrukte kopregel van een static advertentie — max. 40 tekens.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
-              <input type="text" class="form-control form-control-sm"
+              <input type="text" class="form-control"
                      name="headline_{{ safe_key }}"
                      placeholder="Van 0 naar resultaat in 8 weken">
             </div>
-            <!-- Ad copy 1 -->
             <div class="col-md-6">
               <div class="form-label-sm">
                 Ad copy 1 <span class="rotate-badge">Meta roteert</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="Meta toont copy 1, 2 en 3 willekeurig aan verschillende mensen per advertentie — ze wegen even zwaar. Vul alle varianten in die je hebt.">
+                  title="Meta toont copy 1, 2 en 3 willekeurig aan verschillende mensen per advertentie — ze wegen even zwaar.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
-              <textarea class="form-control form-control-sm"
+              <textarea class="form-control"
                         name="copy1_{{ safe_key }}"
                         placeholder="Meer dan 500 klanten gingen je voor…"
                         rows="2"></textarea>
             </div>
-            <!-- Ad copy 2 & 3 -->
             <div class="col-md-6">
               <div class="form-label-sm">
                 Ad copy 2 <span class="rotate-badge">Meta roteert</span>
@@ -234,7 +305,7 @@
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
-              <textarea class="form-control form-control-sm"
+              <textarea class="form-control"
                         name="copy2_{{ safe_key }}"
                         placeholder="Variant 2…"
                         rows="2"></textarea>
@@ -247,7 +318,7 @@
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
-              <textarea class="form-control form-control-sm"
+              <textarea class="form-control"
                         name="copy3_{{ safe_key }}"
                         placeholder="Variant 3…"
                         rows="2"></textarea>
@@ -257,7 +328,6 @@
       </div>
     {% endfor %}
 
-    <!-- Actieknoppen -->
     <div class="d-flex align-items-center gap-3 mt-2 pb-5">
       <button type="submit" class="btn-save-all">
         <i class="bi bi-check-circle me-1"></i> Alles opslaan
@@ -276,11 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
     new bootstrap.Tooltip(el, {trigger:'hover', delay:{show:200,hide:100}})
   );
-});
-  // Chevron omdraaien bij invouwen
   document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
     const targetId = btn.getAttribute('data-bs-target');
-    const chevronId = btn.querySelector('i').id;
     document.querySelector(targetId).addEventListener('hide.bs.collapse', () => {
       btn.querySelector('i').className = 'bi bi-chevron-down';
       btn.lastChild.textContent = ' Uitvouwen';
@@ -290,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.lastChild.textContent = ' Invouwen';
     });
   });
+});
 </script>
 </body>
 </html>

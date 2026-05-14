@@ -6,55 +6,82 @@
   <title>Inloggen — SLN Meta Ads</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --dark: #0D1B2A; --accent: #E8541A; --accent2: #FF7043;
-      --bg: #F4F6FA; --surface: #FFFFFF; --border: #E2E8F0;
-      --text: #0F172A; --muted: #64748B;
-    }
-    * { font-family: 'Inter', system-ui, sans-serif; }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
     body {
-      background: linear-gradient(135deg, var(--dark) 0%, #1A3A5C 60%, #1e4d8c 100%);
+      background-color: #060d1a;
+      background-image:
+        radial-gradient(ellipse 70% 60% at 15% 10%, rgba(99,102,241,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 85% 20%, rgba(255,92,43,.14) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 50% at 50% 90%, rgba(16,185,129,.08) 0%, transparent 55%),
+        linear-gradient(160deg, #060d1a 0%, #080f22 100%);
       min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .login-card {
-      background: var(--surface);
-      border-radius: 20px;
-      padding: 2.5rem 2rem;
+      background: rgba(255,255,255,.08);
+      -webkit-backdrop-filter: blur(32px) saturate(200%);
+      backdrop-filter: blur(32px) saturate(200%);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 24px;
+      padding: 2.75rem 2.25rem;
       width: 100%;
       max-width: 400px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+      box-shadow: 0 32px 80px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.15);
     }
     .logo-icon {
-      width: 52px; height: 52px;
-      background: var(--accent);
-      border-radius: 14px;
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
+      border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 18px; color: #fff;
-      margin: 0 auto 1.25rem;
+      margin: 0 auto 1.35rem;
+      box-shadow: 0 8px 28px rgba(255,92,43,.35);
     }
-    .login-title { font-size: 1.4rem; font-weight: 800; color: var(--dark); text-align: center; }
-    .login-sub   { font-size: .85rem; color: var(--muted); text-align: center; margin-top: .25rem; margin-bottom: 1.75rem; }
-    .form-label  { font-size: .78rem; font-weight: 600; color: var(--text); margin-bottom: .35rem; }
+    .login-title { font-size: 1.45rem; font-weight: 800; color: #fff; text-align: center; letter-spacing: -.4px; }
+    .login-sub   { font-size: .85rem; color: rgba(255,255,255,.4); text-align: center; margin-top: .25rem; margin-bottom: 1.85rem; }
+    .form-label  { font-size: .75rem; font-weight: 600; color: rgba(255,255,255,.65); margin-bottom: .35rem; }
     .form-control {
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
+      background: rgba(255,255,255,.08);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 12px;
       font-size: .88rem;
-      padding: .6rem .9rem;
-      transition: border-color .15s;
+      padding: .65rem .95rem;
+      color: #fff;
+      transition: border-color .18s, box-shadow .18s;
     }
-    .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,84,26,.12); }
+    .form-control::placeholder { color: rgba(255,255,255,.3); }
+    .form-control:focus {
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,92,43,.6);
+      box-shadow: 0 0 0 3px rgba(255,92,43,.15);
+      color: #fff;
+      outline: none;
+    }
     .btn-login {
-      background: var(--accent); color: #fff; border: none;
-      width: 100%; padding: .7rem; border-radius: 10px;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
+      color: #fff; border: none;
+      width: 100%; padding: .72rem; border-radius: 12px;
       font-weight: 700; font-size: .95rem;
-      margin-top: 1.25rem;
-      transition: background .15s, transform .1s;
+      margin-top: 1.35rem;
+      transition: all .2s;
+      box-shadow: 0 6px 20px rgba(255,92,43,.3), inset 0 1px 0 rgba(255,255,255,.2);
+      cursor: pointer;
     }
-    .btn-login:hover { background: var(--accent2); transform: translateY(-1px); }
-    .alert-danger { font-size: .82rem; border-radius: 10px; }
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(255,92,43,.4), inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    .alert-danger {
+      font-size: .82rem; border-radius: 10px;
+      background: rgba(239,68,68,.15);
+      border: 1px solid rgba(239,68,68,.25);
+      color: #fca5a5;
+    }
   </style>
 </head>
 <body>
