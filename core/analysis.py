@@ -63,7 +63,50 @@ def get_all_ads(campaigns: list[Campaign]) -> list[Ad]:
     return [ad for c in campaigns for adset in c.ad_sets for ad in adset.ads]
 
 
+def filter_zero_spend(rows: list[dict]) -> list[dict]:
+    """Remove rows with spend = 0. These ads worden nergens getoond of getagd."""
+    return [r for r in rows if float(r.get("spend", 0) or 0) > 0]
+
+
+def merge_multi_conversion_rows(rows: list[dict]) -> list[dict]:
+    """
+    Wanneer Meta meerdere custom conversions exporteert, verschijnt dezelfde ad+dag
+    als aparte rijen met identieke spend/impressies maar andere resultaten.
+    Hier dedupliceren we spend+impressies (neem eenmalig), maar tellen results op.
+    """
+    seen: dict[tuple, int] = {}
+    merged: list[dict] = []
+
+    for row in rows:
+        ad_key = str(row.get("ad_id") or "") or row.get("ad_name", "")
+        camp_key = str(row.get("campaign_id") or "") or row.get("campaign_name", "")
+        day_key = str(row.get("day", ""))
+        key = (ad_key, camp_key, day_key)
+
+        if key in seen:
+            idx = seen[key]
+            existing = merged[idx]
+            existing["results"] = float(existing.get("results", 0) or 0) + float(row.get("results", 0) or 0)
+        else:
+            seen[key] = len(merged)
+            merged.append(dict(row))
+
+    return merged
+
+
+def build_ad_delivery_map(rows: list[dict]) -> dict[str, str]:
+    """Return {ad_name: delivery_status} from CSV rows. Status wordt genormaliseerd."""
+    result = {}
+    for r in rows:
+        ad_name = r.get("ad_name", "")
+        delivery = str(r.get("ad_delivery", "") or "").lower().strip()
+        if ad_name and delivery:
+            result[ad_name] = delivery
+    return result
+
+
 def build_campaigns(rows: list[dict]) -> list[Campaign]:
+    rows = merge_multi_conversion_rows(rows)
     campaigns = []
 
     for camp_name, camp_rows in _group_by(rows, "campaign_name").items():

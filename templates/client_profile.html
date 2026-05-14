@@ -227,6 +227,9 @@
   </a>
   <div class="d-flex align-items-center gap-2">
     <a href="/" class="btn-nav-accent"><i class="bi bi-upload me-1"></i>Nieuwe analyse</a>
+    <a href="{{ url_for('import_creatives_page', client_id=client.id) }}" class="btn-nav">
+      <i class="bi bi-collection me-1"></i>Creative import
+    </a>
     <button class="btn-nav" data-bs-toggle="modal" data-bs-target="#editModal">
       <i class="bi bi-pencil me-1"></i>Bewerken
     </button>
@@ -535,6 +538,48 @@
     </div>
 
     <div class="col-lg-5">
+
+      <!-- Creative content shortcut -->
+      <div class="section-title"><i class="bi bi-collection" style="color:var(--navy);"></i>Creative content</div>
+      <div class="card-sln mb-4">
+        <div style="padding:1rem;">
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem;">
+            Scripts, headlines en ad copy's opgeslagen per advertentie.
+            Wordt automatisch meegestuurd als context naar de AI bij analyse en shoot briefs.
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('import_creatives_page', client_id=client.id) }}"
+               style="display:inline-flex;align-items:center;gap:.4rem;background:var(--navy);color:#fff;
+                      padding:.45rem 1rem;border-radius:8px;font-size:.8rem;font-weight:600;text-decoration:none;">
+              <i class="bi bi-upload"></i> Importeer / bekijk content
+            </a>
+            <a href="{{ url_for('template_videos') }}"
+               style="display:inline-flex;align-items:center;gap:.4rem;background:#EFF6FF;color:#1D4ED8;
+                      border:1px solid #BFDBFE;padding:.45rem .85rem;border-radius:8px;
+                      font-size:.78rem;font-weight:600;text-decoration:none;">
+              <i class="bi bi-file-earmark-excel"></i> Video template
+            </a>
+            <a href="{{ url_for('template_statics') }}"
+               style="display:inline-flex;align-items:center;gap:.4rem;background:#F0FDF4;color:#166534;
+                      border:1px solid #BBF7D0;padding:.45rem .85rem;border-radius:8px;
+                      font-size:.78rem;font-weight:600;text-decoration:none;">
+              <i class="bi bi-file-earmark-excel"></i> Statics template
+            </a>
+          </div>
+          {% if session.get('pending_new_ads') %}
+          <div style="margin-top:.85rem;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:.6rem .85rem;">
+            <div style="font-size:.78rem;font-weight:700;color:#C2410C;">
+              <i class="bi bi-exclamation-circle me-1"></i>
+              {{ session.get('pending_new_ads')|length }} nieuwe ad(s) wachten op content
+            </div>
+            <a href="{{ url_for('new_ads_content', client_id=client.id) }}"
+               style="font-size:.75rem;color:#EA580C;font-weight:600;text-decoration:underline;">
+              Nu invullen →
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
 
       <!-- Shoot brief history -->
       <div class="section-title"><i class="bi bi-camera-fill" style="color:var(--accent);"></i>Shoot brief history</div>

@@ -133,6 +133,11 @@ COLUMN_MAP = {
     "aankoop-roas (rendement op advertentie-uitgaven)": "roas",
     "aankoop roas (rendement op advertentie-uitgaven)": "roas",
     "website-aankoop-roas (rendement op advertentie-uitgaven)": "roas",
+    # Ad delivery status (EN + NL)
+    "ad delivery": "ad_delivery",
+    "advertentieweergave": "ad_delivery",
+    "levering advertentie": "ad_delivery",
+
     # Nederlands — leads
     "facebook-leads": "results",
     "websiteleads": "results",
@@ -177,6 +182,7 @@ NUMERIC_FIELDS = [
 ]
 
 
+
 def _normalize_key(raw: str) -> str:
     return COLUMN_MAP.get(raw.strip().lower(), raw.strip().lower().replace(" ", "_"))
 
@@ -210,6 +216,7 @@ def _normalize_row(raw_row: dict) -> dict:
     row.setdefault("ad_name", "Unknown")
     row.setdefault("ad_id", "0")
     row.setdefault("result_indicator", "Purchases")
+    row.setdefault("ad_delivery", "")
     return row
 
 

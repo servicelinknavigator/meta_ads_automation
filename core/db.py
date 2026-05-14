@@ -147,6 +147,21 @@ def init_schema() -> None:
             created_at  TIMESTAMP DEFAULT NOW(),
             insights_text TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS ad_creatives (
+            id              SERIAL PRIMARY KEY,
+            client_id       INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+            ad_naam         VARCHAR(500) NOT NULL,
+            script          TEXT,
+            headline        VARCHAR(500),
+            ad_copy_1       TEXT,
+            ad_copy_2       TEXT,
+            ad_copy_3       TEXT,
+            afbeelding_pad  VARCHAR(500),
+            created_at      TIMESTAMP DEFAULT NOW(),
+            updated_at      TIMESTAMP DEFAULT NOW(),
+            UNIQUE(client_id, ad_naam)
+        );
         """)
         cur.close()
     logger.info("DB schema OK")
@@ -476,6 +491,127 @@ def save_insights(client_id: int, upload_id: int, insights_text: str) -> None:
         """, (client_id, upload_id, insights_text))
         cur.close()
 
+
+# ── Ad creatives ──────────────────────────────────────────────────────────────
+
+def get_ad_creatives(client_id: int) -> dict[str, dict]:
+    """Return {ad_naam: {script, headline, ad_copy_1, ...}} for all saved creatives."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT ad_naam, script, headline, ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad
+            FROM ad_creatives WHERE client_id = %s
+        """, (client_id,))
+        rows = cur.fetchall()
+        cur.close()
+    return {
+        r[0]: {
+            "script": r[1] or "",
+            "headline": r[2] or "",
+            "ad_copy_1": r[3] or "",
+            "ad_copy_2": r[4] or "",
+            "ad_copy_3": r[5] or "",
+            "afbeelding_pad": r[6] or "",
+        }
+        for r in rows
+    }
+
+
+def upsert_ad_creative(client_id: int, ad_naam: str, script: str = "",
+                        headline: str = "", ad_copy_1: str = "",
+                        ad_copy_2: str = "", ad_copy_3: str = "",
+                        afbeelding_pad: str = "") -> None:
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO ad_creatives
+                (client_id, ad_naam, script, headline, ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (client_id, ad_naam)
+            DO UPDATE SET
+                script         = COALESCE(NULLIF(EXCLUDED.script, ''),         ad_creatives.script),
+                headline       = COALESCE(NULLIF(EXCLUDED.headline, ''),       ad_creatives.headline),
+                ad_copy_1      = COALESCE(NULLIF(EXCLUDED.ad_copy_1, ''),      ad_creatives.ad_copy_1),
+                ad_copy_2      = COALESCE(NULLIF(EXCLUDED.ad_copy_2, ''),      ad_creatives.ad_copy_2),
+                ad_copy_3      = COALESCE(NULLIF(EXCLUDED.ad_copy_3, ''),      ad_creatives.ad_copy_3),
+                afbeelding_pad = COALESCE(NULLIF(EXCLUDED.afbeelding_pad, ''), ad_creatives.afbeelding_pad),
+                updated_at     = NOW()
+        """, (client_id, ad_naam, script or None, headline or None,
+              ad_copy_1 or None, ad_copy_2 or None, ad_copy_3 or None,
+              afbeelding_pad or None))
+        cur.close()
+
+
+def bulk_upsert_ad_creatives(client_id: int, creatives: list[dict]) -> int:
+    """Upsert a list of creative dicts. Returns number of rows processed."""
+    for c in creatives:
+        upsert_ad_creative(
+            client_id=client_id,
+            ad_naam=c.get("ad_naam", ""),
+            script=c.get("script", ""),
+            headline=c.get("headline", ""),
+            ad_copy_1=c.get("ad_copy_1", ""),
+            ad_copy_2=c.get("ad_copy_2", ""),
+            ad_copy_3=c.get("ad_copy_3", ""),
+            afbeelding_pad=c.get("afbeelding_pad", ""),
+        )
+    return len(creatives)
+
+
+def get_ad_names_with_creatives(client_id: int) -> set[str]:
+    """Return set of ad names that already have creative content stored."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT ad_naam FROM ad_creatives
+            WHERE client_id = %s
+              AND (script IS NOT NULL OR headline IS NOT NULL OR ad_copy_1 IS NOT NULL)
+        """, (client_id,))
+        rows = cur.fetchall()
+        cur.close()
+    return {r[0] for r in rows}
+
+
+def get_industry_cross_client_data(industry: str, exclude_client_id: int | None = None,
+                                    min_spend: float = 30.0) -> list[dict]:
+    """
+    Returns top-performing ad+creative combinations from other clients in the same industry.
+    Used for cross-client pattern recognition.
+    """
+    if not industry or not industry.strip():
+        return []
+    with _conn() as conn:
+        cur = conn.cursor()
+        query = """
+            SELECT c.name AS client_name, ac.ad_naam, ac.script, ac.headline,
+                   ac.ad_copy_1, h.hook_type, h.format_type,
+                   h.spend, h.results, h.cpl, h.avg_ctr
+            FROM ad_creatives ac
+            JOIN clients c ON c.id = ac.client_id
+            LEFT JOIN (
+                SELECT client_id, hook_type, format_type,
+                       SUM(spend) AS spend, SUM(results) AS results,
+                       CASE WHEN SUM(results) > 0 THEN SUM(spend)::float / SUM(results) END AS cpl,
+                       AVG(avg_ctr) AS avg_ctr
+                FROM hook_snapshots
+                GROUP BY client_id, hook_type, format_type
+            ) h ON h.client_id = ac.client_id
+            WHERE LOWER(c.industry) = LOWER(%s)
+              AND h.spend >= %s
+        """
+        params = [industry, min_spend]
+        if exclude_client_id:
+            query += " AND c.id != %s"
+            params.append(exclude_client_id)
+        query += " ORDER BY h.cpl ASC NULLS LAST LIMIT 15"
+        cur.execute(query, params)
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close()
+    return rows
+
+
+# ── Insights history ──────────────────────────────────────────────────────────
 
 def get_insights_history(client_id: int, limit: int = 5) -> list[dict]:
     with _conn() as conn:

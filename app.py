@@ -23,6 +23,7 @@ from core.csv_parser import parse_csv, parse_csv_string, load_dummy_data, valida
 from core.analysis import (
     build_campaigns, build_summary, build_ad_chart_data, get_all_ads,
     get_date_range, filter_rows_by_date, build_wow_comparison,
+    filter_zero_spend, build_ad_delivery_map,
 )
 from core.generation import generate_insights
 from core.reporter import generate_pdf
@@ -36,6 +37,7 @@ from core.hook_analyzer import (
 )
 from core.ai_client import suggest_ad_tags
 from core.shoot_brief import generate_shoot_brief
+from core.excel_templates import generate_videos_template, generate_statics_template, parse_template
 import core.db as db
 
 # ── In-memory creative cache ───────────────────────────────────────────────────
@@ -150,6 +152,9 @@ def _compute_thresholds(form=None, client=None) -> dict:
     return {"winner": 30, "mid": 50, "preset": "auto"}
 
 
+_LOW_SPEND_THRESHOLD = 30.0  # ads onder dit bedrag → "Te weinig data"
+
+
 def _process_df(rows: list, campaign_type_override: str = "",
                 date_from: str = "", date_to: str = "",
                 csv_content: str | None = None,
@@ -158,6 +163,14 @@ def _process_df(rows: list, campaign_type_override: str = "",
     valid, errors = validate_csv(rows)
     if not valid:
         return {"error": "; ".join(errors)}
+
+    # Bouw delivery-map VOOR spend=0 filter (inactive ads kunnen spend=0 hebben)
+    ad_delivery_map = build_ad_delivery_map(rows)
+
+    # Filter ads zonder spend volledig uit — worden nergens getoond of getagd
+    rows = filter_zero_spend(rows)
+    if not rows:
+        return {"error": "Alle advertenties hebben €0 spend — upload een CSV met actieve advertentie-data."}
 
     full_from, full_to = get_date_range(rows)
     if date_from or date_to:
@@ -180,10 +193,45 @@ def _process_df(rows: list, campaign_type_override: str = "",
     summary = build_summary(rows, campaigns, campaign_type_override=campaign_type_override)
     ad_chart_data = build_ad_chart_data(campaigns, summary.campaign_type)
     all_ads = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
-    insights = generate_insights(summary, all_ads)
+
+    # Haal creative content en cross-client patronen op voor AI context
+    _client_id_for_ai = session.get("client_id")
+    _ad_creatives_for_ai = {}
+    _cross_client_for_ai = []
+    if _client_id_for_ai and db.is_available():
+        try:
+            _ad_creatives_for_ai = db.get_ad_creatives(_client_id_for_ai)
+        except Exception:
+            pass
+        try:
+            _client_data = db.get_client(_client_id_for_ai)
+            _industry = (_client_data or {}).get("industry", "")
+            if _industry:
+                _cross_client_for_ai = db.get_industry_cross_client_data(
+                    _industry, exclude_client_id=_client_id_for_ai
+                )
+        except Exception:
+            pass
+
+    insights = generate_insights(summary, all_ads,
+                                 ad_creatives=_ad_creatives_for_ai,
+                                 cross_client_data=_cross_client_for_ai)
+
+    _INACTIVE_STATUSES = {"inactive", "not_delivering", "niet actief", "niet_actief",
+                          "paused", "gepauzeerd", "disabled"}
+
+    # Ads met te weinig spend krijgen een label maar geen urgentie-melding
+    low_data_ads = {a.ad_name for a in all_ads if 0 < a.spend < _LOW_SPEND_THRESHOLD}
 
     urgent_actions = []
     for a in all_ads:
+        delivery = ad_delivery_map.get(a.ad_name, "active").lower()
+        is_inactive = delivery in _INACTIVE_STATUSES
+        is_low_data = a.ad_name in low_data_ads
+
+        if is_inactive or is_low_data:
+            continue  # geen urgentiemeldingen voor inactieve of data-arme ads
+
         if a.results == 0 and a.spend > 50:
             urgent_actions.append({
                 "type": "burning", "ad_name": a.ad_name,
@@ -283,8 +331,9 @@ def _process_df(rows: list, campaign_type_override: str = "",
         except Exception as e:
             logger.warning("DB save failed: %s", e)
 
-    # Detect unknown ads for tagging UI
-    unknown_ads = get_unknown_ads(all_ads, overrides=name_overrides)
+    # Detect unknown ads for tagging UI — alleen ads met voldoende spend
+    sufficient_spend_ads = [a for a in all_ads if a.spend >= _LOW_SPEND_THRESHOLD]
+    unknown_ads = get_unknown_ads(sufficient_spend_ads, overrides=name_overrides)
     tag_suggestions = suggest_ad_tags(unknown_ads) if unknown_ads else {}
 
     return {
@@ -297,6 +346,8 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "urgent_actions": urgent_actions,
         "unknown_ads":    unknown_ads,
         "tag_suggestions": tag_suggestions,
+        "low_data_ads":   list(low_data_ads),
+        "ad_delivery_map": ad_delivery_map,
     }
 
 
@@ -898,10 +949,22 @@ def upload():
         except Exception:
             pass
 
+    # Detecteer nieuwe ads zonder creative content (alleen met spend > 0)
+    rows_with_spend = filter_zero_spend(rows)
+    _check_new_ads_after_upload(client_id, rows_with_spend)
+    new_ads_count = len(session.get("pending_new_ads", []))
+    if new_ads_count and client_id:
+        flash(
+            f"{new_ads_count} nieuwe advertentie(s) gevonden zonder script/copy. "
+            f'<a href="{url_for("new_ads_content", client_id=client_id)}" class="alert-link">Voeg content toe →</a>',
+            "info",
+        )
+
     return render_template("index.html", result=result, demo=False,
                            thresholds=thresholds, active_client=client,
                            unknown_ads=result.get("unknown_ads", []),
-                           tag_suggestions=result.get("tag_suggestions", {}))
+                           tag_suggestions=result.get("tag_suggestions", {}),
+                           new_ads_count=new_ads_count)
 
 
 @app.route("/tag-ads", methods=["POST"])
@@ -1090,10 +1153,25 @@ def hooks():
             _client = db.get_client(client_id)
         except Exception:
             pass
+    # Enricheer shoot brief context met opgeslagen creative content
+    _creative_ctx_for_brief = ""
+    if client_id and db.is_available():
+        try:
+            _creatives_brief = db.get_ad_creatives(client_id)
+            if _creatives_brief:
+                from core.generation import _format_creative_context
+                winning_ads_for_brief = [a.ad_name for a in all_ads[:5] if a.results > 0]
+                _creative_ctx_for_brief = _format_creative_context(_creatives_brief, winning_ads_for_brief)
+        except Exception:
+            pass
+
+    _base_context = (_client.get("client_context") or "" if _client else "")
+    _full_context = _base_context + (_creative_ctx_for_brief if _creative_ctx_for_brief else "")
+
     shoot_brief = generate_shoot_brief(
         summary, all_ads, top_ad=top_ad,
         client_name=_client["name"] if _client else "",
-        client_context=_client.get("client_context") or "" if _client else "",
+        client_context=_full_context,
     )
 
     # Save shoot brief to DB — only once per upload (avoid duplicates on page refresh)
@@ -1123,6 +1201,299 @@ def hooks():
         t_win=thresholds.get("winner", 30),
         t_mid=thresholds.get("mid", 50),
     )
+
+
+# ── Excel template downloads ───────────────────────────────────────────────────
+
+@app.route("/templates/videos")
+@login_required
+def template_videos():
+    """Download de lege videos Excel template."""
+    try:
+        data = generate_videos_template()
+    except RuntimeError as e:
+        flash(str(e), "danger")
+        return redirect(request.referrer or url_for("clients"))
+    return send_file(
+        io.BytesIO(data),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="template_videos.xlsx",
+    )
+
+
+@app.route("/templates/statics")
+@login_required
+def template_statics():
+    """Download de lege statics Excel template."""
+    try:
+        data = generate_statics_template()
+    except RuntimeError as e:
+        flash(str(e), "danger")
+        return redirect(request.referrer or url_for("clients"))
+    return send_file(
+        io.BytesIO(data),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="template_statics.xlsx",
+    )
+
+
+# ── Bulk creative import (Excel templates) ────────────────────────────────────
+
+@app.route("/clients/<int:client_id>/import/creatives", methods=["GET"])
+@login_required
+def import_creatives_page(client_id):
+    """Toon de import-pagina voor bulk creative content."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    session["client_id"] = client_id
+    creatives = db.get_ad_creatives(client_id) if db.is_available() else {}
+    return render_template("import_creatives.html", client=client, creatives=creatives)
+
+
+@app.route("/clients/<int:client_id>/import/videos", methods=["POST"])
+@login_required
+def import_videos(client_id):
+    """Verwerk een ingevulde videos Excel template."""
+    return _handle_creative_import(client_id, "videos")
+
+
+@app.route("/clients/<int:client_id>/import/statics", methods=["POST"])
+@login_required
+def import_statics(client_id):
+    """Verwerk een ingevulde statics Excel template."""
+    return _handle_creative_import(client_id, "statics")
+
+
+def _handle_creative_import(client_id: int, template_type: str) -> object:
+    file_key = f"{template_type}_file"
+    if file_key not in request.files or request.files[file_key].filename == "":
+        flash("Geen bestand geselecteerd.", "warning")
+        return redirect(url_for("import_creatives_page", client_id=client_id))
+
+    f = request.files[file_key]
+    if not f.filename.lower().endswith((".xlsx", ".xls")):
+        flash("Alleen Excel (.xlsx) bestanden zijn toegestaan.", "danger")
+        return redirect(url_for("import_creatives_page", client_id=client_id))
+
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    try:
+        klantnaam, creatives = parse_template(f.stream, template_type)
+    except Exception as e:
+        flash(f"Fout bij inlezen Excel: {e}", "danger")
+        return redirect(url_for("import_creatives_page", client_id=client_id))
+
+    if not creatives:
+        flash("Geen bruikbare rijen gevonden in het template. Zorg dat je Ad naam invult.", "warning")
+        return redirect(url_for("import_creatives_page", client_id=client_id))
+
+    # Optionele validatie: klantnaam uit B1 vergelijken met klant in DB
+    if klantnaam and klantnaam.lower() != client["name"].lower():
+        flash(
+            f"Klantnaam in template ('{klantnaam}') komt niet overeen met klant '{client['name']}'. "
+            "Import toch doorgezet — controleer of je het juiste bestand uploadt.",
+            "warning",
+        )
+
+    try:
+        saved = db.bulk_upsert_ad_creatives(client_id, creatives)
+        type_label = "video scripts" if template_type == "videos" else "static headlines"
+        flash(f"{saved} {type_label} opgeslagen voor {client['name']}.", "success")
+    except Exception as e:
+        flash(f"Database fout bij opslaan: {e}", "danger")
+
+    return redirect(url_for("import_creatives_page", client_id=client_id))
+
+
+# ── Bulk CSV upload (meerdere tegelijk) ───────────────────────────────────────
+
+@app.route("/clients/<int:client_id>/import/csvs", methods=["POST"])
+@login_required
+def import_bulk_csvs(client_id):
+    """Upload meerdere historische CSV's tegelijk — worden samengevoegd als één analyse."""
+    files = request.files.getlist("csv_files")
+    files = [f for f in files if f.filename and f.filename.lower().endswith(".csv")]
+
+    if not files:
+        flash("Selecteer minimaal één CSV bestand.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    session["client_id"] = client_id
+    name_overrides = _load_name_overrides()
+
+    all_rows: list = []
+    seen_keys: set = set()
+    upload_ids_saved = []
+
+    for f in files:
+        try:
+            raw_text = f.read().decode("utf-8-sig")
+            rows = parse_csv_string(raw_text)
+            rows = filter_zero_spend(rows)
+            for row in rows:
+                key = _dedup_key(row)
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_rows.append(row)
+        except Exception as e:
+            flash(f"Fout bij inlezen '{f.filename}': {e}", "warning")
+
+    if not all_rows:
+        flash("Geen bruikbare data gevonden in de geüploade CSV's.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    client = db.get_client(client_id) if db.is_available() else None
+    thresholds = _compute_thresholds(request.form, client=client)
+
+    result = _process_df(all_rows, name_overrides=name_overrides)
+    if "error" in result:
+        flash(result["error"], "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    session.permanent = True
+    session["thresholds"] = thresholds
+    session["data_source"] = "bulk_import"
+
+    # Check op nieuwe ads zonder creative content
+    new_ad_names = _get_new_ad_names(client_id, all_rows)
+    if new_ad_names:
+        session["pending_new_ads"] = new_ad_names
+        flash(
+            f"{len(new_ad_names)} nieuwe advertenties gevonden zonder script/copy. "
+            "Je kunt ze direct invullen hieronder.",
+            "info",
+        )
+
+    return render_template("index.html", result=result, demo=False,
+                           thresholds=thresholds, active_client=client,
+                           unknown_ads=result.get("unknown_ads", []),
+                           tag_suggestions=result.get("tag_suggestions", {}),
+                           merged_uploads=len(files))
+
+
+# ── Ongoing tracking — nieuwe ads na upload ───────────────────────────────────
+
+def _get_new_ad_names(client_id: int, rows: list[dict]) -> list[str]:
+    """Geeft lijst van ad namen die in de rows zitten maar nog geen creative content hebben."""
+    if not db.is_available():
+        return []
+    try:
+        existing = db.get_ad_names_with_creatives(client_id)
+        ad_names_in_csv = {r.get("ad_name", "") for r in rows if r.get("ad_name") and r.get("ad_name") != "Unknown"}
+        return sorted(ad_names_in_csv - existing)
+    except Exception:
+        return []
+
+
+@app.route("/clients/<int:client_id>/new-ads", methods=["GET"])
+@login_required
+def new_ads_content(client_id):
+    """Toon formulier om content toe te voegen aan nieuwe ads na een CSV upload."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    pending = session.get("pending_new_ads", [])
+    if not pending:
+        flash("Geen nieuwe advertenties gevonden die content nodig hebben.", "info")
+        return redirect(url_for("client_profile", client_id=client_id))
+    return render_template("new_ads_content.html", client=client, new_ads=pending)
+
+
+@app.route("/clients/<int:client_id>/new-ads", methods=["POST"])
+@login_required
+def new_ads_content_save(client_id):
+    """Sla ingevulde content op voor nieuwe ads."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    pending = session.get("pending_new_ads", [])
+    saved_count = 0
+
+    for ad_naam in pending:
+        # Form field names: script_<idx>, headline_<idx>, ad_copy_1_<idx>, etc.
+        safe_key = ad_naam.replace(" ", "_").replace("-", "_")[:50]
+        script    = request.form.get(f"script_{safe_key}", "").strip()
+        headline  = request.form.get(f"headline_{safe_key}", "").strip()
+        copy1     = request.form.get(f"copy1_{safe_key}", "").strip()
+        copy2     = request.form.get(f"copy2_{safe_key}", "").strip()
+        copy3     = request.form.get(f"copy3_{safe_key}", "").strip()
+
+        if any([script, headline, copy1]):
+            try:
+                db.upsert_ad_creative(client_id, ad_naam, script=script, headline=headline,
+                                      ad_copy_1=copy1, ad_copy_2=copy2, ad_copy_3=copy3)
+                saved_count += 1
+            except Exception as e:
+                logger.warning("Creative save failed for '%s': %s", ad_naam, e)
+
+    session.pop("pending_new_ads", None)
+
+    if saved_count:
+        flash(f"Content opgeslagen voor {saved_count} advertentie(s).", "success")
+    else:
+        flash("Geen content ingevuld — overgeslagen.", "info")
+
+    return redirect(url_for("client_profile", client_id=client_id))
+
+
+@app.route("/clients/<int:client_id>/save-creative", methods=["POST"])
+@login_required
+def save_creative(client_id):
+    """Sla creative content op voor één specifieke ad (AJAX of form POST)."""
+    if not db.is_available():
+        return {"ok": False, "error": "DB niet beschikbaar"}, 503
+    try:
+        ad_naam   = request.form.get("ad_naam", "").strip()
+        if not ad_naam:
+            return {"ok": False, "error": "Ad naam ontbreekt"}, 400
+        db.upsert_ad_creative(
+            client_id=client_id,
+            ad_naam=ad_naam,
+            script=request.form.get("script", "").strip(),
+            headline=request.form.get("headline", "").strip(),
+            ad_copy_1=request.form.get("ad_copy_1", "").strip(),
+            ad_copy_2=request.form.get("ad_copy_2", "").strip(),
+            ad_copy_3=request.form.get("ad_copy_3", "").strip(),
+        )
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}, 500
+
+
+# ── Creatives overzicht ────────────────────────────────────────────────────────
+
+@app.route("/clients/<int:client_id>/creatives")
+@login_required
+def client_creatives(client_id):
+    """Toon alle opgeslagen creative content van een klant."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    session["client_id"] = client_id
+    creatives = db.get_ad_creatives(client_id) if db.is_available() else {}
+    return render_template("import_creatives.html", client=client, creatives=creatives)
+
+
+# ── Upload uitbreiden: detect nieuwe ads na CSV upload ────────────────────────
+
+def _check_new_ads_after_upload(client_id: int | None, rows: list[dict]) -> None:
+    """Detecteer nieuwe ads na een upload en sla ze op in de sessie."""
+    if not client_id or not db.is_available():
+        return
+    new_ads = _get_new_ad_names(client_id, rows)
+    if new_ads:
+        session["pending_new_ads"] = new_ads
 
 
 if __name__ == "__main__":
