@@ -280,6 +280,7 @@ def build_summary(rows: list[dict], campaigns: list[Campaign], campaign_type_ove
         top_ad_set=top_ad.ad_set_name if top_ad else None,
         worst_ad=worst_ad.ad_name if worst_ad else None,
         worst_ad_set=worst_ad.ad_set_name if worst_ad else None,
+        worst_ad_cpl=round(worst_ad.cost_per_result, 2) if worst_ad else None,
         has_click_data=has_click_data,
         campaigns=campaigns,
     )

@@ -925,8 +925,8 @@
   {% endif %}
 
   <div class="row g-4">
-    <!-- Left: Charts + Table -->
-    <div class="col-xl-8">
+    <!-- Full width: Charts + Table -->
+    <div class="col-12">
 
       <!-- ── Tagging panel ───────────────────────────────────────────── -->
       {% if unknown_ads %}
@@ -1113,46 +1113,68 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Right: AI Panel -->
-    <div class="col-xl-4">
-      <div class="sln-card h-100">
-        <div class="sln-card-title"><i class="bi bi-robot"></i>AI Analyse</div>
-
-        {% if s.top_ad or s.worst_ad %}
-        <div class="row g-2 mb-3">
-          {% if s.top_ad %}
-          <div class="col-12">
-            <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:.6rem .85rem;font-size:.78rem;">
-              <span style="color:#059669;font-weight:700;"><i class="bi bi-arrow-up-circle me-1"></i>Beste ad</span><br>
-              <span style="color:#065f46;font-weight:600;">{{ s.top_ad }}</span>
-              {% if s.top_ad_set and s.top_ad_set != 'Unknown' %}<span style="color:#6b7280;"> &middot; {{ s.top_ad_set }}</span>{% endif %}
-            </div>
-          </div>
-          {% endif %}
-          {% if s.worst_ad %}
-          <div class="col-12">
-            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.6rem .85rem;font-size:.78rem;">
-              <span style="color:#dc2626;font-weight:700;"><i class="bi bi-exclamation-circle me-1"></i>Aandacht vereist</span><br>
-              <span style="color:#7f1d1d;font-weight:600;">{{ s.worst_ad }}</span>
-              {% if s.worst_ad_set and s.worst_ad_set != 'Unknown' %}<span style="color:#6b7280;"> &middot; {{ s.worst_ad_set }}</span>{% endif %}
-            </div>
-          </div>
-          {% endif %}
+  <!-- ── AI Analyse (vol-breed onder advertentietabel) ─────────────────────── -->
+  <div class="sln-card mt-4">
+    <div class="d-flex align-items-center justify-content-between mb-4" style="flex-wrap:wrap;gap:.75rem;">
+      <div class="sln-card-title" style="margin:0;">
+        <i class="bi bi-robot"></i>AI Analyse
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <div class="stat-chip" style="min-width:0;">
+          <div class="stat-chip-label">Bereik</div>
+          <div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div>
         </div>
-        {% endif %}
-
-        <div class="insights-panel mb-3">
-          {{ result.insights_html | safe }}
+        <div class="stat-chip" style="min-width:0;">
+          <div class="stat-chip-label">Clicks</div>
+          <div class="stat-chip-val">{% if s.has_click_data %}{{ "{:,}".format(s.total_clicks).replace(",", ".") }}{% else %}—{% endif %}</div>
         </div>
-
-        <div class="row g-2">
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Bereik</div><div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Clicks</div><div class="stat-chip-val">{% if s.has_click_data %}{{ "{:,}".format(s.total_clicks).replace(",", ".") }}{% else %}—{% endif %}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. CPC</div><div class="stat-chip-val">{% if s.has_click_data %}€{{ "%.2f"|format(s.avg_cpc) }}{% else %}—{% endif %}</div></div></div>
-          <div class="col-6"><div class="stat-chip"><div class="stat-chip-label">Gem. Freq.</div><div class="stat-chip-val">{% if s.avg_frequency > 0 %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div></div></div>
+        <div class="stat-chip" style="min-width:0;">
+          <div class="stat-chip-label">Gem. CPC</div>
+          <div class="stat-chip-val">{% if s.has_click_data %}€{{ "%.2f"|format(s.avg_cpc) }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="stat-chip" style="min-width:0;">
+          <div class="stat-chip-label">Gem. Freq.</div>
+          <div class="stat-chip-val">{% if s.avg_frequency > 0 %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div>
         </div>
       </div>
+    </div>
+
+    {% set show_worst = s.worst_ad and s.worst_ad_cpl and s.worst_ad_cpl > t_mid %}
+    {% if s.top_ad or show_worst %}
+    <div class="row g-3 mb-4">
+      {% if s.top_ad %}
+      <div class="col-md-6 col-xl-4">
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:.85rem 1.1rem;">
+          <div style="font-size:.72rem;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">
+            <i class="bi bi-arrow-up-circle me-1"></i>Beste ad
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:#065f46;line-height:1.35;">{{ s.top_ad }}</div>
+          {% if s.top_ad_set and s.top_ad_set != 'Unknown' %}
+          <div style="font-size:.74rem;color:#6b7280;margin-top:.2rem;">{{ s.top_ad_set }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if show_worst %}
+      <div class="col-md-6 col-xl-4">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:.85rem 1.1rem;">
+          <div style="font-size:.72rem;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">
+            <i class="bi bi-exclamation-circle me-1"></i>Aandacht vereist — CPL €{{ "%.2f"|format(s.worst_ad_cpl) }}
+          </div>
+          <div style="font-size:.88rem;font-weight:700;color:#7f1d1d;line-height:1.35;">{{ s.worst_ad }}</div>
+          {% if s.worst_ad_set and s.worst_ad_set != 'Unknown' %}
+          <div style="font-size:.74rem;color:#6b7280;margin-top:.2rem;">{{ s.worst_ad_set }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="insights-panel">
+      {{ result.insights_html | safe }}
     </div>
   </div>
 

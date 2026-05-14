@@ -304,6 +304,7 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "top_ad_set":          summary.top_ad_set,
         "worst_ad":            summary.worst_ad,
         "worst_ad_set":        summary.worst_ad_set,
+        "worst_ad_cpl":        summary.worst_ad_cpl,
         "has_click_data":      summary.has_click_data,
     }
     # Do NOT store full insights in session cookie — Claude output can be 4 KB+
@@ -448,6 +449,7 @@ def _session_to_summary(data: dict):
         top_ad_set=data.get("top_ad_set"),
         worst_ad=data.get("worst_ad"),
         worst_ad_set=data.get("worst_ad_set"),
+        worst_ad_cpl=data.get("worst_ad_cpl"),
         has_click_data=data.get("has_click_data", True),
         campaigns=[],
     )
