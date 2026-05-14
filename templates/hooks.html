@@ -256,6 +256,12 @@
       font-size: .78rem; color: #92400e; margin-top: .75rem;
     }
     .hyp-box strong { display: block; margin-bottom: 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+    .reason-box {
+      background: rgba(239,246,255,.85); border: 1px solid rgba(191,219,254,.7);
+      border-radius: 8px; padding: .6rem .85rem;
+      font-size: .78rem; color: #1e40af; margin-top: .75rem; line-height: 1.55;
+    }
+    .reason-box strong { display: block; margin-bottom: 3px; font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: #1d4ed8; }
 
     /* ── Combo cards ── */
     .combo-card {
@@ -657,6 +663,12 @@
             </div>
             {% endif %}
 
+            {% if shoot.redenering %}
+            <div class="reason-box">
+              <strong><i class="bi bi-bar-chart-line me-1"></i>Waarom deze shoot?</strong>
+              {{ shoot.redenering }}
+            </div>
+            {% endif %}
             <div class="hyp-box">
               <strong><i class="bi bi-lightbulb me-1"></i>Hypothese</strong>
               {{ shoot.hypothese }}

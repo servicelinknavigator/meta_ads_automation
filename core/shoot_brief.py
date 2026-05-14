@@ -225,7 +225,8 @@ def generate_shoot_brief(
 
     if not has_api():
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
-                               winner_hook, winner_format, summary, top_ad, client_name)
+                               winner_hook, winner_format, hook_perf, fmt_perf,
+                               summary, top_ad, client_name)
 
     ctx = _summary_context(summary, hook_perf, fmt_perf, untested_hooks, all_ads=all_ads)
     top_ad_str = f"Beste huidige ad: \"{top_ad.ad_name}\" (CPL €{top_ad.cost_per_result}, {top_ad.results} leads)" if top_ad else ""
@@ -259,6 +260,10 @@ Shoots die je MOET opleveren:
 KRITISCH: Het script van shoot 3 (format_test) MOET inhoudelijk anders zijn dan shoot 1. Dezelfde hook-strategie ({safe_hook}), maar een ander verhaal, andere openingszin, andere body. Pas de scriptopbouw aan op het format {test_format}.
 KRITISCH: Shoot 4 (winner_iterate) en shoot 1 (safe) hebben DEZELFDE hook+format maar VOLLEDIG ANDERE scripts en invalshoeken. Behandel ze als twee aparte creatieve concepten op dezelfde strategie.
 
+Elk shoot-object bevat een "redenering" veld: 3-5 concrete zinnen die ONDERBOUWEN waarom deze shoot er is.
+Verwijs expliciet naar de performance data: noem echte CPL-cijfers, resultaten, CTR, ad-namen waar relevant.
+Leg uit: (1) waarom deze specifieke hook op basis van de data, (2) waarom dit format, (3) wat dit shoot toevoegt dat nog niet getest is. Wees specifiek, geen generieke tekst.
+
 Return ALLEEN dit JSON:
 {{
   "shoots": [
@@ -266,6 +271,7 @@ Return ALLEEN dit JSON:
       "type": "safe",
       "naam_suggestie": "korte naam voor intern gebruik ≤40 tekens",
       "concept": "1-2 zinnen: wat het ad laat zien en waarom het werkt",
+      "redenering": "3-5 zinnen: waarom deze hook ({safe_hook}) en dit format ({safe_format}) — onderbouwd met CPL, resultaten en CTR uit de data.",
       "hook_type": "{safe_hook}",
       "openingszin": "exacte eerste zin van het script (Nederlands)",
       "format": "{safe_format}",
@@ -288,6 +294,7 @@ Return ALLEEN dit JSON:
       "type": "new_hook",
       "naam_suggestie": "...",
       "concept": "...",
+      "redenering": "...",
       "hook_type": "{new_hook}",
       "openingszin": "...",
       "format": "{safe_format}",
@@ -310,6 +317,7 @@ Return ALLEEN dit JSON:
       "type": "format_test",
       "naam_suggestie": "...",
       "concept": "...",
+      "redenering": "...",
       "hook_type": "{safe_hook}",
       "openingszin": "...",
       "format": "{test_format}",
@@ -332,6 +340,7 @@ Return ALLEEN dit JSON:
       "type": "winner_iterate",
       "naam_suggestie": "...",
       "concept": "...",
+      "redenering": "...",
       "hook_type": "{safe_hook}",
       "openingszin": "...",
       "format": "{safe_format}",
@@ -354,6 +363,7 @@ Return ALLEEN dit JSON:
       "type": "winner_scale",
       "naam_suggestie": "...",
       "concept": "...",
+      "redenering": "...",
       "hook_type": "{winner_hook}",
       "openingszin": "...",
       "format": "{winner_format}",
@@ -379,7 +389,8 @@ Return ALLEEN dit JSON:
     if "_error" in result or "shoots" not in result:
         logger.warning("Shoot brief AI call failed: %s", result.get("_error", "no 'shoots' key in response"))
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
-                               winner_hook, winner_format, summary, top_ad, client_name)
+                               winner_hook, winner_format, hook_perf, fmt_perf,
+                               summary, top_ad, client_name)
     # Sanitize AI output: strip em dashes from all script lines and openingszin
     shoots = result["shoots"]
     for shoot in shoots:
@@ -394,6 +405,8 @@ def _fallback_brief(
     safe_hook: str, safe_format: str,
     new_hook: str, test_format: str,
     winner_hook: str, winner_format: str,
+    hook_perf: list[dict],
+    fmt_perf: list[dict],
     summary: AnalysisSummary,
     top_ad: Ad | None,
     client_name: str = "",
@@ -407,8 +420,32 @@ def _fallback_brief(
     all_hooks = [h for h in HOOK_TYPES if h not in (safe_hook, new_hook)]
     iterate_script_hook = all_hooks[0] if all_hooks else safe_hook
 
+    def _perf(perf_list: list[dict], key: str, value: str) -> dict:
+        return next((r for r in perf_list if r.get(key) == value), {})
+
+    def _perf_str(p: dict) -> str:
+        parts = []
+        if p.get("results"):
+            parts.append(f"{p['results']} resultaten")
+        if p.get("cpl"):
+            parts.append(f"CPL €{p['cpl']}")
+        if p.get("avg_ctr"):
+            parts.append(f"CTR {p['avg_ctr']}%")
+        if p.get("ads"):
+            parts.append(f"{p['ads']} ads")
+        return ", ".join(parts) if parts else "nog geen data"
+
+    sh_p  = _perf(hook_perf, "hook_type",   safe_hook)
+    nh_p  = _perf(hook_perf, "hook_type",   new_hook)
+    wh_p  = _perf(hook_perf, "hook_type",   winner_hook)
+    sf_p  = _perf(fmt_perf,  "format_type", safe_format)
+    tf_p  = _perf(fmt_perf,  "format_type", test_format)
+    wf_p  = _perf(fmt_perf,  "format_type", winner_format)
+
     def _base(shoot_type: str, hook: str, fmt: str, duur: int,
-              script_hook: str | None = None, hypothese: str | None = None) -> dict:
+              script_hook: str | None = None,
+              hypothese: str | None = None,
+              redenering: str | None = None) -> dict:
         effective_hook = script_hook or hook
         script = _build_script(effective_hook, cta, client_name)
         opening = script[0]["tekst"] if script else _default_opening(effective_hook)
@@ -417,6 +454,7 @@ def _fallback_brief(
             "type": shoot_type,
             "naam_suggestie": f"{hook.replace('_', '-').title()} {fmt.replace('_', '-').title()} V1",
             "concept": f"{_HOOK_NL.get(hook, hook)} gecombineerd met {_FORMAT_NL.get(fmt, fmt)}.",
+            "redenering": redenering or "",
             "hook_type": hook,
             "openingszin": opening,
             "format": fmt,
@@ -438,20 +476,64 @@ def _fallback_brief(
             "_fallback": True,
         }
 
+    num_hooks_with_data = sum(1 for r in hook_perf if r.get("results") and r["results"] > 0)
+
     return [
-        _base("safe", safe_hook, safe_format, 30),
-        _base("new_hook", new_hook, safe_format, 30),
-        _base("format_test", safe_hook, test_format, 45, script_hook=new_hook),
+        _base(
+            "safe", safe_hook, safe_format, 30,
+            redenering=(
+                f"De {safe_hook}-hook presteert het best in het account ({_perf_str(sh_p)}). "
+                f"Het {safe_format}-format levert de laagste CPL op ({_perf_str(sf_p)}). "
+                f"Deze combinatie is de veiligste keuze: bewezen strategie, minimaal risico. "
+                f"Een iteratie hierop verhoogt de kans op directe resultaten zonder onbekende variabelen."
+            ),
+        ),
+        _base(
+            "new_hook", new_hook, safe_format, 30,
+            redenering=(
+                f"De {new_hook}-hook is nog niet getest in dit account "
+                f"({'terwijl ' + str(num_hooks_with_data) + ' andere hooks al data hebben' if num_hooks_with_data else 'en biedt een kans om het bereik te verbreden'}). "
+                f"Door deze te testen in het bewezen {safe_format}-format ({_perf_str(sf_p)}) "
+                f"isoleer je de hook als variabele — zo weet je precies of de hook werkt, "
+                f"los van het format. Ongeteste hooks zijn kansen: de data kan niet bewijzen dat ze niet werken."
+            ),
+        ),
+        _base(
+            "format_test", safe_hook, test_format, 45, script_hook=new_hook,
+            redenering=(
+                f"De {safe_hook}-hook werkt bewezen ({_perf_str(sh_p)}). "
+                f"Het {test_format}-format is nog niet ingezet "
+                f"({'terwijl het potentieel heeft op basis van branchedata' if not tf_p.get('results') else _perf_str(tf_p)}). "
+                f"Door dezelfde winnende hook in een nieuw format te plaatsen test je of er "
+                f"nog hogere conversies mogelijk zijn. Duur 45s geeft ruimte voor de bredere formatopbouw."
+            ),
+            hypothese=f"Test of {safe_hook}-hook ook converteert in {test_format}-format. "
+                      f"Als CPL onder €{summary.avg_cost_per_result} blijft, wordt dit het nieuwe standaard format.",
+        ),
         _base(
             "winner_iterate", safe_hook, safe_format, 30,
             script_hook=iterate_script_hook,
-            hypothese=f"Vers creatief op de winnende formule ({safe_hook} + {safe_format}). "
-                      f"Gebaseerd op {top_ad_name}. Bewijst of de winnende strategie schaalbaar is met nieuwe inhoud.",
+            redenering=(
+                f"Gebaseerd op {top_ad_name} — de best presterende ad in het account. "
+                f"De combinatie {safe_hook} + {safe_format} heeft bewezen te werken ({_perf_str(sh_p)}). "
+                f"Ad fatigue is een reëel risico: dezelfde creative verliest over tijd aan effectiviteit. "
+                f"Vers creatief op exact dezelfde winnende formule beschermt de prestaties "
+                f"zonder de bewezen strategie te veranderen."
+            ),
+            hypothese=f"Verse creative op {safe_hook} + {safe_format}. "
+                      f"Bewijst dat de winnende strategie schaalbaar is met nieuwe inhoud zonder CPL-stijging.",
         ),
         _base(
             "winner_scale", winner_hook, winner_format, 30,
-            hypothese=f"Schaal de #2 combinatie ({winner_hook} + {winner_format}) op. "
-                      f"Test of deze combo even goed converteert bij hogere budgetten.",
+            redenering=(
+                f"De combinatie {winner_hook} + {winner_format} is de #2 presterende combo in het account "
+                f"({_perf_str(wh_p)} voor de hook, {_perf_str(wf_p)} voor het format). "
+                f"Deze combinatie heeft potentie maar is minder intensief getest dan de winnaar. "
+                f"Door er een dedicated shoot op te zetten geef je het de kans om te bewijzen "
+                f"dat het op hogere budgetten even goed of beter converteert."
+            ),
+            hypothese=f"Schaal {winner_hook} + {winner_format} op. "
+                      f"Test of CPL onder €{summary.avg_cost_per_result} blijft bij hogere investering.",
         ),
     ]
 
