@@ -660,9 +660,28 @@ def client_profile(client_id):
         logger.error("DB client_profile failed: %s", e)
         flash(f"Database fout: {e}", "danger")
         return redirect(url_for("clients"))
+
+    # Bereken live hoeveel ads nog content missen vanuit de laatste upload
+    pending_count = 0
+    try:
+        if uploads and db.is_available():
+            csv_content = db.get_upload_csv_content(uploads[0]["id"])
+            if csv_content:
+                from core.csv_parser import parse_csv_string
+                rows = parse_csv_string(csv_content)
+                missing = _get_new_ad_names(client_id, rows)
+                pending_count = len(missing)
+                if missing:
+                    session[f"pending_new_ads_{client_id}"] = missing
+                else:
+                    session.pop(f"pending_new_ads_{client_id}", None)
+    except Exception:
+        pass
+
     return render_template("client_profile.html",
                            client=client, uploads=uploads,
-                           shoot_briefs=shoot_briefs, hook_perf=hook_perf)
+                           shoot_briefs=shoot_briefs, hook_perf=hook_perf,
+                           pending_count=pending_count)
 
 
 @app.route("/clients/<int:client_id>/edit", methods=["POST"])

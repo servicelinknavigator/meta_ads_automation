@@ -588,12 +588,11 @@
               <i class="bi bi-file-earmark-excel"></i> Statics template
             </a>
           </div>
-          {% set _pending = session.get('pending_new_ads_' ~ client.id, []) %}
-          {% if _pending %}
+          {% if pending_count %}
           <div style="margin-top:.85rem;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:.6rem .85rem;">
             <div style="font-size:.78rem;font-weight:700;color:#C2410C;">
               <i class="bi bi-exclamation-circle me-1"></i>
-              {{ _pending|length }} nieuwe ad(s) wachten op content
+              {{ pending_count }} ad(s) wachten op content
             </div>
             <a href="{{ url_for('new_ads_content', client_id=client.id) }}"
                style="font-size:.75rem;color:#EA580C;font-weight:600;text-decoration:underline;">
