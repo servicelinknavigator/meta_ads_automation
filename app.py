@@ -1326,32 +1326,73 @@ def import_creatives_page(client_id):
 @app.route("/clients/<int:client_id>/import/creatives/export", methods=["GET"])
 @login_required
 def export_creatives_csv(client_id):
-    """Download alle opgeslagen creative content als CSV."""
+    """Download alle opgeslagen creative content als Excel-bestand."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
     client = db.get_client(client_id) if db.is_available() else None
     if not client:
         flash("Klant niet gevonden.", "danger")
         return redirect(url_for("clients"))
+    client_name = client["name"] if isinstance(client, dict) else client.name
     creatives = db.get_ad_creatives(client_id) if db.is_available() else {}
-    output = io.StringIO()
-    writer = _csv_module.writer(output)
-    writer.writerow(["Ad naam", "Script", "Headline", "Ad copy 1", "Ad copy 2", "Ad copy 3"])
-    for ad_naam, c in creatives.items():
-        writer.writerow([
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Creative Content"
+
+    # Header styling
+    header_fill   = PatternFill("solid", fgColor="0D1B2A")
+    header_font   = Font(bold=True, color="FFFFFF", size=10)
+    alt_fill      = PatternFill("solid", fgColor="F4F6FA")
+    border_side   = Side(style="thin", color="E2E8F0")
+    cell_border   = Border(bottom=Border(bottom=border_side).bottom)
+    wrap_align    = Alignment(wrap_text=True, vertical="top")
+
+    headers = ["Ad naam", "Script", "Headline", "Ad copy 1", "Ad copy 2", "Ad copy 3"]
+    col_widths = [40, 60, 35, 45, 45, 45]
+
+    for col_idx, (header, width) in enumerate(zip(headers, col_widths), start=1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(vertical="center")
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    ws.row_dimensions[1].height = 22
+
+    for row_idx, (ad_naam, c) in enumerate(creatives.items(), start=2):
+        values = [
             ad_naam,
             c.get("script") or "",
             c.get("headline") or "",
             c.get("ad_copy_1") or "",
             c.get("ad_copy_2") or "",
             c.get("ad_copy_3") or "",
-        ])
-    output.seek(0)
-    client_name = client["name"] if isinstance(client, dict) else client.name
+        ]
+        fill = alt_fill if row_idx % 2 == 0 else None
+        for col_idx, val in enumerate(values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = wrap_align
+            if fill:
+                cell.fill = fill
+        # auto-hoogte: ruwweg 15pt per regel in script (max 120)
+        script_lines = max(1, len(str(values[1]).split("\n")))
+        ws.row_dimensions[row_idx].height = min(15 * script_lines, 120)
+
+    # Freeze header row
+    ws.freeze_panes = "A2"
+
     safe_name = re.sub(r"[^\w\-]", "_", client_name)
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
     return send_file(
-        io.BytesIO(output.getvalue().encode("utf-8-sig")),
-        mimetype="text/csv",
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"creatives_{safe_name}.csv",
+        download_name=f"creatives_{safe_name}.xlsx",
     )
 
 
