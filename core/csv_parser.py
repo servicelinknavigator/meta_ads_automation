@@ -215,7 +215,7 @@ def _normalize_row(raw_row: dict) -> dict:
     row.setdefault("ad_set_id", "0")
     row.setdefault("ad_name", "Unknown")
     row.setdefault("ad_id", "0")
-    row.setdefault("result_indicator", "Purchases")
+    row.setdefault("result_indicator", "")
     row.setdefault("ad_delivery", "")
     return row
 
@@ -262,8 +262,13 @@ def load_dummy_data() -> list[dict]:
 def validate_csv(rows: list[dict]) -> tuple[bool, list[str]]:
     if not rows:
         return False, ["CSV is leeg"]
-    required = ["campaign_name", "impressions", "spend"]
-    missing = [f for f in required if f not in rows[0]]
-    if missing:
-        return False, [f"Kolom ontbreekt: {c}" for c in missing]
+    # Na normalisatie zijn alle kolommen altijd aanwezig via defaults.
+    # Check of er daadwerkelijk herkenbare Meta Ads data is (niet alleen defaults).
+    has_real_campaign = any(r.get("campaign_name", "Unknown") != "Unknown" for r in rows)
+    has_spend = any(float(r.get("spend", 0) or 0) > 0 for r in rows)
+    if not has_real_campaign and not has_spend:
+        return False, [
+            "Geen herkenbare Meta Ads kolommen gevonden. "
+            "Exporteer de CSV vanuit Meta Ads Manager met minimaal campagne, spend en impressies."
+        ]
     return True, []

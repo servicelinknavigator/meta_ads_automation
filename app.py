@@ -5,10 +5,12 @@ import csv as _csv_module
 import json
 import logging
 import hashlib
+import hmac
 from pathlib import Path
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+from markupsafe import Markup
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -42,8 +44,10 @@ from core.excel_templates import generate_videos_template, generate_statics_temp
 import core.db as db
 
 # ── In-memory creative cache ───────────────────────────────────────────────────
+import threading as _threading
 _CREATIVE_CACHE: dict = {}
 _CREATIVE_CACHE_MAX = 120
+_CREATIVE_CACHE_LOCK = _threading.Lock()
 
 
 def _cache_key(ad) -> str:
@@ -52,9 +56,15 @@ def _cache_key(ad) -> str:
 
 
 def _cache_set(key: str, value: dict) -> None:
-    if len(_CREATIVE_CACHE) >= _CREATIVE_CACHE_MAX:
-        _CREATIVE_CACHE.pop(next(iter(_CREATIVE_CACHE)))
-    _CREATIVE_CACHE[key] = value
+    with _CREATIVE_CACHE_LOCK:
+        if len(_CREATIVE_CACHE) >= _CREATIVE_CACHE_MAX:
+            _CREATIVE_CACHE.pop(next(iter(_CREATIVE_CACHE)))
+        _CREATIVE_CACHE[key] = value
+
+
+def _cache_get(key: str) -> dict | None:
+    with _CREATIVE_CACHE_LOCK:
+        return _CREATIVE_CACHE.get(key)
 
 
 # ── App setup ──────────────────────────────────────────────────────────────────
@@ -529,7 +539,7 @@ def login():
         username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
         users = _get_users()
-        if username in users and users[username] == password:
+        if username in users and hmac.compare_digest(users[username], password):
             session.permanent = True
             session["username"] = username
             return redirect(url_for("clients"))
@@ -971,7 +981,17 @@ def upload():
         return redirect(url_for("index"))
 
     session.permanent = True
-    session["data_source"] = str(save_path)
+    # Als de upload in de DB is opgeslagen, gebruik db: als source en verwijder het lokale bestand.
+    # Dit voorkomt een storage-lek en zorgt dat reanalyze geen nieuwe upload-record aanmaakt.
+    _saved_upload_id = session.get("upload_id")
+    if _saved_upload_id:
+        session["data_source"] = f"db:{_saved_upload_id}"
+        try:
+            save_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+    else:
+        session["data_source"] = str(save_path)
     session["thresholds"] = thresholds
 
     client = None
@@ -987,11 +1007,10 @@ def upload():
     _check_new_ads_after_upload(client_id, rows_with_spend)
     new_ads_count = len(session.get(f"pending_new_ads_{client_id}", []))
     if new_ads_count and client_id:
-        flash(
+        flash(Markup(
             f"{new_ads_count} nieuwe advertentie(s) gevonden zonder script/copy. "
-            f'<a href="{url_for("new_ads_content", client_id=client_id)}" class="alert-link">Voeg content toe →</a>',
-            "info",
-        )
+            f'<a href="{url_for("new_ads_content", client_id=client_id)}" class="alert-link">Voeg content toe →</a>'
+        ), "info")
 
     return render_template("index.html", result=result, demo=False,
                            thresholds=thresholds, active_client=client,
@@ -1027,11 +1046,12 @@ def reanalyze():
     thresholds = _compute_thresholds(request.form)
     name_overrides = _load_name_overrides()
     # For merged or db sources, skip saving a new upload record (avoid duplicates)
-    is_merged = session.get("data_source", "").startswith("merged:")
+    _source = session.get("data_source", "")
+    skip_save = _source.startswith("merged:") or _source.startswith("db:")
     result = _process_df(rows, campaign_type_override=campaign_type_override,
                          date_from=date_from, date_to=date_to,
                          name_overrides=name_overrides,
-                         skip_db_save=is_merged)
+                         skip_db_save=skip_save)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
@@ -1067,11 +1087,13 @@ def export_pdf():
     insights_raw = "Geen inzichten beschikbaar."
     client_id = session.get("client_id")
     upload_id = session.get("upload_id")
-    if client_id and upload_id and db.is_available():
+    if client_id and db.is_available():
         try:
-            hist = db.get_insights_history(client_id, limit=1)
+            hist = db.get_insights_history(client_id, limit=10)
             if hist:
-                insights_raw = hist[0]["insights_text"] or insights_raw
+                # Prefer insights that match the current upload; fall back to most recent
+                match = next((h for h in hist if h.get("upload_id") == upload_id), None)
+                insights_raw = (match or hist[0])["insights_text"] or insights_raw
         except Exception:
             pass
     if insights_raw == "Geen inzichten beschikbaar.":
@@ -1111,7 +1133,7 @@ def creative():
     winner_results = []
     for ad in winners:
         key = _cache_key(ad)
-        cached = _CREATIVE_CACHE.get(key)
+        cached = _cache_get(key)
         if cached:
             winner_results.append({"ad": ad, **cached})
         else:
@@ -1125,7 +1147,7 @@ def creative():
     loser_results = []
     for ad in losers:
         key = _cache_key(ad) + "_loser"
-        cached = _CREATIVE_CACHE.get(key)
+        cached = _cache_get(key)
         if cached:
             loser_results.append({"ad": ad, "decoded": cached})
         else:
@@ -1193,8 +1215,20 @@ def hooks():
             _creatives_brief = db.get_ad_creatives(client_id)
             if _creatives_brief:
                 from core.generation import _format_creative_context
-                winning_ads_for_brief = [a.ad_name for a in all_ads[:5] if a.results > 0]
-                _creative_ctx_for_brief = _format_creative_context(_creatives_brief, winning_ads_for_brief)
+                from core.hook_analyzer import detect_format
+                _VIDEO_FORMATS = {"reels", "ugc", "testimonial", "story",
+                                  "product_demo", "before_after", "problem_solve"}
+                # Winnende video ads (reels e.d.) als primaire scriptbasis voor shoot brief
+                winning_video_ads = [
+                    a.ad_name for a in all_ads
+                    if a.results > 0 and detect_format(a.ad_name) in _VIDEO_FORMATS
+                ][:6]
+                # Alle winnende ads als bredere context
+                winning_ads_for_brief = [a.ad_name for a in all_ads[:8] if a.results > 0]
+                _creative_ctx_for_brief = _format_creative_context(
+                    _creatives_brief, winning_ads_for_brief,
+                    video_ad_names=winning_video_ads,
+                )
         except Exception:
             pass
 

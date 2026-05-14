@@ -572,18 +572,35 @@ def upsert_ad_creative(client_id: int, ad_naam: str, script: str = "",
 
 
 def bulk_upsert_ad_creatives(client_id: int, creatives: list[dict]) -> int:
-    """Upsert a list of creative dicts. Returns number of rows processed."""
-    for c in creatives:
-        upsert_ad_creative(
-            client_id=client_id,
-            ad_naam=c.get("ad_naam", ""),
-            script=c.get("script", ""),
-            headline=c.get("headline", ""),
-            ad_copy_1=c.get("ad_copy_1", ""),
-            ad_copy_2=c.get("ad_copy_2", ""),
-            ad_copy_3=c.get("ad_copy_3", ""),
-            afbeelding_pad=c.get("afbeelding_pad", ""),
-        )
+    """Upsert a list of creative dicts in a single transaction."""
+    if not creatives:
+        return 0
+    with _conn() as conn:
+        cur = conn.cursor()
+        for c in creatives:
+            script         = c.get("script", "") or None
+            headline       = c.get("headline", "") or None
+            ad_copy_1      = c.get("ad_copy_1", "") or None
+            ad_copy_2      = c.get("ad_copy_2", "") or None
+            ad_copy_3      = c.get("ad_copy_3", "") or None
+            afbeelding_pad = c.get("afbeelding_pad", "") or None
+            cur.execute("""
+                INSERT INTO ad_creatives
+                    (client_id, ad_naam, script, headline, ad_copy_1, ad_copy_2, ad_copy_3,
+                     afbeelding_pad, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (client_id, ad_naam)
+                DO UPDATE SET
+                    script         = COALESCE(NULLIF(EXCLUDED.script, ''),         ad_creatives.script),
+                    headline       = COALESCE(NULLIF(EXCLUDED.headline, ''),       ad_creatives.headline),
+                    ad_copy_1      = COALESCE(NULLIF(EXCLUDED.ad_copy_1, ''),      ad_creatives.ad_copy_1),
+                    ad_copy_2      = COALESCE(NULLIF(EXCLUDED.ad_copy_2, ''),      ad_creatives.ad_copy_2),
+                    ad_copy_3      = COALESCE(NULLIF(EXCLUDED.ad_copy_3, ''),      ad_creatives.ad_copy_3),
+                    afbeelding_pad = COALESCE(NULLIF(EXCLUDED.afbeelding_pad, ''), ad_creatives.afbeelding_pad),
+                    updated_at     = NOW()
+            """, (client_id, c.get("ad_naam", ""), script, headline,
+                  ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad))
+        cur.close()
     return len(creatives)
 
 
@@ -611,20 +628,20 @@ def get_industry_cross_client_data(industry: str, exclude_client_id: int | None 
         return []
     with _conn() as conn:
         cur = conn.cursor()
+        # Only return anonymised performance metrics — no creative content (scripts/copy)
+        # from other clients, to prevent accidental exposure of competitor material.
         query = """
-            SELECT c.name AS client_name, ac.ad_naam, ac.script, ac.headline,
-                   ac.ad_copy_1, h.hook_type, h.format_type,
+            SELECT h.hook_type, h.format_type,
                    h.spend, h.results, h.cpl, h.avg_ctr
-            FROM ad_creatives ac
-            JOIN clients c ON c.id = ac.client_id
-            LEFT JOIN (
+            FROM (
                 SELECT client_id, hook_type, format_type,
                        SUM(spend) AS spend, SUM(results) AS results,
                        CASE WHEN SUM(results) > 0 THEN SUM(spend)::float / SUM(results) END AS cpl,
                        AVG(avg_ctr) AS avg_ctr
                 FROM hook_snapshots
                 GROUP BY client_id, hook_type, format_type
-            ) h ON h.client_id = ac.client_id
+            ) h
+            JOIN clients c ON c.id = h.client_id
             WHERE LOWER(c.industry) = LOWER(%s)
               AND h.spend >= %s
         """

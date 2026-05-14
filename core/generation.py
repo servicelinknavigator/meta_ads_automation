@@ -2,47 +2,88 @@ from models.campaign import AnalysisSummary
 from core.ai_client import has_api, call_text, _SLN_SYSTEM_TEXT
 
 
-def _format_creative_context(ad_creatives: dict, winning_ad_names: list[str]) -> str:
+def _format_creative_context(ad_creatives: dict, winning_ad_names: list[str],
+                             video_ad_names: list[str] | None = None) -> str:
     """
     Formatteert opgeslagen scripts/headlines/copy's als context voor Claude.
-    Geeft prioriteit aan winnende ads.
+    video_ad_names: namen van winnende reels/video ads — hun scripts komen als
+    eerste sectie zodat de AI deze als basis gebruikt voor nieuwe shoot-scripts.
     """
     if not ad_creatives:
         return ""
 
-    lines = ["\n## Opgeslagen Creative Content (scripts, headlines, copy's)\n"]
+    lines = []
     shown = set()
 
-    # Winnende ads eerst
-    for ad_naam in winning_ad_names:
-        if ad_naam in ad_creatives:
-            c = ad_creatives[ad_naam]
-            lines.append(f"**[WINNAAR] {ad_naam}**")
-            if c.get("script"):
-                lines.append(f"  Script: {c['script'][:300]}")
-            if c.get("headline"):
-                lines.append(f"  Headline: {c['headline']}")
+    # ── Sectie 1: winnende video scripts (basis voor shoot brief) ─────────────
+    video_script_lines = []
+    for ad_naam in (video_ad_names or []):
+        c = ad_creatives.get(ad_naam)
+        if c and c.get("script"):
+            video_script_lines.append(f"**[VIDEO WINNAAR] {ad_naam}**")
+            video_script_lines.append(f"  Script: {c['script'][:400]}")
             if c.get("ad_copy_1"):
-                lines.append(f"  Copy: {c['ad_copy_1'][:200]}")
+                copies = [c["ad_copy_1"][:200]]
+                if c.get("ad_copy_2"):
+                    copies.append(c["ad_copy_2"][:150])
+                if c.get("ad_copy_3"):
+                    copies.append(c["ad_copy_3"][:150])
+                video_script_lines.append(
+                    "  Ad copies (Meta roteert gelijkwaardig): " + " | ".join(copies)
+                )
             shown.add(ad_naam)
 
-    # Overige ads (max 10 extra)
+    if video_script_lines:
+        lines.append("\n## Winnende video scripts (basis voor nieuwe shoot-scripts)\n")
+        lines.extend(video_script_lines)
+
+    # ── Sectie 2: overige winnende ads (alle types) ───────────────────────────
+    other_winner_lines = []
+    for ad_naam in winning_ad_names:
+        if ad_naam in shown:
+            continue
+        c = ad_creatives.get(ad_naam)
+        if not c:
+            continue
+        entry = [f"**[WINNAAR] {ad_naam}**"]
+        if c.get("script"):
+            entry.append(f"  Script: {c['script'][:300]}")
+        if c.get("headline"):
+            entry.append(f"  Headline: {c['headline']}")
+        copies = [v for k in ("ad_copy_1", "ad_copy_2", "ad_copy_3") if (v := c.get(k))]
+        if copies:
+            entry.append("  Ad copies: " + " | ".join(c[:200] for c in copies))
+        other_winner_lines.extend(entry)
+        shown.add(ad_naam)
+
+    if other_winner_lines:
+        lines.append("\n## Overige winnende advertenties\n")
+        lines.extend(other_winner_lines)
+
+    # ── Sectie 3: extra context (max 8 overige ads met content) ──────────────
+    extra_lines = []
     extra = 0
     for ad_naam, c in ad_creatives.items():
-        if ad_naam in shown or extra >= 10:
+        if ad_naam in shown or extra >= 8:
             continue
         has_content = c.get("script") or c.get("headline") or c.get("ad_copy_1")
         if has_content:
-            lines.append(f"\n**{ad_naam}**")
+            entry = [f"\n**{ad_naam}**"]
             if c.get("script"):
-                lines.append(f"  Script: {c['script'][:200]}")
+                entry.append(f"  Script: {c['script'][:200]}")
             if c.get("headline"):
-                lines.append(f"  Headline: {c['headline']}")
-            if c.get("ad_copy_1"):
-                lines.append(f"  Copy: {c['ad_copy_1'][:150]}")
+                entry.append(f"  Headline: {c['headline']}")
+            copies = [v for k in ("ad_copy_1", "ad_copy_2", "ad_copy_3") if (v := c.get(k))]
+            if copies:
+                entry.append("  Ad copies: " + " | ".join(cv[:150] for cv in copies))
+            extra_lines.extend(entry)
             extra += 1
 
-    return "\n".join(lines) if len(lines) > 1 else ""
+    if extra_lines:
+        lines.append("\n## Overige opgeslagen creative content\n")
+        lines.extend(extra_lines)
+
+    return "\n".join(lines) if lines else ""
 
 
 def _format_cross_client_context(cross_client_data: list[dict]) -> str:

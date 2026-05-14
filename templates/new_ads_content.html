@@ -68,6 +68,10 @@
       font-size:.65rem; font-weight:600; color:var(--muted);
       background:#F1F5F9; padding:1px 6px; border-radius:4px; margin-left:.4rem;
     }
+    .rotate-badge {
+      font-size:.65rem; font-weight:600; color:#0369a1;
+      background:#e0f2fe; padding:1px 6px; border-radius:4px; margin-left:.4rem;
+    }
 
     .btn-save-all {
       background:var(--accent); color:#fff; border:none;
@@ -158,8 +162,8 @@
   <div class="d-flex align-items-center gap-2 mb-3">
     <i class="bi bi-info-circle" style="color:var(--navy)"></i>
     <span style="font-size:.82rem;color:var(--muted)">
-      Vul minimaal <strong>Ad copy 1</strong> of <strong>Script/Headline</strong> in — de rest is optioneel.
-      Je kunt altijd later aanvullen via de import-pagina.
+      Meta roteert <strong>Ad copy 1, 2 en 3 willekeurig</strong> per advertentie — ze wegen even zwaar.
+      Vul er zoveel in als je hebt. Script en headline worden gebruikt voor de shoot brief op de Hooks-pagina.
     </span>
   </div>
 
@@ -180,12 +184,12 @@
         </div>
         <div class="collapse show ad-card-body" id="ad-{{ loop.index }}">
           <div class="row g-3">
-            <!-- Script (voor video ads) -->
+            <!-- Script (voor reels/video ads) -->
             <div class="col-12">
               <div class="form-label-sm">
-                Script <span class="optional-badge">video-ads</span>
+                Script <span class="optional-badge">reels / video</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="De gesproken tekst van je video. Wordt door de AI gebruikt om patronen te herkennen en nieuwe hooks voor te stellen.">
+                  title="De gesproken tekst van je video ad. Wordt gebruikt op de Hooks-pagina: de AI baseert nieuwe shoot-scripts op bestaande winnende video scripts. Niet invullen voor statics.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
@@ -199,7 +203,7 @@
               <div class="form-label-sm">
                 Headline <span class="optional-badge">statics</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="De vetgedrukte kopregel van een static advertentie — max. 40 tekens. Dit is wat de kijker als eerste leest.">
+                  title="De vetgedrukte kopregel van een static advertentie — max. 40 tekens. Niet van toepassing op video/reels.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
@@ -210,9 +214,9 @@
             <!-- Ad copy 1 -->
             <div class="col-md-6">
               <div class="form-label-sm">
-                Ad copy 1 <span class="required-badge">aanbevolen</span>
+                Ad copy 1 <span class="rotate-badge">Meta roteert</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="De primaire advertentietekst die boven of onder de visual verschijnt. Vul minimaal dit veld in voor AI-context.">
+                  title="Meta toont copy 1, 2 en 3 willekeurig aan verschillende mensen per advertentie — ze wegen even zwaar. Vul alle varianten in die je hebt.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
@@ -223,14 +227,26 @@
             </div>
             <!-- Ad copy 2 & 3 -->
             <div class="col-md-6">
-              <div class="form-label-sm">Ad copy 2 <span class="optional-badge">optioneel</span></div>
+              <div class="form-label-sm">
+                Ad copy 2 <span class="rotate-badge">Meta roteert</span>
+                <span class="help-icon" data-bs-toggle="tooltip"
+                  title="Even zwaar als copy 1 — Meta roteert alle varianten willekeurig per advertentie.">
+                  <i class="bi bi-question-lg"></i>
+                </span>
+              </div>
               <textarea class="form-control form-control-sm"
                         name="copy2_{{ safe_key }}"
                         placeholder="Variant 2…"
                         rows="2"></textarea>
             </div>
             <div class="col-md-6">
-              <div class="form-label-sm">Ad copy 3 <span class="optional-badge">optioneel</span></div>
+              <div class="form-label-sm">
+                Ad copy 3 <span class="rotate-badge">Meta roteert</span>
+                <span class="help-icon" data-bs-toggle="tooltip"
+                  title="Even zwaar als copy 1 en 2 — Meta roteert alle varianten willekeurig per advertentie.">
+                  <i class="bi bi-question-lg"></i>
+                </span>
+              </div>
               <textarea class="form-control form-control-sm"
                         name="copy3_{{ safe_key }}"
                         placeholder="Variant 3…"
