@@ -163,6 +163,13 @@ def init_schema() -> None:
             UNIQUE(client_id, ad_naam)
         );
         """)
+        # Enable RLS on all tables — blocks public REST access while
+        # the service-role connection (psycopg2) still bypasses RLS.
+        for table in (
+            "clients", "uploads", "ad_name_mappings", "hook_snapshots",
+            "shoot_briefs", "insights_history", "ad_creatives",
+        ):
+            cur.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         cur.close()
     logger.info("DB schema OK")
 
