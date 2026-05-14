@@ -777,7 +777,7 @@ def client_merge_uploads(client_id):
 def upload_delete(client_id, upload_id):
     try:
         db.delete_upload(upload_id)
-        session.pop("pending_new_ads", None)
+        session.pop(f"pending_new_ads_{client_id}", None)
         flash("Upload verwijderd.", "success")
     except Exception as e:
         flash(f"Fout bij verwijderen: {e}", "danger")
@@ -966,7 +966,7 @@ def upload():
     # Detecteer nieuwe ads zonder creative content (alleen met spend > 0)
     rows_with_spend = filter_zero_spend(rows)
     _check_new_ads_after_upload(client_id, rows_with_spend)
-    new_ads_count = len(session.get("pending_new_ads", []))
+    new_ads_count = len(session.get(f"pending_new_ads_{client_id}", []))
     if new_ads_count and client_id:
         flash(
             f"{new_ads_count} nieuwe advertentie(s) gevonden zonder script/copy. "
@@ -1391,7 +1391,7 @@ def import_bulk_csvs(client_id):
     # Check op nieuwe ads zonder creative content
     new_ad_names = _get_new_ad_names(client_id, all_rows)
     if new_ad_names:
-        session["pending_new_ads"] = new_ad_names
+        session[f"pending_new_ads_{client_id}"] = new_ad_names
         flash(
             f"{len(new_ad_names)} nieuwe advertenties gevonden zonder script/copy. "
             "Je kunt ze direct invullen hieronder.",
@@ -1427,7 +1427,7 @@ def new_ads_content(client_id):
     if not client:
         flash("Klant niet gevonden.", "danger")
         return redirect(url_for("clients"))
-    pending = session.get("pending_new_ads", [])
+    pending = session.get(f"pending_new_ads_{client_id}", [])
     if not pending:
         flash("Geen nieuwe advertenties gevonden die content nodig hebben.", "info")
         return redirect(url_for("client_profile", client_id=client_id))
@@ -1443,7 +1443,7 @@ def new_ads_content_save(client_id):
         flash("Klant niet gevonden.", "danger")
         return redirect(url_for("clients"))
 
-    pending = session.get("pending_new_ads", [])
+    pending = session.get(f"pending_new_ads_{client_id}", [])
     saved_count = 0
 
     for idx, ad_naam in enumerate(pending, start=1):
@@ -1461,7 +1461,7 @@ def new_ads_content_save(client_id):
             except Exception as e:
                 logger.warning("Creative save failed for '%s': %s", ad_naam, e)
 
-    session.pop("pending_new_ads", None)
+    session.pop(f"pending_new_ads_{client_id}", None)
 
     if saved_count:
         flash(f"Content opgeslagen voor {saved_count} advertentie(s).", "success")
@@ -1518,9 +1518,9 @@ def _check_new_ads_after_upload(client_id: int | None, rows: list[dict]) -> None
         return
     new_ads = _get_new_ad_names(client_id, rows)
     if new_ads:
-        session["pending_new_ads"] = new_ads
+        session[f"pending_new_ads_{client_id}"] = new_ads
     else:
-        session.pop("pending_new_ads", None)
+        session.pop(f"pending_new_ads_{client_id}", None)
 
 
 if __name__ == "__main__":
