@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import csv as _csv_module
 import json
 import logging
 import hashlib
@@ -1352,14 +1353,27 @@ def import_bulk_csvs(client_id):
     client = db.get_client(client_id) if db.is_available() else None
     thresholds = _compute_thresholds(request.form, client=client)
 
-    result = _process_df(all_rows, name_overrides=name_overrides)
+    # Reconstruct merged CSV for DB persistence so /creative and /hooks can reload data
+    merged_csv_content = None
+    if all_rows:
+        _skip = {"_has_click_data"}
+        _fields = [k for k in all_rows[0].keys() if k not in _skip]
+        _buf = io.StringIO()
+        _w = _csv_module.DictWriter(_buf, fieldnames=_fields, extrasaction="ignore")
+        _w.writeheader()
+        _w.writerows(all_rows)
+        merged_csv_content = _buf.getvalue()
+
+    result = _process_df(all_rows, name_overrides=name_overrides, csv_content=merged_csv_content)
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("client_profile", client_id=client_id))
 
     session.permanent = True
     session["thresholds"] = thresholds
-    session["data_source"] = "bulk_import"
+    # Use db: source so _load_rows_from_session can reload for /creative and /hooks
+    _bulk_upload_id = session.get("upload_id")
+    session["data_source"] = f"db:{_bulk_upload_id}" if _bulk_upload_id else "bulk_import"
 
     # Check op nieuwe ads zonder creative content
     new_ad_names = _get_new_ad_names(client_id, all_rows)
@@ -1420,8 +1434,7 @@ def new_ads_content_save(client_id):
     saved_count = 0
 
     for ad_naam in pending:
-        # Form field names: script_<idx>, headline_<idx>, ad_copy_1_<idx>, etc.
-        safe_key = ad_naam.replace(" ", "_").replace("-", "_")[:50]
+        safe_key = re.sub(r"[^a-zA-Z0-9]", "_", ad_naam)[:50]
         script    = request.form.get(f"script_{safe_key}", "").strip()
         headline  = request.form.get(f"headline_{safe_key}", "").strip()
         copy1     = request.form.get(f"copy1_{safe_key}", "").strip()

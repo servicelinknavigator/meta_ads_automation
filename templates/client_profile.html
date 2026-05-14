@@ -273,8 +273,8 @@
   {% if messages %}
   <div class="container mt-3">
     {% for cat, msg in messages %}
-    <div class="alert alert-{{ 'danger' if cat == 'danger' else 'success' }} alert-dismissible py-2">
-      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-{{ cat if cat in ['danger','success','warning','info'] else 'info' }} alert-dismissible py-2">
+      {{ msg|safe }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endfor %}
   </div>
