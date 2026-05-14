@@ -89,23 +89,25 @@ _STRUCTURED_FORMAT_MAP: dict[str, str] = {
 }
 
 _STRUCTURED_HOOK_MAP: dict[str, str] = {
-    "proof":         "proof",
-    "promise":       "promise",
-    "frustration":   "frustration",
-    "frust":         "frustration",
-    "recognition":   "recognition",
-    "recog":         "recognition",
-    "curiosity":     "curiosity",
-    "curio":         "curiosity",
-    "social proof":  "social_proof",
-    "social":        "social_proof",
-    "problem solve": "problem_solve",
-    "problem":       "problem_solve",
-    "educational":   "educational",
-    "edu":           "educational",
-    "confrontation": "confrontation",
-    "confr":         "confrontation",
-    "urgency":       "urgency",
+    "proof":          "proof",
+    "promise":        "promise",
+    "frustration":    "frustration",
+    "frust":          "frustration",
+    "recognition":    "recognition",
+    "recog":          "recognition",
+    "curiosity":      "curiosity",
+    "curio":          "curiosity",
+    "social proof":   "social_proof",
+    "social_proof":   "social_proof",   # underscore variant
+    "social":         "social_proof",
+    "problem solve":  "problem_solve",
+    "problem_solve":  "problem_solve",  # underscore variant
+    "problem":        "problem_solve",
+    "educational":    "educational",
+    "edu":            "educational",
+    "confrontation":  "confrontation",
+    "confr":          "confrontation",
+    "urgency":        "urgency",
 }
 
 _parsed_cache: dict[str, dict] = {}
