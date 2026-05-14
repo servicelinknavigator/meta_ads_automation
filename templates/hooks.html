@@ -571,11 +571,12 @@
   </div>
 
   {% if shoot_brief %}
-  <div class="row g-3 mb-5">
+  <div class="d-flex flex-column gap-3 mb-5">
     {% for shoot in shoot_brief %}
-    <div class="col-lg-4">
-      <div class="shoot-card shoot-type-{{ shoot.type }}">
-        <div class="shoot-header">
+    <div class="shoot-card shoot-type-{{ shoot.type }}">
+      <!-- Card header row: label + name + specs -->
+      <div class="shoot-header d-flex align-items-start justify-content-between flex-wrap gap-2" style="padding:1rem 1.4rem .6rem;">
+        <div style="flex:1;min-width:0;">
           <div class="shoot-label {{ shoot.type }}">
             {% if shoot.type == 'safe' %}<i class="bi bi-shield-check me-1"></i>Shoot 1 — Safe{% endif %}
             {% if shoot.type == 'new_hook' %}<i class="bi bi-lightning me-1"></i>Shoot 2 — New Hook{% endif %}
@@ -584,61 +585,76 @@
           <div class="shoot-name">{{ shoot.naam_suggestie }}</div>
           <div class="shoot-concept">{{ shoot.concept }}</div>
         </div>
-        <div class="shoot-body">
-          <div class="shoot-spec-row">
-            <span class="spec-chip"><i class="bi bi-aspect-ratio"></i>{{ shoot.aspect_ratio }}</span>
-            <span class="spec-chip"><i class="bi bi-clock"></i>{{ shoot.duur_seconden }}s</span>
-            <span class="spec-chip"><i class="bi bi-lightning"></i>{{ shoot.hook_type.replace('_',' ') }}</span>
-            <span class="spec-chip"><i class="bi bi-camera-video"></i>{{ shoot.format.replace('_',' ') }}</span>
-          </div>
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <div class="shoot-section-label"><i class="bi bi-person me-1"></i>Talent</div>
-              <div style="font-size:.8rem;color:#0f172a;">{{ shoot.talent }}</div>
+        <div class="shoot-spec-row" style="margin:0;flex-shrink:0;">
+          <span class="spec-chip"><i class="bi bi-aspect-ratio"></i>{{ shoot.aspect_ratio }}</span>
+          <span class="spec-chip"><i class="bi bi-clock"></i>{{ shoot.duur_seconden }}s</span>
+          <span class="spec-chip"><i class="bi bi-lightning"></i>{{ shoot.hook_type.replace('_',' ') }}</span>
+          <span class="spec-chip"><i class="bi bi-camera-video"></i>{{ shoot.format.replace('_',' ') }}</span>
+        </div>
+      </div>
+
+      <!-- Card body: two-column layout -->
+      <div class="shoot-body" style="padding:.5rem 1.4rem 1.4rem;">
+        <div class="row g-4">
+          <!-- Left column: opening, key message, CTA, talent/locatie -->
+          <div class="col-lg-5">
+            <div class="shoot-section-label"><i class="bi bi-quote me-1"></i>Openingszin</div>
+            <div class="shoot-opening mb-3">"{{ shoot.openingszin }}"</div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <div class="shoot-section-label"><i class="bi bi-person me-1"></i>Talent</div>
+                <div style="font-size:.8rem;color:#0f172a;line-height:1.4;">{{ shoot.talent }}</div>
+              </div>
+              <div class="col-6">
+                <div class="shoot-section-label"><i class="bi bi-geo-alt me-1"></i>Locatie</div>
+                <div style="font-size:.8rem;color:#0f172a;line-height:1.4;">{{ shoot.locatie }}</div>
+              </div>
             </div>
-            <div class="col-6">
-              <div class="shoot-section-label"><i class="bi bi-geo-alt me-1"></i>Locatie</div>
-              <div style="font-size:.8rem;color:#0f172a;">{{ shoot.locatie }}</div>
+
+            <div class="row g-2">
+              <div class="col-8">
+                <div class="shoot-section-label">Key Message</div>
+                <div style="font-size:.8rem;color:#0f172a;line-height:1.4;">{{ shoot.key_message }}</div>
+              </div>
+              <div class="col-4">
+                <div class="shoot-section-label">CTA</div>
+                <div style="font-size:.8rem;font-weight:700;color:#ff5c2b;line-height:1.4;">{{ shoot.cta }}</div>
+              </div>
             </div>
           </div>
-          <div class="shoot-section-label"><i class="bi bi-quote me-1"></i>Openingszin</div>
-          <div class="shoot-opening mb-3">"{{ shoot.openingszin }}"</div>
-          <div class="row g-2 mb-3">
-            <div class="col-7">
-              <div class="shoot-section-label">Key Message</div>
-              <div style="font-size:.78rem;color:#0f172a;">{{ shoot.key_message }}</div>
+
+          <!-- Right column: shot list + script + hypothesis -->
+          <div class="col-lg-7">
+            <div class="shoot-section-label"><i class="bi bi-film me-1"></i>Shot list</div>
+            <ul class="shot-list mb-3">
+              {% for shot in shoot.shots %}
+              <li>
+                <span class="shot-num">{{ loop.index }}</span>
+                <span>{{ shot }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+
+            {% if shoot.script %}
+            <div class="mb-1 d-flex align-items-center justify-content-between">
+              <div class="shoot-section-label mb-0"><i class="bi bi-mic me-1"></i>Volledig script</div>
+              <button class="btn-script-toggle" onclick="toggleScript('script-{{ loop.index }}')">toon script</button>
             </div>
-            <div class="col-5">
-              <div class="shoot-section-label">CTA</div>
-              <div style="font-size:.78rem;font-weight:700;color:#ff5c2b;">{{ shoot.cta }}</div>
+            <div class="script-block d-none mb-3" id="script-{{ loop.index }}">
+              {% for line in shoot.script %}
+              <div class="script-line">
+                <span class="script-time">{{ line.time }}</span>
+                <span class="script-tekst">"{{ line.tekst }}"</span>
+              </div>
+              {% endfor %}
             </div>
-          </div>
-          <div class="shoot-section-label"><i class="bi bi-film me-1"></i>Shot list</div>
-          <ul class="shot-list mb-0">
-            {% for shot in shoot.shots %}
-            <li>
-              <span class="shot-num">{{ loop.index }}</span>
-              <span>{{ shot }}</span>
-            </li>
-            {% endfor %}
-          </ul>
-          {% if shoot.script %}
-          <div class="mt-3 mb-1 d-flex align-items-center justify-content-between">
-            <div class="shoot-section-label mb-0"><i class="bi bi-mic me-1"></i>Volledig script</div>
-            <button class="btn-script-toggle" onclick="toggleScript('script-{{ loop.index }}')">toon script</button>
-          </div>
-          <div class="script-block d-none" id="script-{{ loop.index }}">
-            {% for line in shoot.script %}
-            <div class="script-line">
-              <span class="script-time">{{ line.time }}</span>
-              <span class="script-tekst">"{{ line.tekst }}"</span>
+            {% endif %}
+
+            <div class="hyp-box">
+              <strong><i class="bi bi-lightbulb me-1"></i>Hypothese</strong>
+              {{ shoot.hypothese }}
             </div>
-            {% endfor %}
-          </div>
-          {% endif %}
-          <div class="hyp-box">
-            <strong><i class="bi bi-lightbulb me-1"></i>Hypothese</strong>
-            {{ shoot.hypothese }}
           </div>
         </div>
       </div>

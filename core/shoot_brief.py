@@ -244,6 +244,8 @@ Shoots die je MOET opleveren:
 2. "new_hook" — ongeteste hook ({new_hook}), zelfde format als safe
 3. "format_test" — beste hook ({safe_hook}) in nieuw format ({test_format})
 
+KRITISCH: Het script van shoot 3 (format_test) MOET inhoudelijk anders zijn dan shoot 1. Dezelfde hook-strategie ({safe_hook}), maar een ander verhaal, andere openingszin, andere body. Pas de scriptopbouw aan op het format {test_format} — de stijl, vertelvorm en opbouw moeten aantoonbaar verschillen van shoot 1.
+
 Return ALLEEN dit JSON:
 {{
   "shoots": [
@@ -342,9 +344,10 @@ def _fallback_brief(
     cta = "Plan een gratis proefles" if is_leads else "Bestel nu"
     name = client_name or "ons"
 
-    def _base(shoot_type: str, hook: str, fmt: str, duur: int) -> dict:
-        script = _build_script(hook, cta, client_name)
-        opening = script[0]["tekst"] if script else _default_opening(hook)
+    def _base(shoot_type: str, hook: str, fmt: str, duur: int, script_hook: str | None = None) -> dict:
+        effective_hook = script_hook or hook
+        script = _build_script(effective_hook, cta, client_name)
+        opening = script[0]["tekst"] if script else _default_opening(effective_hook)
         return {
             "type": shoot_type,
             "naam_suggestie": f"{hook.replace('_', '-').title()} {fmt.replace('_', '-').title()} V1",
@@ -373,7 +376,7 @@ def _fallback_brief(
     return [
         _base("safe", safe_hook, safe_format, 30),
         _base("new_hook", new_hook, safe_format, 30),
-        _base("format_test", safe_hook, test_format, 45),
+        _base("format_test", safe_hook, test_format, 45, script_hook=new_hook),
     ]
 
 
