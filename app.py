@@ -1345,7 +1345,8 @@ def export_creatives_csv(client_id):
             c.get("ad_copy_3") or "",
         ])
     output.seek(0)
-    safe_name = re.sub(r"[^\w\-]", "_", client.name)
+    client_name = client["name"] if isinstance(client, dict) else client.name
+    safe_name = re.sub(r"[^\w\-]", "_", client_name)
     return send_file(
         io.BytesIO(output.getvalue().encode("utf-8-sig")),
         mimetype="text/csv",
