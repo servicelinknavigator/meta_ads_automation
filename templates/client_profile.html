@@ -77,6 +77,15 @@
     .delta-bad  { color:var(--danger);  font-size:.72rem; font-weight:700; }
 
     /* Section */
+    .help-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: rgba(100,116,139,.15); color: var(--muted);
+      font-size: 9px; cursor: pointer; border: none; padding: 0;
+      vertical-align: middle; margin-left: 4px;
+      transition: background .15s, color .15s; line-height: 1;
+    }
+    .help-icon:hover { background: var(--navy); color: #fff; }
     .section-title {
       font-size:1rem; font-weight:800; color:var(--dark);
       letter-spacing:-.2px; margin-bottom:.9rem;
@@ -354,7 +363,13 @@
 
       <!-- Upload history -->
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <div class="section-title" style="margin-bottom:0;"><i class="bi bi-upload" style="color:var(--accent);"></i>Upload history</div>
+        <div class="section-title" style="margin-bottom:0;">
+          <i class="bi bi-upload" style="color:var(--accent);"></i>Upload history
+          <span class="help-icon ms-1" data-bs-toggle="tooltip"
+            title="Elke CSV-upload wordt hier opgeslagen. Klik op een rij om die upload te herladen. Selecteer meerdere uploads via de checkboxen om ze samen te voegen tot één analyse.">
+            <i class="bi bi-question-lg"></i>
+          </span>
+        </div>
         <div class="d-flex gap-2">
           {% if uploads %}
           <a href="/clients/{{ client.id }}/load/{{ uploads[0].id }}"
@@ -715,6 +730,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
+    new bootstrap.Tooltip(el, {trigger:'hover', delay:{show:200,hide:100}})
+  );
+  document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el =>
+    new bootstrap.Popover(el, {trigger:'hover focus', html:false})
+  );
+});
 function toggleBrief(i) {
   const body = document.getElementById('brief-' + i);
   const chev = document.getElementById('chev-' + i);

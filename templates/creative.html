@@ -412,6 +412,15 @@
     }
     .btn-copy:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
     .btn-copy.copied { background: #ecfdf5; border-color: #059669; color: #059669; }
+    .help-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: rgba(100,116,139,.15); color: var(--muted);
+      font-size: 9px; cursor: pointer; border: none; padding: 0;
+      vertical-align: middle; margin-left: 3px;
+      transition: background .15s, color .15s; line-height: 1;
+    }
+    .help-icon:hover { background: var(--navy); color: #fff; }
   </style>
 </head>
 <body>
@@ -631,18 +640,24 @@
       <div class="tab-panel active" id="tab-{{ loop.index0 }}-decode">
         <div class="decode-grid">
           <div class="decode-cell">
-            <div class="decode-label">Hook type</div>
+            <div class="decode-label">Hook type
+              <span class="help-icon" data-bs-toggle="tooltip" title="De openingsstrategie van de advertentie — hoe de eerste seconden de kijker stoppen met scrollen."><i class="bi bi-question-lg"></i></span>
+            </div>
             <div class="decode-val">
               <span class="hook-badge hook-{{ decoded.get('hook_type', '') }}">{{ decoded.get('hook_type', '—') }}</span>
               <div style="margin-top:6px;font-size:.78rem;color:var(--muted);">{{ decoded.get('hook_explanation', '') }}</div>
             </div>
           </div>
           <div class="decode-cell">
-            <div class="decode-label">Promise</div>
+            <div class="decode-label">Promise
+              <span class="help-icon" data-bs-toggle="tooltip" title="Wat de advertentie de kijker belooft — het concrete resultaat of voordeel dat wordt aangeboden."><i class="bi bi-question-lg"></i></span>
+            </div>
             <div class="decode-val">{{ decoded.get('promise', '—') }}</div>
           </div>
           <div class="decode-cell">
-            <div class="decode-label">Audience pain</div>
+            <div class="decode-label">Audience pain
+              <span class="help-icon" data-bs-toggle="tooltip" title="Het specifieke pijnpunt of probleem van de doelgroep waar de advertentie op inspeelt."><i class="bi bi-question-lg"></i></span>
+            </div>
             <div class="decode-val">{{ decoded.get('audience_pain', '—') }}</div>
           </div>
           <div class="decode-cell">
@@ -652,11 +667,15 @@
             </div>
           </div>
           <div class="decode-cell">
-            <div class="decode-label">CTA intent</div>
+            <div class="decode-label">CTA intent
+              <span class="help-icon" data-bs-toggle="tooltip" title="Wat de advertentie de kijker vraagt te doen — de gewenste actie na het zien van de ad."><i class="bi bi-question-lg"></i></span>
+            </div>
             <div class="decode-val">{{ decoded.get('cta_intent', '—') }}</div>
           </div>
           <div class="decode-cell">
-            <div class="decode-label">Psychological driver</div>
+            <div class="decode-label">Psychological driver
+              <span class="help-icon" data-bs-toggle="tooltip" title="De onderliggende psychologische trigger die de advertentie activeert — bijv. sociale bewijskracht, schaarste, autoriteit of verlangen."><i class="bi bi-question-lg"></i></span>
+            </div>
             <div class="decode-val">
               <span class="pattern-chip drv-chip" style="font-size:.75rem;padding:3px 10px;">{{ decoded.get('psychological_driver', '—') }}</span>
             </div>
@@ -989,6 +1008,13 @@ function copyVariant(btn) {
     }, 2000);
   });
 }
+
+// Init Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
+    new bootstrap.Tooltip(el, { trigger: 'hover', delay: { show: 200, hide: 100 } })
+  );
+});
 
 // Open first winner by default
 document.addEventListener('DOMContentLoaded', () => {

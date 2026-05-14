@@ -27,6 +27,18 @@
     * { font-family: 'Inter', system-ui, sans-serif; }
     body { background: var(--bg); color: var(--text); }
 
+    /* ── Help icons ── */
+    .help-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: rgba(100,116,139,.15); color: var(--muted);
+      font-size: 9px; cursor: pointer; border: none; padding: 0;
+      vertical-align: middle; margin-left: 4px;
+      transition: background .15s, color .15s;
+      text-decoration: none; line-height: 1;
+    }
+    .help-icon:hover { background: var(--navy); color: #fff; }
+
     /* ── Navbar ── */
     .sln-nav {
       background: var(--dark);
@@ -638,7 +650,14 @@
 
           <!-- Campaign Type -->
           <div class="settings-section">
-            <span class="settings-label"><i class="bi bi-target me-1"></i>Campagnetype</span>
+            <span class="settings-label">
+              <i class="bi bi-target me-1"></i>Campagnetype
+              <button class="help-icon" data-bs-toggle="popover" data-bs-placement="right" data-bs-trigger="hover focus"
+                data-bs-title="Wat is campagnetype?"
+                data-bs-content="Auto-detect leest de resultaatindicator in je CSV. Kies Leads/CPL als je campagne op leads of berichten stuurt. Kies E-commerce/ROAS als je conversie-campagne op aankopen stuurt.">
+                <i class="bi bi-question-lg"></i>
+              </button>
+            </span>
             <div class="type-toggle">
               <button type="button" class="type-btn active" onclick="setType('', this)">
                 <i class="bi bi-magic me-1"></i>Auto-detect
@@ -654,7 +673,14 @@
 
           <!-- CPL Thresholds (hidden for e-commerce) -->
           <div class="settings-section" id="thresholdSection">
-            <span class="settings-label" id="thresholdLabel"><i class="bi bi-sliders me-1"></i>CPL drempelwaarden</span>
+            <span class="settings-label" id="thresholdLabel">
+              <i class="bi bi-sliders me-1"></i>CPL drempelwaarden
+              <button class="help-icon" data-bs-toggle="popover" data-bs-placement="right" data-bs-trigger="hover focus"
+                data-bs-title="Wat zijn drempelwaarden?"
+                data-bs-content="Winnaar = advertenties met CPL onder deze grens (groen). Mid = matige prestatie (oranje). Loser = te duur, overweeg te stoppen (rood). Pas aan op je eigen doelstelling of gebruik een klantprofiel.">
+                <i class="bi bi-question-lg"></i>
+              </button>
+            </span>
             <div class="preset-toggle mb-2">
               <button type="button" class="preset-btn active" onclick="setPreset('auto', this)">Auto</button>
               <button type="button" class="preset-btn" onclick="setPreset('fit20', this)" data-win="40" data-mid="60">
@@ -708,6 +734,24 @@
           <a href="/demo" onclick="showLoading()" style="font-size:.8rem;color:var(--accent);font-weight:600;text-decoration:none;">
             Bekijk de demo <i class="bi bi-arrow-right"></i>
           </a>
+        </div>
+      </div>
+
+      <!-- Hoe exporteer ik? -->
+      <div class="mt-4" style="background:var(--surface);border-radius:14px;padding:1.5rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,.05);">
+        <div style="font-size:.8rem;font-weight:700;color:var(--navy);margin-bottom:1rem;display:flex;align-items:center;gap:6px;">
+          <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i>
+          Hoe exporteer ik een CSV uit Meta Ads Manager?
+        </div>
+        <ol style="font-size:.78rem;color:#374151;padding-left:1.2rem;margin:0;line-height:2;">
+          <li>Ga naar <strong>Meta Ads Manager</strong> → selecteer je campagnes, ad sets of advertenties</li>
+          <li>Klik rechtsboven op <strong>Exporteren</strong> → <em>Exporteer tabelgegevens (.csv)</em></li>
+          <li>Zorg dat <strong>Dag</strong> als uitsplitsing is ingesteld voor dagelijkse data (aanbevolen)</li>
+          <li>Kolommen die je nodig hebt: <em>Campagnenaam, Advertentiesetnaam, Advertentienaam, Besteed bedrag, Vertoningen, Resultaten, Resultaatindicator</em></li>
+        </ol>
+        <div style="margin-top:.75rem;font-size:.73rem;color:var(--muted);border-top:1px solid var(--border);padding-top:.6rem;">
+          <i class="bi bi-lightbulb me-1" style="color:var(--warning);"></i>
+          Tip: de analyzer werkt ook met samenvattingsexports (zonder dagkolom) en met zowel NL als EN kolomnamen.
         </div>
       </div>
     </div>
@@ -782,24 +826,36 @@
   <!-- KPI Row -->
   <div class="kpi-grid">
     <div class="kpi-card kpi-highlight">
-      <div class="kpi-label">Totaal budget</div>
+      <div class="kpi-label">Totaal budget
+        <span class="help-icon" data-bs-toggle="tooltip" title="Het totale bedrag dat in de geselecteerde periode is uitgegeven aan alle advertenties."><i class="bi bi-question-lg"></i></span>
+      </div>
       <div class="kpi-value">€{{ "%.0f"|format(s.total_spend) }}</div>
       <i class="bi bi-currency-euro kpi-icon"></i>
     </div>
     <div class="kpi-card kpi-highlight">
-      <div class="kpi-label">{{ s.metric_label }}</div>
+      <div class="kpi-label">{{ s.metric_label }}
+        {% if is_leads %}
+        <span class="help-icon" data-bs-toggle="tooltip" title="Cost Per Lead — gemiddelde kosten per gegenereerde lead. Lager = beter. Kleur geeft aan of je binnen je doelstelling zit."><i class="bi bi-question-lg"></i></span>
+        {% else %}
+        <span class="help-icon" data-bs-toggle="tooltip" title="Return On Ad Spend — hoeveel omzet je terugverdient per €1 advertentiebudget. ROAS van 3 = €3 omzet per €1 spend. Hoger = beter."><i class="bi bi-question-lg"></i></span>
+        {% endif %}
+      </div>
       <div class="kpi-value {% if uses_cpr %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% else %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% endif %}">
         {% if uses_cpr %}{% if metric_val > 0 %}€{{ "%.2f"|format(metric_val) }}{% else %}—{% endif %}{% else %}{{ "%.2f"|format(metric_val) }}{% endif %}
       </div>
       <i class="bi bi-arrow-repeat kpi-icon"></i>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">{{ s.result_label }}</div>
+      <div class="kpi-label">{{ s.result_label }}
+        <span class="help-icon" data-bs-toggle="tooltip" title="Totaal aantal behaalde resultaten (leads, aankopen of andere conversies) in de geselecteerde periode."><i class="bi bi-question-lg"></i></span>
+      </div>
       <div class="kpi-value {% if s.total_results > 0 %}good{% else %}bad{% endif %}">{{ s.total_results }}</div>
       <i class="bi bi-check2-circle kpi-icon"></i>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Gem. CTR</div>
+      <div class="kpi-label">Gem. CTR
+        <span class="help-icon" data-bs-toggle="tooltip" title="Click-Through Rate — percentage mensen dat je advertentie ziet én doorklikt. Boven 2% is goed voor Meta. Lage CTR wijst op een zwakke hook of visual."><i class="bi bi-question-lg"></i></span>
+      </div>
       {% if s.has_click_data %}
       <div class="kpi-value {% if s.avg_ctr >= 2 %}good{% elif s.avg_ctr >= 1 %}warn{% else %}bad{% endif %}">{{ "%.2f"|format(s.avg_ctr) }}%</div>
       {% else %}
@@ -808,12 +864,16 @@
       <i class="bi bi-cursor kpi-icon"></i>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Impressies</div>
+      <div class="kpi-label">Impressies
+        <span class="help-icon" data-bs-toggle="tooltip" title="Totaal aantal keer dat je advertenties zijn vertoond aan gebruikers (inclusief meerdere vertoningen aan dezelfde persoon)."><i class="bi bi-question-lg"></i></span>
+      </div>
       <div class="kpi-value" style="font-size:1.3rem;">{{ "{:,}".format(s.total_impressions).replace(",", ".") }}</div>
       <i class="bi bi-eye kpi-icon"></i>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Gem. CPM</div>
+      <div class="kpi-label">Gem. CPM
+        <span class="help-icon" data-bs-toggle="tooltip" title="Cost Per Mille — kosten per 1.000 vertoningen. Maatstaf voor hoe duur je doelgroep is om te bereiken. Hoge CPM = competitieve veiling of smalle doelgroep."><i class="bi bi-question-lg"></i></span>
+      </div>
       <div class="kpi-value" style="font-size:1.3rem;">€{{ "%.2f"|format(s.avg_cpm) }}</div>
       <i class="bi bi-broadcast kpi-icon"></i>
     </div>
@@ -1101,6 +1161,16 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Tooltips & popovers
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
+    new bootstrap.Tooltip(el, {trigger:'hover', delay:{show:200,hide:100}})
+  );
+  document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el =>
+    new bootstrap.Popover(el, {trigger:'hover focus', html:false})
+  );
+});
+
 function showLoading() {
   document.getElementById('loadingOverlay').style.display = 'flex';
 }

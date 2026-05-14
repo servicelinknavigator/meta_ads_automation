@@ -95,6 +95,19 @@
       background:none; border:none; color:var(--navy); font-size:.78rem; font-weight:600;
       cursor:pointer; padding:0; display:flex; align-items:center; gap:.3rem;
     }
+    .help-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: rgba(100,116,139,.15); color: var(--muted);
+      font-size: 9px; cursor: pointer; border: none; padding: 0;
+      vertical-align: middle; margin-left: 3px;
+      transition: background .15s, color .15s; line-height: 1;
+    }
+    .help-icon:hover { background: var(--navy); color: #fff; }
+    .required-badge {
+      font-size:.65rem; font-weight:600; color:#dc2626;
+      background:#fef2f2; padding:1px 6px; border-radius:4px; margin-left:.4rem;
+    }
   </style>
 </head>
 <body>
@@ -168,17 +181,25 @@
             <!-- Script (voor video ads) -->
             <div class="col-12">
               <div class="form-label-sm">
-                Script <span class="optional-badge">voor video-ads</span>
+                Script <span class="optional-badge">video-ads</span>
+                <span class="help-icon" data-bs-toggle="tooltip"
+                  title="De gesproken tekst van je video. Wordt door de AI gebruikt om patronen te herkennen en nieuwe hooks voor te stellen.">
+                  <i class="bi bi-question-lg"></i>
+                </span>
               </div>
               <textarea class="form-control form-control-sm"
                         name="script_{{ safe_key }}"
-                        placeholder="Voer hier de gesproken tekst / het video script in…"
+                        placeholder="Heb jij ook het gevoel dat je al maanden traint zonder resultaat?…"
                         rows="3"></textarea>
             </div>
             <!-- Headline (voor statics) -->
             <div class="col-md-6">
               <div class="form-label-sm">
-                Headline <span class="optional-badge">voor statics</span>
+                Headline <span class="optional-badge">statics</span>
+                <span class="help-icon" data-bs-toggle="tooltip"
+                  title="De vetgedrukte kopregel van een static advertentie — max. 40 tekens. Dit is wat de kijker als eerste leest.">
+                  <i class="bi bi-question-lg"></i>
+                </span>
               </div>
               <input type="text" class="form-control form-control-sm"
                      name="headline_{{ safe_key }}"
@@ -186,10 +207,16 @@
             </div>
             <!-- Ad copy 1 -->
             <div class="col-md-6">
-              <div class="form-label-sm">Ad copy 1</div>
+              <div class="form-label-sm">
+                Ad copy 1 <span class="required-badge">aanbevolen</span>
+                <span class="help-icon" data-bs-toggle="tooltip"
+                  title="De primaire advertentietekst die boven of onder de visual verschijnt. Vul minimaal dit veld in voor AI-context.">
+                  <i class="bi bi-question-lg"></i>
+                </span>
+              </div>
               <textarea class="form-control form-control-sm"
                         name="copy1_{{ safe_key }}"
-                        placeholder="Primaire advertentietekst…"
+                        placeholder="Meer dan 500 klanten gingen je voor…"
                         rows="2"></textarea>
             </div>
             <!-- Ad copy 2 & 3 -->
@@ -227,6 +254,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
+    new bootstrap.Tooltip(el, {trigger:'hover', delay:{show:200,hide:100}})
+  );
+});
   // Chevron omdraaien bij invouwen
   document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
     const targetId = btn.getAttribute('data-bs-target');
