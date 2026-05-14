@@ -853,15 +853,15 @@ def client_load_upload(client_id, upload_id):
 
 # ── Main analysis routes ───────────────────────────────────────────────────────
 
-@app.route("/", methods=["GET"])
+@app.route("/")
+@login_required
+def home():
+    return redirect(url_for("clients"))
+
+
+@app.route("/analyse", methods=["GET"])
 @login_required
 def index():
-    # Redirect to client overview when there's no active context
-    has_client = bool(session.get("client_id"))
-    is_guest   = bool(session.get("guest_mode"))
-    if not has_client and not is_guest:
-        return redirect(url_for("clients"))
-
     client = None
     client_id = session.get("client_id")
     if client_id and db.is_available():
