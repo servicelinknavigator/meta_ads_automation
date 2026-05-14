@@ -308,10 +308,13 @@ def build_ad_chart_data(campaigns: list[Campaign], campaign_type: str, top_n: in
 
 
 def get_date_range(rows: list[dict]) -> tuple[str | None, str | None]:
-    dates = sorted({str(r.get("day", "")).strip() for r in rows if str(r.get("day", "")).strip()})
-    if not dates:
+    starts = sorted({str(r.get("day", "")).strip() for r in rows if str(r.get("day", "")).strip()})
+    ends   = sorted({str(r.get("reporting_ends", "")).strip() for r in rows if str(r.get("reporting_ends", "")).strip()})
+    if not starts:
         return None, None
-    return dates[0], dates[-1]
+    date_from = starts[0]
+    date_to   = ends[-1] if ends else starts[-1]
+    return date_from, date_to
 
 
 def filter_rows_by_date(rows: list[dict], date_from: str, date_to: str) -> list[dict]:
