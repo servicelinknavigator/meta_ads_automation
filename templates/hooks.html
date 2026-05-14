@@ -541,9 +541,6 @@
   <!-- ── Shoot Brief ── -->
   <div class="mb-2 d-flex align-items-center justify-content-between">
     <div class="section-title mb-0"><i class="bi bi-camera-fill me-2" style="color:var(--accent);"></i>Shoot Brief — volgende ronde</div>
-    {% if shoot_brief and shoot_brief[0].get('_fallback') %}
-    <span class="fallback-note"><i class="bi bi-info-circle"></i>Gegenereerd zonder AI — voeg ANTHROPIC_API_KEY toe voor betere briefs</span>
-    {% endif %}
   </div>
 
   {% if shoot_brief %}

@@ -326,10 +326,13 @@ def filter_rows_by_date(rows: list[dict], date_from: str, date_to: str) -> list[
         if not d:
             out.append(r)
             continue
-        if date_from and d < date_from:
-            continue
+        # For summary CSVs a single row covers [day, reporting_ends].
+        # Use overlap logic: include row if its period intersects [date_from, date_to].
+        d_end = str(r.get("reporting_ends", "")).strip() or d
+        if date_from and d_end < date_from:
+            continue  # row ends before the filter start
         if date_to and d > date_to:
-            continue
+            continue  # row starts after the filter end
         out.append(r)
     return out
 

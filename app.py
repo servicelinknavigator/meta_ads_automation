@@ -1519,6 +1519,8 @@ def _check_new_ads_after_upload(client_id: int | None, rows: list[dict]) -> None
     new_ads = _get_new_ad_names(client_id, rows)
     if new_ads:
         session["pending_new_ads"] = new_ads
+    else:
+        session.pop("pending_new_ads", None)
 
 
 if __name__ == "__main__":
