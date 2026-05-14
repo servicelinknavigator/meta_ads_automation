@@ -593,7 +593,7 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
   <div class="alert alert-{{ cat }} alert-dismissible fade show rounded-0 mb-0" role="alert">
-    <div class="container-xl"><i class="bi bi-exclamation-triangle me-2"></i>{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    <div class="container-xl"><i class="bi bi-exclamation-triangle me-2"></i>{{ msg|safe }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
   </div>
   {% endfor %}
 {% endwith %}

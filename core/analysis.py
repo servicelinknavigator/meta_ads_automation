@@ -78,8 +78,13 @@ def merge_multi_conversion_rows(rows: list[dict]) -> list[dict]:
     merged: list[dict] = []
 
     for row in rows:
-        ad_key = str(row.get("ad_id") or "") or row.get("ad_name", "")
-        camp_key = str(row.get("campaign_id") or "") or row.get("campaign_name", "")
+        # Gebruik naam als fallback wanneer id ontbreekt of op "0" staat (zelfde logica als _dedup_key in app.py)
+        _ad_id = str(row.get("ad_id", "") or "")
+        ad_key = row.get("ad_name", "") if (not _ad_id or _ad_id == "0") else _ad_id
+
+        _camp_id = str(row.get("campaign_id", "") or "")
+        camp_key = row.get("campaign_name", "") if (not _camp_id or _camp_id == "0") else _camp_id
+
         day_key = str(row.get("day", ""))
         key = (ad_key, camp_key, day_key)
 
