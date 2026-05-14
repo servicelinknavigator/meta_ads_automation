@@ -1652,10 +1652,20 @@ function saveTaggings() {
 }
 
 function renderUrgentActions() {
-  const inactive = ['paused','inactive','deleted','archived','uitgeschakeld','gepauzeerd','not_delivering','niet_actief'];
-  const isActive = a => !a.delivery_status || !inactive.some(s => a.delivery_status.includes(s));
-  const burning = adsData.filter(a => a.results === 0 && a.spend > 50 && isActive(a));
-  const fatigue = adsData.filter(a => a.frequency > 3.5 && a.results > 0);
+  const inactiveStatuses = ['paused','inactive','deleted','archived','uitgeschakeld','gepauzeerd',
+    'not_delivering','niet_actief','gestopt','stopped','disabled','off','completed',
+    'verwijderd','afgewezen','gearchiveerd','niet geleverd'];
+  const confirmedActive = ['active','actief','learning','in leer','lerende fase'];
+  const isInactive = a => {
+    const s = (a.delivery_status || '').toLowerCase().trim();
+    return s && inactiveStatuses.some(x => s.includes(x));
+  };
+  const isConfirmedActive = a => {
+    const s = (a.delivery_status || '').toLowerCase().trim();
+    return s && confirmedActive.some(x => s.includes(x));
+  };
+  const burning = adsData.filter(a => a.results === 0 && a.spend > 50 && !isInactive(a));
+  const fatigue = adsData.filter(a => a.frequency > 3.5 && a.results > 0 && isConfirmedActive(a));
   const el = document.getElementById('urgentActions');
   if (!el || (!burning.length && !fatigue.length)) return;
 
