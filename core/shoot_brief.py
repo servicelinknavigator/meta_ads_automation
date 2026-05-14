@@ -158,7 +158,7 @@ def _build_script(hook: str, cta: str, client_name: str) -> list[dict]:
 
 
 def _summary_context(summary: AnalysisSummary, hook_perf: list[dict], fmt_perf: list[dict],
-                     untested_hooks: list[str]) -> str:
+                     untested_hooks: list[str], all_ads: list | None = None) -> str:
     is_leads = summary.campaign_type != "purchases"
     metric = f"gem. CPL €{summary.avg_cost_per_result}" if is_leads else f"gem. ROAS {summary.avg_roas}"
     hook_lines = "\n".join(
@@ -170,12 +170,25 @@ def _summary_context(summary: AnalysisSummary, hook_perf: list[dict], fmt_perf: 
         f"  {r['format_type']}: {r['ads']} ads, {r['results']} resultaten, CPL €{r['cpl'] or '?'}"
         for r in fmt_perf[:5]
     )
+
+    top_ads_lines = ""
+    if all_ads:
+        winners = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0][:8]
+        if winners:
+            top_ads_lines = "\nTop presterende advertenties (op CPL):\n" + "\n".join(
+                f"  #{i+1} \"{a.ad_name}\" | CPL €{a.cost_per_result} | {a.results} leads"
+                f" | spend €{round(a.spend)} | CTR {a.ctr}% | hook: {detect_hook(a.ad_name)}"
+                f" | format: {detect_format(a.ad_name)}"
+                for i, a in enumerate(sorted(winners, key=lambda x: x.cost_per_result))
+            )
+
     return (
         f"Account: {summary.num_ads} ads | {metric} | {summary.total_results} resultaten\n"
         f"Campagnetype: {summary.campaign_type}\n\n"
         f"Hook prestaties (gesorteerd op CPL):\n{hook_lines}\n\n"
         f"Format prestaties:\n{fmt_lines}\n\n"
         f"Nog niet geteste hooks: {', '.join(untested_hooks) if untested_hooks else 'geen'}"
+        f"{top_ads_lines}"
     )
 
 
@@ -202,7 +215,7 @@ def generate_shoot_brief(
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
                                summary, top_ad, client_name)
 
-    ctx = _summary_context(summary, hook_perf, fmt_perf, untested_hooks)
+    ctx = _summary_context(summary, hook_perf, fmt_perf, untested_hooks, all_ads=all_ads)
     top_ad_str = f"Beste huidige ad: \"{top_ad.ad_name}\" (CPL €{top_ad.cost_per_result}, {top_ad.results} leads)" if top_ad else ""
 
     client_block = ""
@@ -301,7 +314,7 @@ Return ALLEEN dit JSON:
   ]
 }}"""
 
-    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=2000)
+    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=3000)
     if "_error" in result or "shoots" not in result:
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
                                summary, top_ad, client_name)
