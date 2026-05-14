@@ -777,6 +777,7 @@ def client_merge_uploads(client_id):
 def upload_delete(client_id, upload_id):
     try:
         db.delete_upload(upload_id)
+        session.pop("pending_new_ads", None)
         flash("Upload verwijderd.", "success")
     except Exception as e:
         flash(f"Fout bij verwijderen: {e}", "danger")
