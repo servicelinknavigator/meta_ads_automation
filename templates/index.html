@@ -1126,7 +1126,7 @@
             <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:.6rem .85rem;font-size:.78rem;">
               <span style="color:#059669;font-weight:700;"><i class="bi bi-arrow-up-circle me-1"></i>Beste ad</span><br>
               <span style="color:#065f46;font-weight:600;">{{ s.top_ad }}</span>
-              <span style="color:#6b7280;"> &middot; {{ s.top_ad_set }}</span>
+              {% if s.top_ad_set and s.top_ad_set != 'Unknown' %}<span style="color:#6b7280;"> &middot; {{ s.top_ad_set }}</span>{% endif %}
             </div>
           </div>
           {% endif %}
@@ -1135,7 +1135,7 @@
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.6rem .85rem;font-size:.78rem;">
               <span style="color:#dc2626;font-weight:700;"><i class="bi bi-exclamation-circle me-1"></i>Aandacht vereist</span><br>
               <span style="color:#7f1d1d;font-weight:600;">{{ s.worst_ad }}</span>
-              <span style="color:#6b7280;"> &middot; {{ s.worst_ad_set }}</span>
+              {% if s.worst_ad_set and s.worst_ad_set != 'Unknown' %}<span style="color:#6b7280;"> &middot; {{ s.worst_ad_set }}</span>{% endif %}
             </div>
           </div>
           {% endif %}
