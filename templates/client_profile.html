@@ -535,7 +535,8 @@
             {% for row in hook_perf %}
             <tr>
               <td>
-                <span class="hook-pill" style="background:{% if row.overall_cpl and row.overall_cpl < 50 %}#ecfdf5;color:#059669{% else %}#f1f5f9;color:#64748b{% endif %};">
+                {% set bench = client.cpl_benchmark or 50 %}
+                <span class="hook-pill" style="background:{% if row.overall_cpl and row.overall_cpl <= bench %}#ecfdf5;color:#059669{% else %}#f1f5f9;color:#64748b{% endif %};">
                   {{ row.hook_type.replace('_',' ').title() }}
                 </span>
               </td>
@@ -545,7 +546,7 @@
               <td class="text-end">{{ row.total_results or 0 }}</td>
               <td class="text-end">
                 {% if row.overall_cpl %}
-                <strong style="color:{% if row.overall_cpl < 40 %}var(--success){% elif row.overall_cpl < 70 %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.overall_cpl }}</strong>
+                <strong style="color:{% if row.overall_cpl <= bench %}var(--success){% elif row.overall_cpl <= bench * 1.5 %}var(--warning){% else %}var(--danger){% endif %};">€{{ row.overall_cpl }}</strong>
                 {% else %}<span style="color:var(--muted);">—</span>{% endif %}
               </td>
             </tr>
