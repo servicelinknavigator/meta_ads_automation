@@ -42,14 +42,13 @@ _HOOK_NL: dict[str, str] = {
 }
 
 _FORMAT_NL: dict[str, str] = {
-    "talking_head": "Talking head — presentator direct in camera",
+    "reels": "Reels / Short-form — ≤60s verticaal (incl. talking head / presentator in camera)",
     "testimonial": "Testimonial — klant aan het woord",
     "ugc": "UGC-stijl — authentiek, handheld, no-budget look",
     "problem_solve": "Problem-solve — probleem tonen → oplossing",
     "story": "Verhalend — begin–midden–eind narratief",
     "carousel": "Carousel — meerdere slides of frames",
     "static": "Static — beeld met tekst overlay",
-    "reels": "Reels / Short-form — ≤60s verticaal",
     "product_demo": "Product demo — product in gebruik tonen",
     "before_after": "Before/After — transformatie vergelijking",
     "animation": "Animatie — motion graphics of illustratie",
@@ -67,7 +66,7 @@ def _best_format(fmt_perf: list[dict]) -> str:
     for row in fmt_perf:
         if row["results"] and row["results"] > 0:
             return row["format_type"]
-    return "talking_head"
+    return "reels"
 
 
 def _strip_em_dashes(text: str) -> str:

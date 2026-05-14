@@ -63,7 +63,7 @@ def suggest_ad_tags(ads_info: list[dict]) -> dict[str, dict]:
     )
 
     hook_opts = "proof, promise, frustration, recognition, curiosity, social_proof, problem_solve, educational, confrontation, urgency"
-    fmt_opts  = "static, reels, ugc, testimonial, carousel, talking_head, animation, before_after, product_demo"
+    fmt_opts  = "static, reels, ugc, testimonial, carousel, animation, before_after, product_demo"
 
     prompt = f"""Categoriseer deze Meta advertenties op basis van naam, campagne en prestaties.
 Kies voor elke advertentie het meest waarschijnlijke hook type en format type.
@@ -91,7 +91,7 @@ Return uitsluitend dit JSON object (sleutels zijn de nummers als string):
             if 0 <= i < len(ads_info):
                 result[ads_info[i]["ad_name"]] = {
                     "hook":   tags.get("hook", "unknown"),
-                    "format": tags.get("format", "talking_head"),
+                    "format": tags.get("format", "reels"),
                 }
         except (ValueError, KeyError):
             continue

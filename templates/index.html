@@ -949,7 +949,7 @@
 
         <div id="tagRows">
           {% set hooks = ['proof','promise','frustration','recognition','curiosity','social_proof','problem_solve','educational','confrontation','urgency','unknown'] %}
-          {% set formats = ['static','reels','ugc','testimonial','carousel','talking_head','animation','before_after','product_demo'] %}
+          {% set formats = ['static','reels','ugc','testimonial','carousel','animation','before_after','product_demo'] %}
           {% for ad in unknown_ads %}
           {% set sug = tag_suggestions.get(ad.ad_name, {}) %}
           <div class="tag-row" data-idx="{{ loop.index0 }}">
@@ -965,7 +965,7 @@
               </select>
               <select class="tag-select fmt-sel" data-name="{{ ad.ad_name }}">
                 {% for f in formats %}
-                <option value="{{ f }}" {% if sug.get('format','talking_head') == f %}selected{% endif %}>{{ f }}</option>
+                <option value="{{ f }}" {% if sug.get('format','reels') == f %}selected{% endif %}>{{ f }}</option>
                 {% endfor %}
               </select>
               <span class="tag-ai-badge" title="AI suggestie">

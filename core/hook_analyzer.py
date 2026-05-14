@@ -24,14 +24,13 @@ HOOK_TYPES = [
 ]
 
 FORMAT_TYPES = [
-    "talking_head",   # Presenter speaks to camera
+    "reels",          # Short-form vertical video (≤60s), incl. talking head
     "testimonial",    # Client/customer on camera
     "ugc",            # User generated content style
     "problem_solve",  # Show problem then solution
     "story",          # Narrative arc
     "carousel",       # Multiple images/slides
     "static",         # Single image
-    "reels",          # Short-form vertical video (≤60s)
     "product_demo",   # Product shown in use
     "before_after",   # Transformation comparison
     "animation",      # Motion graphics or illustrated
@@ -62,7 +61,7 @@ _FORMAT_KEYWORDS: list[tuple[list[str], str]] = [
     (["animatie", "animation", "motion", "geanimeerd"], "animation"),
     (["reels", "short", "60s", "30s", "15s"], "reels"),
     (["story", "verhaal", "narrative", "achtergrond"], "story"),
-    (["talking head", "to camera", "direct"], "talking_head"),
+    (["talking head", "to camera", "direct"], "reels"),
     (["probleem oplossing", "problem solve", "voor en na"], "problem_solve"),
 ]
 
@@ -80,8 +79,8 @@ _STRUCTURED_FORMAT_MAP: dict[str, str] = {
     "ugc":           "ugc",
     "testimonial":   "testimonial",
     "carousel":      "carousel",
-    "talking head":  "talking_head",
-    "th":            "talking_head",
+    "talking head":  "reels",
+    "th":            "reels",
     "animation":     "animation",
     "before after":  "before_after",
     "product demo":  "product_demo",
@@ -158,7 +157,7 @@ def parse_ad_name(ad_name: str) -> dict:
         if hook == "unknown" and "?" in ad_name:
             hook = "curiosity"
 
-        fmt = "talking_head"
+        fmt = "reels"
         for keywords, fmt_type in _FORMAT_KEYWORDS:
             if any(kw in lower for kw in keywords):
                 fmt = fmt_type
