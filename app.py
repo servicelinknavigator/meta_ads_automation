@@ -241,21 +241,28 @@ def _process_df(rows: list, campaign_type_override: str = "",
     # Ads met te weinig spend krijgen een label maar geen urgentie-melding
     low_data_ads = {a.ad_name for a in all_ads if 0 < a.spend < _LOW_SPEND_THRESHOLD}
 
+    _ACTIVE_STATUSES = {"active", "actief", "learning", "lerende fase", "in leer", "learning limited"}
+
     urgent_actions = []
     for a in all_ads:
-        delivery = (a.delivery_status or "").lower().strip() or ad_delivery_map.get(a.ad_name, "active").lower()
+        # Gebruik delivery_status van de Ad zelf, dan de delivery-map, dan leeg (onbekend).
+        # Nooit "active" als default — als er geen statuskolom in de CSV zit weten we het niet.
+        delivery = (a.delivery_status or "").lower().strip() or ad_delivery_map.get(a.ad_name, "").lower()
         is_inactive = delivery in _INACTIVE_STATUSES
+        is_confirmed_active = delivery in _ACTIVE_STATUSES
         is_low_data = a.ad_name in low_data_ads
 
         if is_inactive or is_low_data:
             continue  # geen urgentiemeldingen voor inactieve of data-arme ads
 
-        if a.results == 0 and a.spend > 50:
+        # Burning: altijd melden als ad actief of onbekend is — geld brandt al
+        if a.results == 0 and a.spend > 50 and not is_inactive:
             urgent_actions.append({
                 "type": "burning", "ad_name": a.ad_name,
                 "ad_set_name": a.ad_set_name, "spend": round(a.spend),
             })
-        elif a.frequency > 3.5 and a.results > 0:
+        # Fatigue: alleen melden als status BEVESTIGD actief is — heeft geen zin voor gestopte ads
+        elif a.frequency > 3.5 and a.results > 0 and is_confirmed_active:
             urgent_actions.append({
                 "type": "fatigue", "ad_name": a.ad_name,
                 "ad_set_name": a.ad_set_name, "frequency": round(a.frequency, 1),
