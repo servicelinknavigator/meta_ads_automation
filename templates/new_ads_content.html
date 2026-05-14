@@ -150,8 +150,7 @@
 
   <form method="POST" action="{{ url_for('new_ads_content_save', client_id=client.id) }}">
     {% for ad_naam in new_ads %}
-      {% set safe_key = ad_naam|replace(' ', '_')|replace('-', '_')|replace('.', '_')|replace('(', '_')|replace(')', '_')|replace('/', '_')|replace('+', '_')|replace('&', '_')|replace("'", '_')|replace('"', '_')|replace(',', '_')|replace(':', '_')|replace('!', '_')|replace('?', '_') %}
-      {% set safe_key = safe_key[:50] %}
+      {% set safe_key = loop.index %}
       <div class="ad-card">
         <div class="ad-card-header">
           <div>

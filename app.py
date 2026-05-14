@@ -1433,13 +1433,12 @@ def new_ads_content_save(client_id):
     pending = session.get("pending_new_ads", [])
     saved_count = 0
 
-    for ad_naam in pending:
-        safe_key = re.sub(r"[^a-zA-Z0-9]", "_", ad_naam)[:50]
-        script    = request.form.get(f"script_{safe_key}", "").strip()
-        headline  = request.form.get(f"headline_{safe_key}", "").strip()
-        copy1     = request.form.get(f"copy1_{safe_key}", "").strip()
-        copy2     = request.form.get(f"copy2_{safe_key}", "").strip()
-        copy3     = request.form.get(f"copy3_{safe_key}", "").strip()
+    for idx, ad_naam in enumerate(pending, start=1):
+        script    = request.form.get(f"script_{idx}", "").strip()
+        headline  = request.form.get(f"headline_{idx}", "").strip()
+        copy1     = request.form.get(f"copy1_{idx}", "").strip()
+        copy2     = request.form.get(f"copy2_{idx}", "").strip()
+        copy3     = request.form.get(f"copy3_{idx}", "").strip()
 
         if any([script, headline, copy1]):
             try:
