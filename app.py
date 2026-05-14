@@ -678,7 +678,7 @@ def client_profile(client_id):
             csv_content = db.get_upload_csv_content(uploads[0]["id"])
             if csv_content:
                 from core.csv_parser import parse_csv_string
-                rows = parse_csv_string(csv_content)
+                rows = filter_zero_spend(parse_csv_string(csv_content))
                 missing = _get_new_ad_names(client_id, rows)
                 pending_count = len(missing)
                 if missing:
@@ -1490,7 +1490,7 @@ def new_ads_content(client_id):
                 csv_content = db.get_upload_csv_content(last_upload_id)
                 if csv_content:
                     from core.csv_parser import parse_csv_string
-                    rows = parse_csv_string(csv_content)
+                    rows = filter_zero_spend(parse_csv_string(csv_content))
                     pending = _get_new_ad_names(client_id, rows)
                     if pending:
                         session[f"pending_new_ads_{client_id}"] = pending
