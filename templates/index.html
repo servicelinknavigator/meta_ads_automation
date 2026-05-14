@@ -6,26 +6,70 @@
   <title>SLN Meta Ads Analyzer</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
   <style>
     :root {
-      --dark:    #0D1B2A;
-      --navy:    #1A3A5C;
-      --accent:  #E8541A;
-      --accent2: #FF7043;
-      --bg:      #F4F6FA;
-      --surface: #FFFFFF;
-      --border:  #E2E8F0;
-      --text:    #0F172A;
-      --muted:   #64748B;
-      --success: #10B981;
-      --warning: #F59E0B;
-      --danger:  #EF4444;
+      --dark:         #060d1a;
+      --navy:         #0d1e35;
+      --accent:       #ff5c2b;
+      --accent2:      #ff8c5a;
+      --accent-glow:  rgba(255,92,43,.28);
+      --bg:           #edf0f9;
+      --glass:        rgba(255,255,255,.72);
+      --glass-mid:    rgba(255,255,255,.55);
+      --glass-light:  rgba(255,255,255,.4);
+      --glass-border: rgba(255,255,255,.6);
+      --glass-dark:   rgba(6,13,26,.84);
+      --surface:      rgba(255,255,255,.9);
+      --border:       rgba(210,220,240,.7);
+      --text:         #07112b;
+      --muted:        #64748b;
+      --success:      #10b981;
+      --success-glow: rgba(16,185,129,.2);
+      --warning:      #f59e0b;
+      --danger:       #ef4444;
+      --danger-glow:  rgba(239,68,68,.2);
+      --radius-lg:    20px;
+      --radius-md:    14px;
+      --radius-sm:    10px;
+      --shadow-glass: 0 8px 32px rgba(0,0,0,.09), 0 2px 8px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.8);
+      --shadow-card:  0 16px 48px rgba(0,0,0,.1), 0 4px 16px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.9);
+      --shadow-float: 0 24px 64px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
+      --blur:         blur(28px) saturate(200%);
+      --blur-light:   blur(16px) saturate(160%);
     }
 
-    * { font-family: 'Inter', system-ui, sans-serif; }
-    body { background: var(--bg); color: var(--text); }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+
+    /* ── Mesh gradient background ── */
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 75% 55% at 8%  -5%,  rgba(99,102,241,.10) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 92%  8%,  rgba(255,92,43,.09)  0%, transparent 50%),
+        radial-gradient(ellipse 65% 50% at 50% 95%,  rgba(16,185,129,.06) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 35% at 88% 72%,  rgba(139,92,246,.07) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 15% 80%,  rgba(6,182,212,.05)  0%, transparent 50%),
+        linear-gradient(160deg, #f0f2fb 0%, #eceff8 50%, #f2eff9 100%);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ── Glass mixin classes ── */
+    .glass {
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-glass);
+    }
+    .glass-dark {
+      background: var(--glass-dark);
+      -webkit-backdrop-filter: var(--blur);
+      backdrop-filter: var(--blur);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
 
     /* ── Help icons ── */
     .help-icon {
@@ -34,404 +78,445 @@
       background: rgba(100,116,139,.15); color: var(--muted);
       font-size: 9px; cursor: pointer; border: none; padding: 0;
       vertical-align: middle; margin-left: 4px;
-      transition: background .15s, color .15s;
+      transition: background .18s, color .18s;
       text-decoration: none; line-height: 1;
     }
-    .help-icon:hover { background: var(--navy); color: #fff; }
+    .help-icon:hover { background: rgba(255,92,43,.9); color: #fff; }
 
     /* ── Navbar ── */
     .sln-nav {
-      background: var(--dark);
+      background: var(--glass-dark);
+      -webkit-backdrop-filter: var(--blur);
+      backdrop-filter: var(--blur);
       padding: 0 2rem;
-      height: 58px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 0 rgba(255,255,255,.06);
+      z-index: 200;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      box-shadow: 0 4px 24px rgba(0,0,0,.18);
     }
     .sln-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
+      display: flex; align-items: center; gap: 10px; text-decoration: none;
     }
     .sln-logo-icon {
-      width: 34px; height: 34px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 13px;
-      color: #fff;
-      letter-spacing: -.5px;
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; color: #fff; letter-spacing: -.5px;
+      box-shadow: 0 4px 16px var(--accent-glow);
     }
     .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.2; }
-    .sln-logo-sub  { color: rgba(255,255,255,.45); font-size: 10px; font-weight: 400; }
+    .sln-logo-sub  { color: rgba(255,255,255,.38); font-size: 10px; font-weight: 400; }
 
     /* ── Hero ── */
     .hero {
-      background: linear-gradient(135deg, var(--dark) 0%, var(--navy) 60%, #1e4d8c 100%);
-      padding: 3rem 0 2.5rem;
+      background: linear-gradient(135deg, #060d1a 0%, #0d1e35 55%, #122848 100%);
+      padding: 3.5rem 0 3rem;
       position: relative;
       overflow: hidden;
     }
-    .hero::after {
+    .hero::before {
       content: '';
-      position: absolute;
-      right: -100px; top: -100px;
-      width: 400px; height: 400px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(232,84,26,.15) 0%, transparent 70%);
+      position: absolute; left: -120px; top: -120px;
+      width: 480px; height: 480px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,.12) 0%, transparent 70%);
       pointer-events: none;
     }
-    .hero-title { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.5px; }
-    .hero-sub   { color: rgba(255,255,255,.55); font-size: .95rem; margin-top: .25rem; }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(232,84,26,.2);
-      border: 1px solid rgba(232,84,26,.4);
-      color: #ff9a78;
-      font-size: .72rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 20px;
-      margin-bottom: .75rem;
-      text-transform: uppercase;
-      letter-spacing: .08em;
+    .hero::after {
+      content: '';
+      position: absolute; right: -80px; bottom: -80px;
+      width: 360px; height: 360px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,92,43,.13) 0%, transparent 70%);
+      pointer-events: none;
     }
+    .hero-orb {
+      position: absolute; top: 20%; right: 25%;
+      width: 160px; height: 160px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(16,185,129,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-title { font-size: 2.1rem; font-weight: 800; color: #fff; letter-spacing: -.6px; }
+    .hero-sub   { color: rgba(255,255,255,.5); font-size: .95rem; margin-top: .3rem; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      color: rgba(255,255,255,.8);
+      font-size: .72rem; font-weight: 600;
+      padding: 5px 12px; border-radius: 20px;
+      margin-bottom: .8rem;
+      text-transform: uppercase; letter-spacing: .09em;
+    }
+    .hero-badge i { color: var(--accent2); }
 
     /* ── Buttons ── */
     .btn-sln {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none;
+      padding: .55rem 1.35rem;
+      border-radius: 10px;
+      font-weight: 600; font-size: .875rem;
+      transition: all .2s cubic-bezier(.25,.46,.45,.94);
+      box-shadow: 0 4px 16px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.2);
+      text-decoration: none; display: inline-flex; align-items: center;
+    }
+    .btn-sln:hover {
       color: #fff;
-      border: none;
-      padding: .55rem 1.3rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: .875rem;
-      transition: background .15s, transform .1s;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.25);
     }
-    .btn-sln:hover { background: var(--accent2); color: #fff; transform: translateY(-1px); }
+    .btn-sln:active { transform: translateY(0); }
     .btn-sln-outline {
-      background: transparent;
-      color: rgba(255,255,255,.8);
-      border: 1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.08);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      color: rgba(255,255,255,.78);
+      border: 1px solid rgba(255,255,255,.18);
       padding: .55rem 1.3rem;
-      border-radius: 8px;
-      font-weight: 500;
-      font-size: .875rem;
-      transition: all .15s;
-      text-decoration: none;
-    }
-    .btn-sln-outline:hover { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.4); }
-
-    /* ── Upload card ── */
-    .upload-card { background: var(--surface); border-radius: 16px; padding: 2.5rem; box-shadow: 0 4px 24px rgba(0,0,0,.06); }
-    .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 2.5rem;
-      text-align: center;
-      cursor: pointer;
+      border-radius: 10px;
+      font-weight: 500; font-size: .875rem;
       transition: all .2s;
-      background: var(--bg);
+      text-decoration: none; display: inline-flex; align-items: center;
     }
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: var(--accent);
-      background: #fff4f0;
-    }
-    .upload-icon {
-      width: 56px; height: 56px;
-      background: linear-gradient(135deg, #fff4f0, #ffe8dc);
-      border-radius: 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1rem;
-      font-size: 1.5rem;
-      color: var(--accent);
+    .btn-sln-outline:hover {
+      background: rgba(255,255,255,.14); color: #fff;
+      border-color: rgba(255,255,255,.32);
+      transform: translateY(-1px);
     }
 
     /* ── Feature pills ── */
     .feature-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: .78rem;
-      font-weight: 500;
-      color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.1);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: .78rem; font-weight: 500; color: rgba(255,255,255,.75);
     }
-    .feature-pill i { color: var(--accent); }
+    .feature-pill i { color: var(--accent2); }
+
+    /* ── Upload card ── */
+    .upload-card {
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      box-shadow: var(--shadow-card);
+    }
+    .upload-zone {
+      border: 2px dashed rgba(210,220,240,.7);
+      border-radius: var(--radius-md);
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s;
+      background: rgba(255,255,255,.4);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(255,92,43,.05);
+      box-shadow: 0 0 0 4px rgba(255,92,43,.08);
+    }
+    .upload-icon {
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, rgba(255,92,43,.12), rgba(255,140,90,.1));
+      border-radius: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem; font-size: 1.5rem; color: var(--accent);
+      border: 1px solid rgba(255,92,43,.2);
+    }
 
     /* ── KPI Cards ── */
-    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 1.75rem; }
     @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 768px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
 
     .kpi-card {
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 1.1rem 1.2rem;
-      box-shadow: 0 1px 8px rgba(0,0,0,.05);
-      border: 1px solid var(--border);
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 1.2rem 1.3rem;
+      box-shadow: var(--shadow-glass);
       position: relative;
       overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card);
     }
     .kpi-card::before {
       content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--accent);
-      border-radius: 12px 12px 0 0;
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
-    .kpi-card.kpi-highlight::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
-    .kpi-label { font-size: .68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; }
-    .kpi-value { font-size: 1.7rem; font-weight: 800; color: var(--text); line-height: 1; }
-    .kpi-value.good  { color: var(--success); }
+    .kpi-card.kpi-highlight::before {
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+      animation: shimmer 3s ease infinite;
+      background-size: 200% 100%;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .kpi-card::after {
+      content: '';
+      position: absolute; top: -40px; right: -40px;
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .kpi-label {
+      font-size: .68rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .09em; margin-bottom: .35rem;
+    }
+    .kpi-value { font-size: 1.8rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-value.good  { color: var(--success); text-shadow: 0 0 20px var(--success-glow); }
     .kpi-value.warn  { color: var(--warning); }
-    .kpi-value.bad   { color: var(--danger); }
-    .kpi-icon { position: absolute; top: 1rem; right: 1rem; font-size: 1.2rem; opacity: .12; }
+    .kpi-value.bad   { color: var(--danger); text-shadow: 0 0 20px var(--danger-glow); }
+    .kpi-icon {
+      position: absolute; bottom: .9rem; right: 1rem;
+      font-size: 1.4rem; opacity: .07; color: var(--text);
+    }
 
     /* ── Section cards ── */
     .sln-card {
-      background: var(--surface);
-      border-radius: 14px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 8px rgba(0,0,0,.05);
-      border: 1px solid var(--border);
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-glass);
     }
     .sln-card-title {
-      font-size: .8rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 1.25rem;
+      font-size: .75rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .1em;
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 1.35rem;
     }
     .sln-card-title i { color: var(--accent); font-size: 1rem; }
 
     /* ── Ad Table ── */
     .camp-table { width: 100%; border-collapse: collapse; }
     .camp-table th {
-      font-size: .68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
+      font-size: .67rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .09em;
       color: var(--muted);
-      padding: .6rem .85rem;
-      border-bottom: 2px solid var(--border);
-      background: var(--bg);
-      white-space: nowrap;
-      user-select: none;
+      padding: .65rem .9rem;
+      border-bottom: 1px solid rgba(210,220,240,.6);
+      background: rgba(255,255,255,.45);
+      white-space: nowrap; user-select: none;
     }
-    .camp-table th.sortable {
-      cursor: pointer;
-      transition: color .15s;
-    }
+    .camp-table th.sortable { cursor: pointer; transition: color .15s; }
     .camp-table th.sortable:hover { color: var(--accent); }
-    .camp-table th.sort-asc  { color: var(--accent); }
-    .camp-table th.sort-desc { color: var(--accent); }
-    .sort-icon { margin-left: 4px; font-size: .65rem; opacity: .4; }
+    .camp-table th.sort-asc, .camp-table th.sort-desc { color: var(--accent); }
+    .sort-icon { margin-left: 4px; font-size: .65rem; opacity: .35; }
     .sort-icon.active { opacity: 1; color: var(--accent); }
     .camp-table td {
-      padding: .75rem .85rem;
+      padding: .8rem .9rem;
       font-size: .85rem;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(210,220,240,.4);
       vertical-align: middle;
     }
     .camp-table tr:last-child td { border-bottom: none; }
-    .camp-table tbody tr { transition: background .1s; }
-    .camp-table tbody tr:hover { background: #fafbff; }
+    .camp-table tbody tr { transition: background .15s; }
+    .camp-table tbody tr:hover { background: rgba(255,255,255,.55); }
     .camp-name { font-weight: 600; color: var(--text); }
     .ad-sub { font-size: .74rem; color: var(--muted); margin-top: 1px; }
 
     /* ── Table controls ── */
     .table-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 1.1rem; flex-wrap: wrap;
     }
     .tbl-search {
-      flex: 1;
-      min-width: 180px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .4rem .75rem .4rem 2rem;
-      font-size: .82rem;
-      outline: none;
-      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748B' d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0'/%3E%3C/svg%3E") no-repeat .65rem center;
-      transition: border-color .15s;
+      flex: 1; min-width: 180px;
+      border: 1px solid rgba(210,220,240,.7);
+      border-radius: 10px;
+      padding: .45rem .75rem .45rem 2rem;
+      font-size: .82rem; outline: none;
+      background: rgba(255,255,255,.6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748B' d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0'/%3E%3C/svg%3E") no-repeat .65rem center;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      transition: border-color .18s, background .18s, box-shadow .18s;
+      color: var(--text);
     }
-    .tbl-search:focus { border-color: var(--accent); background-color: var(--surface); }
+    .tbl-search:focus {
+      border-color: var(--accent);
+      background-color: rgba(255,255,255,.85);
+      box-shadow: 0 0 0 3px rgba(255,92,43,.1);
+    }
     .tbl-filter {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .4rem .75rem;
-      font-size: .82rem;
-      outline: none;
-      background: var(--bg);
-      cursor: pointer;
-      transition: border-color .15s;
+      border: 1px solid rgba(210,220,240,.7);
+      border-radius: 10px; padding: .45rem .75rem;
+      font-size: .82rem; outline: none;
+      background: rgba(255,255,255,.6);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      cursor: pointer; transition: border-color .18s;
+      color: var(--text);
     }
     .tbl-filter:focus { border-color: var(--accent); }
-    .tbl-counter {
-      font-size: .75rem;
-      color: var(--muted);
-      white-space: nowrap;
-    }
+    .tbl-counter { font-size: .75rem; color: var(--muted); white-space: nowrap; }
 
     /* ── Status badges ── */
     .badge-sln {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 9px;
-      border-radius: 20px;
-      font-size: .7rem;
-      font-weight: 600;
-      letter-spacing: .03em;
-      white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .7rem; font-weight: 600; letter-spacing: .03em; white-space: nowrap;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     }
-    .badge-top   { background: #ecfdf5; color: #059669; }
-    .badge-good  { background: #eff6ff; color: #2563eb; }
-    .badge-avg   { background: #fffbeb; color: #d97706; }
-    .badge-low   { background: #fef2f2; color: #dc2626; }
-    .badge-aware { background: #f5f3ff; color: #7c3aed; }
+    .badge-top   { background: rgba(16,185,129,.12);  color: #059669; border: 1px solid rgba(16,185,129,.2); }
+    .badge-good  { background: rgba(37,99,235,.1);    color: #2563eb; border: 1px solid rgba(37,99,235,.18); }
+    .badge-avg   { background: rgba(245,158,11,.12);  color: #d97706; border: 1px solid rgba(245,158,11,.2); }
+    .badge-low   { background: rgba(239,68,68,.1);    color: #dc2626; border: 1px solid rgba(239,68,68,.18); }
+    .badge-aware { background: rgba(124,58,237,.1);   color: #7c3aed; border: 1px solid rgba(124,58,237,.18); }
 
-    /* ── AI Insights ── */
-    .insights-panel { background: var(--bg); border-radius: 10px; padding: 1.1rem; }
-    .insights-panel p, .insights-panel li { font-size: .83rem; color: #374151; line-height: 1.6; }
-    .insights-panel ul { padding-left: 1.2rem; }
-    .stat-chip {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .5rem .75rem;
-      text-align: center;
+    /* ── AI Insights panel ── */
+    .insights-panel {
+      background: rgba(255,255,255,.5);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.7);
+      border-radius: var(--radius-md);
+      padding: 1.35rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
     }
-    .stat-chip-label { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .insights-panel p, .insights-panel li {
+      font-size: .84rem; color: #2d3748; line-height: 1.65;
+    }
+    .insights-panel ul { padding-left: 1.2rem; }
+
+    /* ── Stat chips in AI header ── */
+    .stat-chip {
+      background: rgba(255,255,255,.55);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.7);
+      border-radius: 10px; padding: .5rem .85rem; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .stat-chip-label { font-size: .63rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 1px; }
     .stat-chip-val   { font-size: 1rem; font-weight: 700; color: var(--text); }
 
-    /* ── Context strip (active client + workflow tabs) ── */
+    /* ── Context strip ── */
     .ctx-strip {
-      background: #0f2137;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      padding: 0 0;
+      background: rgba(6,13,26,.86);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border-bottom: 1px solid rgba(255,255,255,.07);
     }
     .ctx-inner {
-      display: flex; align-items: stretch; justify-content: space-between;
-      height: 42px;
+      display: flex; align-items: stretch; justify-content: space-between; height: 44px;
     }
     .ctx-client {
       display: flex; align-items: center; gap: 8px;
-      color: rgba(255,255,255,.8); font-size: .78rem; font-weight: 600;
+      color: rgba(255,255,255,.75); font-size: .78rem; font-weight: 600;
       text-decoration: none; padding: 0 1.5rem;
-      border-right: 1px solid rgba(255,255,255,.08);
+      border-right: 1px solid rgba(255,255,255,.07);
       transition: background .15s;
     }
     .ctx-client:hover { background: rgba(255,255,255,.05); color: #fff; }
     .ctx-client-name { color: #fff; }
     .ctx-period {
       display: flex; align-items: center; gap: 5px;
-      font-size: .72rem; color: rgba(255,255,255,.4);
-      padding: 0 1rem;
-      border-right: 1px solid rgba(255,255,255,.08);
+      font-size: .72rem; color: rgba(255,255,255,.38);
+      padding: 0 1rem; border-right: 1px solid rgba(255,255,255,.07);
     }
     .ctx-tabs { display: flex; align-items: stretch; }
     .ctx-tab {
       display: flex; align-items: center; gap: 6px;
-      padding: 0 1.1rem; font-size: .78rem; font-weight: 500;
-      color: rgba(255,255,255,.45); text-decoration: none;
+      padding: 0 1.15rem; font-size: .78rem; font-weight: 500;
+      color: rgba(255,255,255,.42); text-decoration: none;
       border-bottom: 2px solid transparent;
-      transition: all .15s; white-space: nowrap;
+      transition: all .18s; white-space: nowrap;
     }
-    .ctx-tab:hover { color: rgba(255,255,255,.8); background: rgba(255,255,255,.04); }
+    .ctx-tab:hover { color: rgba(255,255,255,.78); background: rgba(255,255,255,.05); }
     .ctx-tab.active {
       color: #fff; border-bottom-color: var(--accent);
-      background: rgba(232,84,26,.08);
+      background: rgba(255,92,43,.08);
     }
-    .ctx-tab .ctx-check { color: var(--success); font-size: .7rem; }
 
-    /* ── Demo alert ── */
+    /* ── Demo / info bars ── */
     .demo-bar {
-      background: linear-gradient(90deg, #1e3a5c, #1a4f8a);
-      color: rgba(255,255,255,.85);
-      padding: .6rem 1.5rem;
-      font-size: .8rem;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
+      background: rgba(14,40,80,.75);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      color: rgba(255,255,255,.78);
+      padding: .65rem 1.5rem; font-size: .8rem;
+      display: flex; align-items: center; gap: .5rem;
     }
 
     /* ── Loading overlay ── */
     #loadingOverlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(13,27,42,.75);
+      display: none; position: fixed; inset: 0;
+      background: rgba(6,13,26,.65);
       z-index: 9999;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
+      align-items: center; justify-content: center; flex-direction: column;
       color: white;
-      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     }
     .loading-spinner {
-      width: 48px; height: 48px;
-      border: 3px solid rgba(255,255,255,.2);
+      width: 52px; height: 52px;
+      border: 3px solid rgba(255,255,255,.15);
       border-top-color: var(--accent);
       border-radius: 50%;
-      animation: spin .8s linear infinite;
-      margin-bottom: 1rem;
+      animation: spin .75s linear infinite;
+      margin-bottom: 1.1rem;
+      box-shadow: 0 0 24px var(--accent-glow);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Campaign type toggle ── */
-    .type-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+    .type-toggle {
+      display: flex; gap: 0;
+      border: 1px solid rgba(210,220,240,.7);
+      border-radius: 11px; overflow: hidden;
+      background: rgba(255,255,255,.4);
+    }
     .type-btn {
-      flex: 1; padding: .42rem .5rem; font-size: .78rem; font-weight: 600;
-      background: var(--bg); border: none; cursor: pointer;
-      color: var(--muted); transition: all .15s;
-      border-right: 1px solid var(--border);
+      flex: 1; padding: .45rem .5rem; font-size: .78rem; font-weight: 600;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--muted); transition: all .18s;
+      border-right: 1px solid rgba(210,220,240,.5);
     }
     .type-btn:last-child { border-right: none; }
-    .type-btn.active { background: var(--dark); color: #fff; }
-    .type-btn:hover:not(.active) { background: #edf0f7; color: var(--text); }
+    .type-btn.active {
+      background: rgba(6,13,26,.85);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .type-btn:hover:not(.active) { background: rgba(255,255,255,.6); color: var(--text); }
 
     /* ── Threshold presets ── */
     .preset-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
     .preset-btn {
-      padding: .32rem .9rem; font-size: .76rem; font-weight: 600;
-      border: 1.5px solid var(--border); border-radius: 20px;
-      background: var(--bg); color: var(--muted); cursor: pointer; transition: all .15s;
+      padding: .33rem .9rem; font-size: .76rem; font-weight: 600;
+      border: 1px solid rgba(210,220,240,.7); border-radius: 20px;
+      background: rgba(255,255,255,.5);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      color: var(--muted); cursor: pointer; transition: all .18s;
     }
-    .preset-btn.active { border-color: var(--accent); background: #fff4f0; color: var(--accent); }
-    .preset-btn:hover:not(.active) { border-color: var(--text); color: var(--text); }
+    .preset-btn.active {
+      border-color: var(--accent);
+      background: rgba(255,92,43,.08);
+      color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,92,43,.1);
+    }
+    .preset-btn:hover:not(.active) { border-color: rgba(100,116,139,.4); color: var(--text); }
 
     .settings-section {
-      background: var(--bg); border-radius: 10px; padding: 1rem 1.1rem;
-      margin-bottom: 1rem; border: 1px solid var(--border);
+      background: rgba(255,255,255,.45);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      border-radius: var(--radius-sm); padding: 1rem 1.15rem;
+      margin-bottom: 1rem; border: 1px solid rgba(210,220,240,.6);
     }
     .settings-label {
       font-size: .68rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .07em; color: var(--muted); margin-bottom: .55rem; display: block;
+      letter-spacing: .08em; color: var(--muted); margin-bottom: .55rem; display: block;
     }
     .threshold-legend {
       display: flex; gap: 10px; margin-top: .55rem; font-size: .74rem; flex-wrap: wrap;
@@ -440,25 +525,26 @@
 
     /* ── Empty state ── */
     .tbl-empty {
-      text-align: center;
-      padding: 2.5rem 1rem;
-      color: var(--muted);
-      font-size: .85rem;
+      text-align: center; padding: 2.5rem 1rem;
+      color: var(--muted); font-size: .85rem;
     }
-    .tbl-empty i { font-size: 2rem; opacity: .3; display: block; margin-bottom: .5rem; }
+    .tbl-empty i { font-size: 2rem; opacity: .25; display: block; margin-bottom: .5rem; }
 
     /* ── Urgente acties ── */
     .urgent-bar {
-      background: linear-gradient(90deg, #7f1d1d, #991b1b);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
+      background: rgba(127,29,29,.82);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid rgba(239,68,68,.25);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.35rem; margin-bottom: 1.35rem;
+      display: flex; align-items: flex-start; gap: 1rem;
+      box-shadow: 0 4px 24px rgba(239,68,68,.15);
     }
     .urgent-icon { font-size: 1.3rem; color: #fca5a5; flex-shrink: 0; margin-top: 1px; }
-    .urgent-title { font-size: .78rem; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+    .urgent-title {
+      font-size: .78rem; font-weight: 700; color: #fca5a5;
+      text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem;
+    }
     .urgent-item {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(255,255,255,.1); border-radius: 6px;
@@ -469,12 +555,13 @@
 
     /* ── WoW vergelijking ── */
     .wow-card {
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      box-shadow: 0 1px 8px rgba(0,0,0,.05);
-      border: 1px solid var(--border);
-      margin-bottom: 1.5rem;
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1.35rem;
+      box-shadow: var(--shadow-glass);
+      margin-bottom: 1.75rem;
     }
     .wow-metric { text-align: center; padding: .5rem .25rem; }
     .wow-metric-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
@@ -486,19 +573,123 @@
 
     /* ── Datumfilter balk ── */
     .date-bar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: .55rem 0;
+      background: rgba(255,255,255,.55);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(210,220,240,.6);
+      padding: .6rem 0;
     }
     .date-bar form { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
     .date-input {
-      border: 1px solid var(--border); border-radius: 7px;
-      padding: .3rem .6rem; font-size: .8rem; color: var(--text);
-      background: var(--bg); outline: none;
+      border: 1px solid rgba(210,220,240,.7); border-radius: 8px;
+      padding: .32rem .65rem; font-size: .8rem; color: var(--text);
+      background: rgba(255,255,255,.7); outline: none; transition: border-color .18s;
     }
     .date-input:focus { border-color: var(--accent); }
     .date-label { font-size: .75rem; color: var(--muted); white-space: nowrap; }
     .freq-warn { color: var(--danger); font-weight: 700; }
+
+    /* ── Info box (how to export) ── */
+    .info-box {
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-glass);
+    }
+
+    /* ── Tag panel ── */
+    .tag-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .6rem .85rem; border-radius: 10px; margin-bottom: .45rem;
+      background: rgba(255,255,255,.5);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      border: 1px solid rgba(210,220,240,.5);
+      flex-wrap: wrap; gap: .5rem;
+      transition: background .15s;
+    }
+    .tag-row:hover { background: rgba(255,255,255,.75); }
+    .tag-adname { flex: 1; min-width: 180px; }
+    .tag-select {
+      border: 1px solid rgba(210,220,240,.7); border-radius: 8px;
+      font-size: .75rem; padding: .3rem .5rem;
+      background: rgba(255,255,255,.75); color: var(--text); cursor: pointer;
+    }
+    .tag-select:focus { border-color: var(--accent); outline: none; }
+    .tag-ai-badge {
+      font-size: .68rem; font-weight: 600; color: var(--accent);
+      background: rgba(255,92,43,.1); border: 1px solid rgba(255,92,43,.2);
+      border-radius: 20px; padding: 2px 9px; white-space: nowrap;
+    }
+
+    /* ── AI card gradient border effect ── */
+    .ai-card-wrapper {
+      position: relative;
+      border-radius: calc(var(--radius-lg) + 2px);
+      padding: 1.5px;
+      background: linear-gradient(135deg,
+        rgba(99,102,241,.35) 0%,
+        rgba(255,92,43,.3) 40%,
+        rgba(16,185,129,.2) 100%);
+      box-shadow: 0 16px 48px rgba(99,102,241,.12), 0 4px 16px rgba(0,0,0,.08);
+    }
+    .ai-card-inner {
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .ai-card-inner::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .ai-card-inner::after {
+      content: '';
+      position: absolute; bottom: -40px; left: 20%;
+      width: 160px; height: 160px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,92,43,.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Performance highlight boxes ── */
+    .perf-box-good {
+      background: rgba(16,185,129,.1);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid rgba(16,185,129,.22);
+      border-radius: var(--radius-sm);
+      padding: .9rem 1.15rem;
+    }
+    .perf-box-bad {
+      background: rgba(239,68,68,.09);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border: 1px solid rgba(239,68,68,.2);
+      border-radius: var(--radius-sm);
+      padding: .9rem 1.15rem;
+    }
+
+    /* ── Footer ── */
+    .sln-footer {
+      background: rgba(255,255,255,.45);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(210,220,240,.6);
+      padding: 1.5rem; text-align: center;
+      color: var(--muted); font-size: .75rem;
+      margin-top: 3rem;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100,116,139,.25);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.4); }
   </style>
 </head>
 <body>
@@ -506,8 +697,8 @@
 <!-- Loading Overlay -->
 <div id="loadingOverlay">
   <div class="loading-spinner"></div>
-  <div style="font-weight:600;font-size:1rem;">Analyseren...</div>
-  <div style="color:rgba(255,255,255,.5);font-size:.8rem;margin-top:.25rem;">AI genereert inzichten</div>
+  <div style="font-weight:700;font-size:1.05rem;letter-spacing:-.3px;">Analyseren…</div>
+  <div style="color:rgba(255,255,255,.45);font-size:.82rem;margin-top:.3rem;">AI genereert inzichten</div>
 </div>
 
 <!-- Navbar -->
@@ -521,7 +712,7 @@
   </a>
   <div class="d-flex align-items-center gap-2">
     {% if active_client %}
-    <span style="font-size:.75rem;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:5px;">
+    <span style="font-size:.75rem;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px;">
       <i class="bi bi-building"></i>{{ active_client.name }}
     </span>
     {% endif %}
@@ -543,8 +734,8 @@
       <i class="bi bi-play-circle me-1"></i>Demo bekijken
     </a>
     {% endif %}
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 .1rem;"></div>
-    <span style="font-size:.72rem;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;">
+    <div style="width:1px;height:18px;background:rgba(255,255,255,.12);margin:0 .1rem;"></div>
+    <span style="font-size:.72rem;color:rgba(255,255,255,.38);display:flex;align-items:center;gap:4px;">
       <i class="bi bi-person-circle"></i>{{ session.username }}
     </span>
     <a href="/logout" class="btn-sln-outline" style="font-size:.8rem;padding:.4rem .7rem;" title="Uitloggen">
@@ -559,10 +750,10 @@
   <div class="container-xl ctx-inner">
     <div class="d-flex align-items-stretch">
       <a href="/clients/{{ active_client.id }}" class="ctx-client">
-        <i class="bi bi-chevron-left" style="font-size:.7rem;opacity:.6;"></i>
+        <i class="bi bi-chevron-left" style="font-size:.7rem;opacity:.55;"></i>
         <span class="ctx-client-name">{{ active_client.name }}</span>
         {% if active_client.cpl_benchmark %}
-        <span style="font-size:.68rem;font-weight:400;color:rgba(255,255,255,.35);margin-left:4px;">CPL €{{ active_client.cpl_benchmark }}</span>
+        <span style="font-size:.68rem;font-weight:400;color:rgba(255,255,255,.3);margin-left:4px;">CPL €{{ active_client.cpl_benchmark }}</span>
         {% endif %}
       </a>
       {% if result and result.date_range %}
@@ -599,7 +790,7 @@
 
 <!-- Merged uploads bar -->
 {% if merged_uploads %}
-<div class="demo-bar" style="background:linear-gradient(90deg,#14532d,#166534);">
+<div class="demo-bar" style="background:rgba(20,83,45,.75);">
   <i class="bi bi-layers-fill me-1"></i>
   <strong>Gecombineerde analyse</strong> — {{ merged_uploads }} uploads samengevoegd. Gedupliceerde rijen automatisch verwijderd.
 </div>
@@ -608,7 +799,7 @@
 <!-- Flash messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
-  <div class="alert alert-{{ cat }} alert-dismissible fade show rounded-0 mb-0" role="alert">
+  <div class="alert alert-{{ cat }} alert-dismissible fade show rounded-0 mb-0" role="alert" style="background:rgba(255,255,255,.8);backdrop-filter:blur(16px);">
     <div class="container-xl"><i class="bi bi-exclamation-triangle me-2"></i>{{ msg|safe }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
   </div>
   {% endfor %}
@@ -617,6 +808,7 @@
 {% if not result %}
 <!-- ═══════════════ UPLOAD PAGE ═══════════════ -->
 <div class="hero">
+  <div class="hero-orb"></div>
   <div class="container-xl">
     <div class="hero-badge"><i class="bi bi-stars"></i> Powered by Claude AI</div>
     <div class="hero-title">Meta Ads Analyzer</div>
@@ -634,9 +826,8 @@
   <div class="row justify-content-center">
     <div class="col-lg-7">
       <div class="upload-card">
-        <h5 style="font-weight:700;margin-bottom:1.5rem;">CSV uploaden</h5>
+        <h5 style="font-weight:800;margin-bottom:1.5rem;letter-spacing:-.3px;">CSV uploaden</h5>
         <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="showLoading()">
-          <!-- Hidden fields updated by JS -->
           <input type="hidden" name="campaign_type_override" id="campaign_type_override" value="" />
           <input type="hidden" name="threshold_preset"        id="threshold_preset_hidden" value="auto" />
           <input type="hidden" name="threshold_winner"        id="threshold_winner_hidden" value="" />
@@ -652,7 +843,6 @@
             <i class="bi bi-check-circle text-success me-1"></i><span id="fileNameText"></span>
           </div>
 
-          <!-- Campaign Type -->
           <div class="settings-section">
             <span class="settings-label">
               <i class="bi bi-target me-1"></i>Campagnetype
@@ -675,7 +865,6 @@
             </div>
           </div>
 
-          <!-- CPL Thresholds (hidden for e-commerce) -->
           <div class="settings-section" id="thresholdSection">
             <span class="settings-label" id="thresholdLabel">
               <i class="bi bi-sliders me-1"></i>CPL drempelwaarden
@@ -698,30 +887,30 @@
               </button>
             </div>
 
-            <!-- Custom inputs -->
             <div id="customInputs" class="d-none">
               <div class="row g-2 mb-2">
                 <div class="col-5">
                   <label class="settings-label mb-1">Winnaar — CPL onder</label>
                   <div class="input-group input-group-sm">
-                    <span class="input-group-text">€</span>
+                    <span class="input-group-text" style="background:rgba(255,255,255,.6);border-color:rgba(210,220,240,.7);">€</span>
                     <input type="number" id="inp_winner" class="form-control" value="30" min="1" max="999"
-                           oninput="updateCustom()" />
+                           oninput="updateCustom()"
+                           style="background:rgba(255,255,255,.7);border-color:rgba(210,220,240,.7);" />
                   </div>
                 </div>
                 <div class="col-5">
                   <label class="settings-label mb-1">Mid — CPL onder</label>
                   <div class="input-group input-group-sm">
-                    <span class="input-group-text">€</span>
+                    <span class="input-group-text" style="background:rgba(255,255,255,.6);border-color:rgba(210,220,240,.7);">€</span>
                     <input type="number" id="inp_mid" class="form-control" value="50" min="2" max="9999"
-                           oninput="updateCustom()" />
+                           oninput="updateCustom()"
+                           style="background:rgba(255,255,255,.7);border-color:rgba(210,220,240,.7);" />
                   </div>
                 </div>
               </div>
               <div style="font-size:.74rem;color:var(--muted);">Loser = alles boven mid-grens</div>
             </div>
 
-            <!-- Active threshold legend -->
             <div class="threshold-legend" id="thresholdLegend">
               <span><span class="legend-dot" style="background:var(--success);"></span>Winnaar &lt;€<span id="leg-win">30</span></span>
               <span><span class="legend-dot" style="background:var(--warning);"></span>Mid €<span id="leg-win2">30</span>–<span id="leg-mid">50</span></span>
@@ -729,7 +918,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn-sln w-100" style="padding:.75rem;font-size:.95rem;">
+          <button type="submit" class="btn-sln w-100" style="padding:.78rem;font-size:.95rem;border-radius:12px;">
             <i class="bi bi-graph-up me-2"></i>Analyseren
           </button>
         </form>
@@ -741,19 +930,18 @@
         </div>
       </div>
 
-      <!-- Hoe exporteer ik? -->
-      <div class="mt-4" style="background:var(--surface);border-radius:14px;padding:1.5rem 2rem;box-shadow:0 2px 12px rgba(0,0,0,.05);">
+      <div class="info-box mt-4">
         <div style="font-size:.8rem;font-weight:700;color:var(--navy);margin-bottom:1rem;display:flex;align-items:center;gap:6px;">
           <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i>
           Hoe exporteer ik een CSV uit Meta Ads Manager?
         </div>
-        <ol style="font-size:.78rem;color:#374151;padding-left:1.2rem;margin:0;line-height:2;">
+        <ol style="font-size:.78rem;color:#374151;padding-left:1.2rem;margin:0;line-height:2.1;">
           <li>Ga naar <strong>Meta Ads Manager</strong> → selecteer je campagnes, ad sets of advertenties</li>
           <li>Klik rechtsboven op <strong>Exporteren</strong> → <em>Exporteer tabelgegevens (.csv)</em></li>
           <li>Zorg dat <strong>Dag</strong> als uitsplitsing is ingesteld voor dagelijkse data (aanbevolen)</li>
           <li>Kolommen die je nodig hebt: <em>Campagnenaam, Advertentiesetnaam, Advertentienaam, Besteed bedrag, Vertoningen, Resultaten, Resultaatindicator</em></li>
         </ol>
-        <div style="margin-top:.75rem;font-size:.73rem;color:var(--muted);border-top:1px solid var(--border);padding-top:.6rem;">
+        <div style="margin-top:.75rem;font-size:.73rem;color:var(--muted);border-top:1px solid rgba(210,220,240,.5);padding-top:.6rem;">
           <i class="bi bi-lightbulb me-1" style="color:var(--warning);"></i>
           Tip: de analyzer werkt ook met samenvattingsexports (zonder dagkolom) en met zowel NL als EN kolomnamen.
         </div>
@@ -773,14 +961,17 @@
 {% set t_preset = thresholds.preset if thresholds else 'auto' %}
 
 <!-- Hero (compact) -->
-<div class="hero" style="padding:1.75rem 0;">
+<div class="hero" style="padding:1.85rem 0;">
+  <div class="hero-orb" style="top:10%;right:30%;width:120px;height:120px;"></div>
   <div class="container-xl">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
       <div>
         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-          <div class="hero-badge" style="margin-bottom:0;"><i class="bi bi-check-circle"></i> Analyse gereed</div>
+          <div class="hero-badge" style="margin-bottom:0;">
+            <i class="bi bi-check-circle-fill" style="color:#6ee7b7;"></i> Analyse gereed
+          </div>
           {% if is_leads %}
-          <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:.7rem;color:rgba(255,255,255,.7);">
+          <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:20px;padding:4px 12px;font-size:.7rem;color:rgba(255,255,255,.7);">
             <i class="bi bi-sliders"></i>
             {% if t_preset == 'fit20' %}Fit20{% elif t_preset == 'belladonna' %}Belladonna{% elif t_preset == 'custom' %}Eigen profiel{% else %}Standaard{% endif %}
             &nbsp;&middot;&nbsp;
@@ -790,7 +981,12 @@
           </div>
           {% endif %}
         </div>
-        <div class="hero-title" style="font-size:1.5rem;">{{ s.num_campaigns }} campagne{{ 's' if s.num_campaigns != 1 }} &middot; {{ s.num_ad_sets }} ad sets &middot; {{ s.num_ads }} advertenties &middot; <span style="color:{% if s.total_results > 0 %}#6ee7b7{% else %}#fca5a5{% endif %};">{{ s.total_results }} {{ s.result_label | lower }}</span></div>
+        <div class="hero-title" style="font-size:1.55rem;">
+          {{ s.num_campaigns }} campagne{{ 's' if s.num_campaigns != 1 }}
+          &middot; {{ s.num_ad_sets }} ad sets
+          &middot; {{ s.num_ads }} advertenties
+          &middot; <span style="color:{% if s.total_results > 0 %}#6ee7b7{% else %}#fca5a5{% endif %};">{{ s.total_results }} {{ s.result_label | lower }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -808,7 +1004,7 @@
       <input type="date" name="date_from" class="date-input" value="{{ result.date_range.from }}" />
       <span class="date-label">t/m</span>
       <input type="date" name="date_to" class="date-input" value="{{ result.date_range.to }}" />
-      <button type="submit" class="btn-sln" style="padding:.3rem .85rem;font-size:.78rem;">
+      <button type="submit" class="btn-sln" style="padding:.33rem .9rem;font-size:.78rem;">
         <i class="bi bi-funnel me-1"></i>Filter
       </button>
       {% if result.date_range.from != result.date_range.full_from or result.date_range.to != result.date_range.full_to %}
@@ -824,7 +1020,7 @@
 
 <div class="container-xl py-4">
 
-  <!-- Urgente acties (rendered by JS) -->
+  <!-- Urgente acties -->
   <div id="urgentActions"></div>
 
   <!-- KPI Row -->
@@ -839,26 +1035,26 @@
     <div class="kpi-card kpi-highlight">
       <div class="kpi-label">{{ s.metric_label }}
         {% if is_leads %}
-        <span class="help-icon" data-bs-toggle="tooltip" title="Cost Per Lead — gemiddelde kosten per gegenereerde lead. Lager = beter. Kleur geeft aan of je binnen je doelstelling zit."><i class="bi bi-question-lg"></i></span>
+        <span class="help-icon" data-bs-toggle="tooltip" title="Cost Per Lead — gemiddelde kosten per gegenereerde lead. Lager = beter."><i class="bi bi-question-lg"></i></span>
         {% else %}
-        <span class="help-icon" data-bs-toggle="tooltip" title="Return On Ad Spend — hoeveel omzet je terugverdient per €1 advertentiebudget. ROAS van 3 = €3 omzet per €1 spend. Hoger = beter."><i class="bi bi-question-lg"></i></span>
+        <span class="help-icon" data-bs-toggle="tooltip" title="Return On Ad Spend — hoeveel omzet je terugverdient per €1 advertentiebudget."><i class="bi bi-question-lg"></i></span>
         {% endif %}
       </div>
-      <div class="kpi-value {% if uses_cpr %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% else %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% endif %}">
+      <div class="kpi-value {% if uses_cpr %}{% if metric_val > 0 and metric_val < t_win %}good{% elif metric_val >= t_win and metric_val < t_mid %}warn{% elif metric_val >= t_mid %}bad{% endif %}{% endif %}">
         {% if uses_cpr %}{% if metric_val > 0 %}€{{ "%.2f"|format(metric_val) }}{% else %}—{% endif %}{% else %}{{ "%.2f"|format(metric_val) }}{% endif %}
       </div>
       <i class="bi bi-arrow-repeat kpi-icon"></i>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">{{ s.result_label }}
-        <span class="help-icon" data-bs-toggle="tooltip" title="Totaal aantal behaalde resultaten (leads, aankopen of andere conversies) in de geselecteerde periode."><i class="bi bi-question-lg"></i></span>
+        <span class="help-icon" data-bs-toggle="tooltip" title="Totaal aantal behaalde resultaten in de geselecteerde periode."><i class="bi bi-question-lg"></i></span>
       </div>
       <div class="kpi-value {% if s.total_results > 0 %}good{% else %}bad{% endif %}">{{ s.total_results }}</div>
       <i class="bi bi-check2-circle kpi-icon"></i>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Gem. CTR
-        <span class="help-icon" data-bs-toggle="tooltip" title="Click-Through Rate — percentage mensen dat je advertentie ziet én doorklikt. Boven 2% is goed voor Meta. Lage CTR wijst op een zwakke hook of visual."><i class="bi bi-question-lg"></i></span>
+        <span class="help-icon" data-bs-toggle="tooltip" title="Click-Through Rate — percentage mensen dat je advertentie ziet én doorklikt. Boven 2% is goed voor Meta."><i class="bi bi-question-lg"></i></span>
       </div>
       {% if s.has_click_data %}
       <div class="kpi-value {% if s.avg_ctr >= 2 %}good{% elif s.avg_ctr >= 1 %}warn{% else %}bad{% endif %}">{{ "%.2f"|format(s.avg_ctr) }}%</div>
@@ -869,14 +1065,14 @@
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Impressies
-        <span class="help-icon" data-bs-toggle="tooltip" title="Totaal aantal keer dat je advertenties zijn vertoond aan gebruikers (inclusief meerdere vertoningen aan dezelfde persoon)."><i class="bi bi-question-lg"></i></span>
+        <span class="help-icon" data-bs-toggle="tooltip" title="Totaal aantal keer dat je advertenties zijn vertoond aan gebruikers."><i class="bi bi-question-lg"></i></span>
       </div>
       <div class="kpi-value" style="font-size:1.3rem;">{{ "{:,}".format(s.total_impressions).replace(",", ".") }}</div>
       <i class="bi bi-eye kpi-icon"></i>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Gem. CPM
-        <span class="help-icon" data-bs-toggle="tooltip" title="Cost Per Mille — kosten per 1.000 vertoningen. Maatstaf voor hoe duur je doelgroep is om te bereiken. Hoge CPM = competitieve veiling of smalle doelgroep."><i class="bi bi-question-lg"></i></span>
+        <span class="help-icon" data-bs-toggle="tooltip" title="Cost Per Mille — kosten per 1.000 vertoningen."><i class="bi bi-question-lg"></i></span>
       </div>
       <div class="kpi-value" style="font-size:1.3rem;">€{{ "%.2f"|format(s.avg_cpm) }}</div>
       <i class="bi bi-broadcast kpi-icon"></i>
@@ -924,270 +1120,229 @@
   </div>
   {% endif %}
 
-  <div class="row g-4">
-    <!-- Full width: Charts + Table -->
-    <div class="col-12">
+  <!-- Full width: Charts + Table -->
+  <div class="col-12">
 
-      <!-- ── Tagging panel ───────────────────────────────────────────── -->
-      {% if unknown_ads %}
-      <div class="sln-card mb-4" id="tagPanel">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <div style="font-size:.95rem;font-weight:800;color:var(--dark);display:flex;align-items:center;gap:8px;">
-            <i class="bi bi-tags-fill" style="color:var(--accent);"></i>
-            {{ unknown_ads|length }} advertentie{{ 's' if unknown_ads|length != 1 }} niet herkend
-            <span style="font-size:.72rem;font-weight:500;color:var(--muted);">— AI heeft een voorstel gemaakt</span>
-          </div>
-          <button onclick="document.getElementById('tagPanel').style.display='none'"
-                  style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0;">
-            <i class="bi bi-x-lg"></i>
-          </button>
+    {% if unknown_ads %}
+    <div class="sln-card mb-4" id="tagPanel">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div style="font-size:.95rem;font-weight:800;color:var(--dark);display:flex;align-items:center;gap:8px;letter-spacing:-.3px;">
+          <i class="bi bi-tags-fill" style="color:var(--accent);"></i>
+          {{ unknown_ads|length }} advertentie{{ 's' if unknown_ads|length != 1 }} niet herkend
+          <span style="font-size:.72rem;font-weight:500;color:var(--muted);">— AI heeft een voorstel gemaakt</span>
         </div>
-
-        <div style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;">
-          Controleer en bevestig de categorieën. Eenmalig opgeslagen → volgende uploads automatisch correct.
-        </div>
-
-        <div id="tagRows">
-          {% set hooks = ['proof','promise','frustration','recognition','curiosity','social_proof','problem_solve','educational','confrontation','urgency','unknown'] %}
-          {% set formats = ['static','reels','ugc','testimonial','carousel','animation','before_after','product_demo'] %}
-          {% for ad in unknown_ads %}
-          {% set sug = tag_suggestions.get(ad.ad_name, {}) %}
-          <div class="tag-row" data-idx="{{ loop.index0 }}">
-            <div class="tag-adname">
-              <div style="font-weight:600;font-size:.82rem;color:var(--dark);">{{ ad.ad_name }}</div>
-              <div style="font-size:.7rem;color:var(--muted);">{{ ad.campaign_name }} · €{{ ad.spend }} · {{ ad.results }} resultaten</div>
-            </div>
-            <div class="d-flex gap-2 flex-wrap align-items-center">
-              <select class="tag-select hook-sel" data-name="{{ ad.ad_name }}">
-                {% for h in hooks %}
-                <option value="{{ h }}" {% if sug.get('hook','unknown') == h %}selected{% endif %}>{{ h }}</option>
-                {% endfor %}
-              </select>
-              <select class="tag-select fmt-sel" data-name="{{ ad.ad_name }}">
-                {% for f in formats %}
-                <option value="{{ f }}" {% if sug.get('format','reels') == f %}selected{% endif %}>{{ f }}</option>
-                {% endfor %}
-              </select>
-              <span class="tag-ai-badge" title="AI suggestie">
-                <i class="bi bi-stars"></i> AI
-              </span>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="d-flex align-items-center gap-3 mt-3">
-          <button class="btn-sln" style="padding:.5rem 1.4rem;font-size:.83rem;" onclick="saveTaggings()">
-            <i class="bi bi-check2 me-1"></i>Opslaan
-          </button>
-          <span id="tagSaveStatus" style="font-size:.78rem;color:var(--success);display:none;">
-            <i class="bi bi-check-circle-fill me-1"></i>Opgeslagen — volgende upload automatisch herkend
-          </span>
-        </div>
+        <button onclick="document.getElementById('tagPanel').style.display='none'"
+                style="background:rgba(100,116,139,.12);border:1px solid rgba(210,220,240,.6);color:var(--muted);font-size:.85rem;cursor:pointer;padding:.3rem .45rem;border-radius:8px;transition:all .15s;"
+                onmouseover="this.style.background='rgba(239,68,68,.1)';this.style.color='#dc2626';"
+                onmouseout="this.style.background='rgba(100,116,139,.12)';this.style.color='var(--muted)';">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
 
-      <style>
-        .tag-row {
-          display:flex; align-items:center; justify-content:space-between;
-          padding:.55rem .75rem; border-radius:8px; margin-bottom:.4rem;
-          background:#f8fafc; border:1px solid var(--border); flex-wrap:wrap; gap:.5rem;
-        }
-        .tag-adname { flex:1; min-width:180px; }
-        .tag-select {
-          border:1.5px solid var(--border); border-radius:7px;
-          font-size:.75rem; padding:.3rem .5rem; background:#fff;
-          color:var(--text); cursor:pointer;
-        }
-        .tag-select:focus { border-color:var(--accent); outline:none; }
-        .tag-ai-badge {
-          font-size:.68rem; font-weight:600; color:var(--accent);
-          background:rgba(232,84,26,.08); border-radius:20px;
-          padding:2px 8px; white-space:nowrap;
-        }
-      </style>
-
-      <script>
-      function saveTaggings() {
-        const rows = document.querySelectorAll('.tag-row');
-        const mappings = [];
-        rows.forEach(row => {
-          const hookSel = row.querySelector('.hook-sel');
-          const fmtSel  = row.querySelector('.fmt-sel');
-          if (!hookSel || !fmtSel) return;
-          const name = hookSel.dataset.name;
-          if (hookSel.value && hookSel.value !== 'unknown') {
-            mappings.push({ ad_name: name, hook_type: hookSel.value, format_type: fmtSel.value });
-          }
-        });
-        if (!mappings.length) return;
-        const form = new FormData();
-        form.append('mappings', JSON.stringify(mappings));
-        fetch('/tag-ads', { method: 'POST', body: form })
-          .then(r => r.json())
-          .then(d => {
-            if (d.ok) {
-              document.getElementById('tagSaveStatus').style.display = 'inline-flex';
-              document.querySelectorAll('.tag-row').forEach(r => r.style.opacity = '.4');
-            }
-          });
-      }
-      </script>
-      {% endif %}
-
-      <!-- Charts -->
-      <div class="sln-card mb-4">
-        <div class="sln-card-title"><i class="bi bi-bar-chart-fill"></i>Prestaties per advertentie (top 10 op spend)</div>
-        <div class="row g-3">
-          <div class="col-md-6"><div id="chartSpend" style="height:240px;"></div></div>
-          <div class="col-md-6"><div id="chartMetric" style="height:240px;"></div></div>
-          <div class="col-md-6"><div id="chartCtr" style="height:240px;"></div></div>
-          <div class="col-md-6"><div id="chartResults" style="height:240px;"></div></div>
-        </div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;">
+        Controleer en bevestig de categorieën. Eenmalig opgeslagen → volgende uploads automatisch correct.
       </div>
 
-      <!-- JS-driven Ad Table -->
-      <div class="sln-card">
-        <div class="sln-card-title" style="margin-bottom:.75rem;">
-          <i class="bi bi-image"></i>Advertentie overzicht
-          <span id="tblCounter" class="tbl-counter ms-auto"></span>
+      <div id="tagRows">
+        {% set hooks = ['proof','promise','frustration','recognition','curiosity','social_proof','problem_solve','educational','confrontation','urgency','unknown'] %}
+        {% set formats = ['static','reels','ugc','testimonial','carousel','animation','before_after','product_demo'] %}
+        {% for ad in unknown_ads %}
+        {% set sug = tag_suggestions.get(ad.ad_name, {}) %}
+        <div class="tag-row" data-idx="{{ loop.index0 }}">
+          <div class="tag-adname">
+            <div style="font-weight:600;font-size:.82rem;color:var(--dark);">{{ ad.ad_name }}</div>
+            <div style="font-size:.7rem;color:var(--muted);">{{ ad.campaign_name }} · €{{ ad.spend }} · {{ ad.results }} resultaten</div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            <select class="tag-select hook-sel" data-name="{{ ad.ad_name }}">
+              {% for h in hooks %}
+              <option value="{{ h }}" {% if sug.get('hook','unknown') == h %}selected{% endif %}>{{ h }}</option>
+              {% endfor %}
+            </select>
+            <select class="tag-select fmt-sel" data-name="{{ ad.ad_name }}">
+              {% for f in formats %}
+              <option value="{{ f }}" {% if sug.get('format','reels') == f %}selected{% endif %}>{{ f }}</option>
+              {% endfor %}
+            </select>
+            <span class="tag-ai-badge" title="AI suggestie">
+              <i class="bi bi-stars"></i> AI
+            </span>
+          </div>
         </div>
+        {% endfor %}
+      </div>
 
-        <div class="table-controls">
-          <input type="text" id="tblSearch" class="tbl-search" placeholder="Zoek op advertentienaam…" oninput="renderTable()" />
-          <select id="tblStatus" class="tbl-filter" onchange="renderTable()">
-            <option value="">Alle statussen</option>
-            {% if uses_cpr %}
-            <option value="lage-cpl">Winnaar (&lt;€{{ t_win }})</option>
-            <option value="gemiddeld">Mid (€{{ t_win }}–{{ t_mid }})</option>
-            <option value="hoge-cpl">Loser (&gt;€{{ t_mid }})</option>
-            <option value="geen-leads">Geen {{ s.result_label|lower }}</option>
-            {% else %}
-            <option value="lage-cpl">Lage CPM</option>
-            <option value="gemiddeld">Gemiddeld</option>
-            <option value="hoge-cpl">Hoge CPM</option>
-            {% endif %}
-          </select>
-        </div>
+      <div class="d-flex align-items-center gap-3 mt-3">
+        <button class="btn-sln" style="padding:.5rem 1.4rem;font-size:.83rem;" onclick="saveTaggings()">
+          <i class="bi bi-check2 me-1"></i>Opslaan
+        </button>
+        <span id="tagSaveStatus" style="font-size:.78rem;color:var(--success);display:none;">
+          <i class="bi bi-check-circle-fill me-1"></i>Opgeslagen — volgende upload automatisch herkend
+        </span>
+      </div>
+    </div>
+    {% endif %}
 
-        <div class="table-responsive">
-          <table class="camp-table">
-            <thead>
-              <tr>
-                <th class="sortable" data-col="ad_name" onclick="sortBy('ad_name')">
-                  Advertentie <span class="sort-icon" id="si-ad_name">&#8597;</span>
-                </th>
-                <th class="sortable" data-col="spend" onclick="sortBy('spend')">
-                  <span class="text-end d-block">Budget <span class="sort-icon" id="si-spend">&#8597;</span></span>
-                </th>
-                <th class="sortable" data-col="cpl" onclick="sortBy('cpl')">
-                  <span class="text-end d-block">{{ s.metric_label }} <span class="sort-icon" id="si-cpl">&#8597;</span></span>
-                </th>
-                <th class="sortable" data-col="results" onclick="sortBy('results')">
-                  <span class="text-end d-block">{{ s.result_label }} <span class="sort-icon" id="si-results">&#8597;</span></span>
-                </th>
-                <th class="sortable" data-col="ctr" onclick="sortBy('ctr')">
-                  <span class="text-end d-block">CTR <span class="sort-icon" id="si-ctr">&#8597;</span></span>
-                </th>
-                <th class="sortable" data-col="cpc" onclick="sortBy('cpc')">
-                  <span class="text-end d-block">CPC <span class="sort-icon" id="si-cpc">&#8597;</span></span>
-                </th>
-                <th class="sortable" data-col="cpm" onclick="sortBy('cpm')">
-                  <span class="text-end d-block">CPM <span class="sort-icon" id="si-cpm">&#8597;</span></span>
-                </th>
-                {% if not is_leads %}
-                <th class="sortable" data-col="roas" onclick="sortBy('roas')">
-                  <span class="text-end d-block">ROAS <span class="sort-icon" id="si-roas">&#8597;</span></span>
-                </th>
-                {% endif %}
-                <th class="sortable" data-col="impressions" onclick="sortBy('impressions')">
-                  <span class="text-end d-block">Impr. <span class="sort-icon" id="si-impressions">&#8597;</span></span>
-                </th>
-                <th class="sortable" data-col="frequency" onclick="sortBy('frequency')">
-                  <span class="text-end d-block">Freq. <span class="sort-icon" id="si-frequency">&#8597;</span></span>
-                </th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="adTableBody"></tbody>
-          </table>
-        </div>
+    <!-- Charts -->
+    <div class="sln-card mb-4">
+      <div class="sln-card-title"><i class="bi bi-bar-chart-fill"></i>Prestaties per advertentie (top 10 op spend)</div>
+      <div class="row g-3">
+        <div class="col-md-6"><div id="chartSpend"  style="height:240px;"></div></div>
+        <div class="col-md-6"><div id="chartMetric" style="height:240px;"></div></div>
+        <div class="col-md-6"><div id="chartCtr"    style="height:240px;"></div></div>
+        <div class="col-md-6"><div id="chartResults" style="height:240px;"></div></div>
+      </div>
+    </div>
+
+    <!-- Ad Table -->
+    <div class="sln-card">
+      <div class="sln-card-title" style="margin-bottom:.75rem;">
+        <i class="bi bi-image"></i>Advertentie overzicht
+        <span id="tblCounter" class="tbl-counter ms-auto"></span>
+      </div>
+
+      <div class="table-controls">
+        <input type="text" id="tblSearch" class="tbl-search" placeholder="Zoek op advertentienaam…" oninput="renderTable()" />
+        <select id="tblStatus" class="tbl-filter" onchange="renderTable()">
+          <option value="">Alle statussen</option>
+          {% if uses_cpr %}
+          <option value="lage-cpl">Winnaar (&lt;€{{ t_win }})</option>
+          <option value="gemiddeld">Mid (€{{ t_win }}–{{ t_mid }})</option>
+          <option value="hoge-cpl">Loser (&gt;€{{ t_mid }})</option>
+          <option value="geen-leads">Geen {{ s.result_label|lower }}</option>
+          {% else %}
+          <option value="lage-cpl">Lage CPM</option>
+          <option value="gemiddeld">Gemiddeld</option>
+          <option value="hoge-cpl">Hoge CPM</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <div class="table-responsive">
+        <table class="camp-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-col="ad_name" onclick="sortBy('ad_name')">
+                Advertentie <span class="sort-icon" id="si-ad_name">&#8597;</span>
+              </th>
+              <th class="sortable" data-col="spend" onclick="sortBy('spend')">
+                <span class="text-end d-block">Budget <span class="sort-icon" id="si-spend">&#8597;</span></span>
+              </th>
+              <th class="sortable" data-col="cpl" onclick="sortBy('cpl')">
+                <span class="text-end d-block">{{ s.metric_label }} <span class="sort-icon" id="si-cpl">&#8597;</span></span>
+              </th>
+              <th class="sortable" data-col="results" onclick="sortBy('results')">
+                <span class="text-end d-block">{{ s.result_label }} <span class="sort-icon" id="si-results">&#8597;</span></span>
+              </th>
+              <th class="sortable" data-col="ctr" onclick="sortBy('ctr')">
+                <span class="text-end d-block">CTR <span class="sort-icon" id="si-ctr">&#8597;</span></span>
+              </th>
+              <th class="sortable" data-col="cpc" onclick="sortBy('cpc')">
+                <span class="text-end d-block">CPC <span class="sort-icon" id="si-cpc">&#8597;</span></span>
+              </th>
+              <th class="sortable" data-col="cpm" onclick="sortBy('cpm')">
+                <span class="text-end d-block">CPM <span class="sort-icon" id="si-cpm">&#8597;</span></span>
+              </th>
+              {% if not is_leads %}
+              <th class="sortable" data-col="roas" onclick="sortBy('roas')">
+                <span class="text-end d-block">ROAS <span class="sort-icon" id="si-roas">&#8597;</span></span>
+              </th>
+              {% endif %}
+              <th class="sortable" data-col="impressions" onclick="sortBy('impressions')">
+                <span class="text-end d-block">Impr. <span class="sort-icon" id="si-impressions">&#8597;</span></span>
+              </th>
+              <th class="sortable" data-col="frequency" onclick="sortBy('frequency')">
+                <span class="text-end d-block">Freq. <span class="sort-icon" id="si-frequency">&#8597;</span></span>
+              </th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="adTableBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <!-- ── AI Analyse (vol-breed onder advertentietabel) ─────────────────────── -->
-  <div class="sln-card mt-4">
-    <div class="d-flex align-items-center justify-content-between mb-4" style="flex-wrap:wrap;gap:.75rem;">
-      <div class="sln-card-title" style="margin:0;">
-        <i class="bi bi-robot"></i>AI Analyse
-      </div>
-      <div class="d-flex gap-2 flex-wrap">
-        <div class="stat-chip" style="min-width:0;">
-          <div class="stat-chip-label">Bereik</div>
-          <div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div>
-        </div>
-        <div class="stat-chip" style="min-width:0;">
-          <div class="stat-chip-label">Clicks</div>
-          <div class="stat-chip-val">{% if s.has_click_data %}{{ "{:,}".format(s.total_clicks).replace(",", ".") }}{% else %}—{% endif %}</div>
-        </div>
-        <div class="stat-chip" style="min-width:0;">
-          <div class="stat-chip-label">Gem. CPC</div>
-          <div class="stat-chip-val">{% if s.has_click_data %}€{{ "%.2f"|format(s.avg_cpc) }}{% else %}—{% endif %}</div>
-        </div>
-        <div class="stat-chip" style="min-width:0;">
-          <div class="stat-chip-label">Gem. Freq.</div>
-          <div class="stat-chip-val">{% if s.avg_frequency > 0 %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div>
-        </div>
-      </div>
-    </div>
-
-    {% set show_worst = s.worst_ad and s.worst_ad_cpl and s.worst_ad_cpl > t_mid %}
-    {% if s.top_ad or show_worst %}
-    <div class="row g-3 mb-4">
-      {% if s.top_ad %}
-      <div class="col-md-6 col-xl-4">
-        <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:.85rem 1.1rem;">
-          <div style="font-size:.72rem;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">
-            <i class="bi bi-arrow-up-circle me-1"></i>Beste ad
+  <!-- ── AI Analyse — full width glass card with gradient border ── -->
+  <div class="ai-card-wrapper mt-4">
+    <div class="ai-card-inner">
+      <div class="d-flex align-items-center justify-content-between mb-4" style="flex-wrap:wrap;gap:.75rem;position:relative;z-index:1;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(255,92,43,.15));border:1px solid rgba(255,255,255,.6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:var(--accent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);">
+            <i class="bi bi-robot"></i>
           </div>
-          <div style="font-size:.88rem;font-weight:700;color:#065f46;line-height:1.35;">{{ s.top_ad }}</div>
-          {% if s.top_ad_set and s.top_ad_set != 'Unknown' %}
-          <div style="font-size:.74rem;color:#6b7280;margin-top:.2rem;">{{ s.top_ad_set }}</div>
-          {% endif %}
+          <div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">AI Analyse</div>
+            <div style="font-size:.78rem;color:var(--text);font-weight:500;margin-top:1px;">Claude gebaseerde inzichten</div>
+          </div>
         </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <div class="stat-chip">
+            <div class="stat-chip-label">Bereik</div>
+            <div class="stat-chip-val">{{ "{:,}".format(s.total_reach).replace(",", ".") }}</div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-label">Clicks</div>
+            <div class="stat-chip-val">{% if s.has_click_data %}{{ "{:,}".format(s.total_clicks).replace(",", ".") }}{% else %}—{% endif %}</div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-label">Gem. CPC</div>
+            <div class="stat-chip-val">{% if s.has_click_data %}€{{ "%.2f"|format(s.avg_cpc) }}{% else %}—{% endif %}</div>
+          </div>
+          <div class="stat-chip">
+            <div class="stat-chip-label">Gem. Freq.</div>
+            <div class="stat-chip-val">{% if s.avg_frequency > 0 %}{{ "%.1f"|format(s.avg_frequency) }}{% else %}—{% endif %}</div>
+          </div>
+        </div>
+      </div>
+
+      {% set show_worst = s.worst_ad and s.worst_ad_cpl and s.worst_ad_cpl > t_mid %}
+      {% if s.top_ad or show_worst %}
+      <div class="row g-3 mb-4" style="position:relative;z-index:1;">
+        {% if s.top_ad %}
+        <div class="col-md-6 col-xl-4">
+          <div class="perf-box-good">
+            <div style="font-size:.7rem;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;display:flex;align-items:center;gap:5px;">
+              <i class="bi bi-arrow-up-circle-fill"></i>Beste advertentie
+            </div>
+            <div style="font-size:.9rem;font-weight:700;color:#065f46;line-height:1.35;">{{ s.top_ad }}</div>
+            {% if s.top_ad_set and s.top_ad_set != 'Unknown' %}
+            <div style="font-size:.74rem;color:#6b7280;margin-top:.2rem;">{{ s.top_ad_set }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if show_worst %}
+        <div class="col-md-6 col-xl-4">
+          <div class="perf-box-bad">
+            <div style="font-size:.7rem;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;display:flex;align-items:center;gap:5px;">
+              <i class="bi bi-exclamation-circle-fill"></i>Aandacht vereist — CPL €{{ "%.2f"|format(s.worst_ad_cpl) }}
+            </div>
+            <div style="font-size:.9rem;font-weight:700;color:#7f1d1d;line-height:1.35;">{{ s.worst_ad }}</div>
+            {% if s.worst_ad_set and s.worst_ad_set != 'Unknown' %}
+            <div style="font-size:.74rem;color:#6b7280;margin-top:.2rem;">{{ s.worst_ad_set }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
       </div>
       {% endif %}
-      {% if show_worst %}
-      <div class="col-md-6 col-xl-4">
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:.85rem 1.1rem;">
-          <div style="font-size:.72rem;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">
-            <i class="bi bi-exclamation-circle me-1"></i>Aandacht vereist — CPL €{{ "%.2f"|format(s.worst_ad_cpl) }}
-          </div>
-          <div style="font-size:.88rem;font-weight:700;color:#7f1d1d;line-height:1.35;">{{ s.worst_ad }}</div>
-          {% if s.worst_ad_set and s.worst_ad_set != 'Unknown' %}
-          <div style="font-size:.74rem;color:#6b7280;margin-top:.2rem;">{{ s.worst_ad_set }}</div>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
 
-    <div class="insights-panel">
-      {{ result.insights_html | safe }}
+      <div class="insights-panel" style="position:relative;z-index:1;">
+        {{ result.insights_html | safe }}
+      </div>
     </div>
   </div>
 
 </div><!-- /container -->
 {% endif %}
 
-<footer style="border-top:1px solid var(--border);padding:1.5rem;text-align:center;color:var(--muted);font-size:.75rem;margin-top:3rem;">
+<footer class="sln-footer">
   SLN Solutions &mdash; Meta Ads Analyzer &mdash; Powered by Claude AI
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Tooltips & popovers
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
     new bootstrap.Tooltip(el, {trigger:'hover', delay:{show:200,hide:100}})
@@ -1208,15 +1363,12 @@ function updateFileName(input) {
   }
 }
 
-// ── Upload form: campaign type + thresholds ───────────────────────────────
 function setType(val, btn) {
   document.getElementById('campaign_type_override').value = val;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  // Rename threshold label based on type
   const lbl = document.getElementById('thresholdLabel');
   if (lbl) lbl.textContent = val === 'purchases' ? 'Cost per Result drempelwaarden' : 'CPL drempelwaarden';
-  // Hide threshold section only for awareness (not for e-commerce)
   const sec = document.getElementById('thresholdSection');
   if (sec) sec.style.display = val === 'awareness' ? 'none' : '';
 }
@@ -1224,7 +1376,6 @@ function setType(val, btn) {
 const PRESETS = { fit20: [40, 60], belladonna: [30, 50] };
 
 {% if active_client and active_client.cpl_benchmark and not result %}
-// Pre-fill thresholds from client benchmark
 (function() {
   const bench = {{ active_client.cpl_benchmark | float }};
   const winVal = Math.round(bench);
@@ -1233,7 +1384,6 @@ const PRESETS = { fit20: [40, 60], belladonna: [30, 50] };
   const inpMid = document.getElementById('inp_mid');
   if (inpWin) inpWin.value = winVal;
   if (inpMid) inpMid.value = midVal;
-  // Activate the custom preset button
   const customBtn = document.querySelector('.preset-btn[onclick*="custom"]');
   if (customBtn) setPreset('custom', customBtn);
 })();
@@ -1269,7 +1419,6 @@ function updateLegend(w, m) {
   ['leg-mid','leg-mid2'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = m; });
 }
 
-// Drag & drop
 const zone = document.getElementById('uploadZone');
 if (zone) {
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -1292,22 +1441,21 @@ const isLeads      = {{ 'true' if result.summary.campaign_type != 'purchases' el
 const usesCPR      = {{ 'true' if result.summary.campaign_type != 'awareness' else 'false' }};
 const showRoas     = {{ 'true' if result.summary.campaign_type == 'purchases' else 'false' }};
 const hasClickData = {{ 'true' if result.summary.has_click_data else 'false' }};
-const metricLabel = '{{ result.summary.metric_label }}';
+const metricLabel  = '{{ result.summary.metric_label }}';
 const resultLabel  = '{{ result.summary.result_label }}';
 const T_WIN = {{ t_win }};
 const T_MID = {{ t_mid }};
 
-// ── Charts ──────────────────────────────────────────────────────────────
 const cd = {{ result.ad_chart_data | safe }};
 
 const layout = (title) => ({
-  title: { text: title, font: { size: 12, color: '#64748B', family: 'Inter' } },
+  title: { text: title, font: { size: 11, color: '#64748B', family: 'Inter' } },
   margin: { t: 36, b: 50, l: 20, r: 80 },
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor:  'rgba(0,0,0,0)',
   font: { family: 'Inter', size: 10, color: '#64748B' },
-  xaxis: { gridcolor: '#F1F5F9', zeroline: false },
-  yaxis: { gridcolor: '#F1F5F9', zeroline: false, automargin: true },
+  xaxis: { gridcolor: 'rgba(210,220,240,.4)', zeroline: false },
+  yaxis: { gridcolor: 'rgba(210,220,240,.4)', zeroline: false, automargin: true },
   bargap: 0.35,
 });
 const cfg = { responsive: true, displayModeBar: false, staticPlot: true };
@@ -1315,7 +1463,7 @@ const cfg = { responsive: true, displayModeBar: false, staticPlot: true };
 Plotly.newPlot('chartSpend', [{
   type: 'bar', orientation: 'h',
   x: cd.spend, y: cd.labels,
-  marker: { color: '#1A3A5C' },
+  marker: { color: 'rgba(13,30,53,.75)', line: { color: 'rgba(255,255,255,.3)', width: 1 } },
   text: cd.spend.map(v => '€' + Math.round(v).toLocaleString('nl-NL')),
   textposition: 'outside', textfont: { size: 10 },
   cliponaxis: false,
@@ -1324,9 +1472,11 @@ Plotly.newPlot('chartSpend', [{
 Plotly.newPlot('chartMetric', [{
   type: 'bar', orientation: 'h',
   x: cd.metric, y: cd.labels,
-  marker: { color: cd.metric.map(v => usesCPR
-    ? (v > 0 && v < T_WIN ? '#10B981' : v >= T_WIN && v < T_MID ? '#F59E0B' : v > 0 ? '#EF4444' : '#CBD5E1')
-    : '#CBD5E1')
+  marker: {
+    color: cd.metric.map(v => usesCPR
+      ? (v > 0 && v < T_WIN ? 'rgba(16,185,129,.8)' : v >= T_WIN && v < T_MID ? 'rgba(245,158,11,.8)' : v > 0 ? 'rgba(239,68,68,.8)' : 'rgba(203,213,225,.6)')
+      : 'rgba(203,213,225,.6)'),
+    line: { color: 'rgba(255,255,255,.3)', width: 1 }
   },
   text: cd.metric.map(v => v > 0 ? '€' + v.toFixed(2) : '—'),
   textposition: 'outside', textfont: { size: 10 },
@@ -1337,7 +1487,7 @@ if (hasClickData) {
   Plotly.newPlot('chartCtr', [{
     type: 'bar', orientation: 'h',
     x: cd.ctr, y: cd.labels,
-    marker: { color: '#E8541A' },
+    marker: { color: 'rgba(255,92,43,.75)', line: { color: 'rgba(255,255,255,.3)', width: 1 } },
     text: cd.ctr.map(v => v.toFixed(2) + '%'),
     textposition: 'outside', textfont: { size: 10 },
     cliponaxis: false,
@@ -1350,7 +1500,7 @@ if (hasClickData) {
 Plotly.newPlot('chartResults', [{
   type: 'bar', orientation: 'h',
   x: cd.results, y: cd.labels,
-  marker: { color: '#7C3AED' },
+  marker: { color: 'rgba(124,58,237,.75)', line: { color: 'rgba(255,255,255,.3)', width: 1 } },
   text: cd.results.map(v => v.toString()),
   textposition: 'outside', textfont: { size: 10 },
   cliponaxis: false,
@@ -1360,7 +1510,7 @@ Plotly.newPlot('chartResults', [{
 const adsData = {{ result.all_ads_json | safe }};
 
 let sortCol = 'spend';
-let sortDir = -1; // -1 = desc, 1 = asc
+let sortDir = -1;
 
 function getStatus(ad) {
   if (!usesCPR) return ad.cpl > 0 ? 'gemiddeld' : 'geen-leads';
@@ -1416,10 +1566,10 @@ function renderTable() {
       bv = b.ad_name.toLowerCase();
       return av < bv ? -sortDir : av > bv ? sortDir : 0;
     }
-    return (bv - av) * sortDir * -1; // sortDir -1 means desc → higher first
+    return (bv - av) * sortDir * -1;
   });
 
-  const tbody = document.getElementById('adTableBody');
+  const tbody   = document.getElementById('adTableBody');
   const counter = document.getElementById('tblCounter');
 
   counter.textContent = rows.length === adsData.length
@@ -1451,12 +1601,8 @@ function renderTable() {
 }
 
 function sortBy(col) {
-  if (sortCol === col) {
-    sortDir *= -1;
-  } else {
-    sortCol = col;
-    sortDir = -1; // new column starts descending
-  }
+  if (sortCol === col) { sortDir *= -1; }
+  else { sortCol = col; sortDir = -1; }
   updateSortIcons();
   renderTable();
 }
@@ -1478,6 +1624,31 @@ function updateSortIcons() {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function saveTaggings() {
+  const rows = document.querySelectorAll('.tag-row');
+  const mappings = [];
+  rows.forEach(row => {
+    const hookSel = row.querySelector('.hook-sel');
+    const fmtSel  = row.querySelector('.fmt-sel');
+    if (!hookSel || !fmtSel) return;
+    const name = hookSel.dataset.name;
+    if (hookSel.value && hookSel.value !== 'unknown') {
+      mappings.push({ ad_name: name, hook_type: hookSel.value, format_type: fmtSel.value });
+    }
+  });
+  if (!mappings.length) return;
+  const form = new FormData();
+  form.append('mappings', JSON.stringify(mappings));
+  fetch('/tag-ads', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        document.getElementById('tagSaveStatus').style.display = 'inline-flex';
+        document.querySelectorAll('.tag-row').forEach(r => r.style.opacity = '.4');
+      }
+    });
 }
 
 function renderUrgentActions() {
@@ -1506,7 +1677,6 @@ function renderUrgentActions() {
     </div>`;
 }
 
-// Initial render
 updateSortIcons();
 renderTable();
 renderUrgentActions();
