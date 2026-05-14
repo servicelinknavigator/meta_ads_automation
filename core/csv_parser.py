@@ -133,10 +133,15 @@ COLUMN_MAP = {
     "aankoop-roas (rendement op advertentie-uitgaven)": "roas",
     "aankoop roas (rendement op advertentie-uitgaven)": "roas",
     "website-aankoop-roas (rendement op advertentie-uitgaven)": "roas",
-    # Ad delivery status (EN + NL)
+    # Ad delivery status (EN + NL) — verschillende Meta export varianten
     "ad delivery": "ad_delivery",
     "advertentieweergave": "ad_delivery",
     "levering advertentie": "ad_delivery",
+    "levering": "ad_delivery",
+    "delivery": "ad_delivery",
+    "ad status": "ad_delivery",
+    "advertentiestatus": "ad_delivery",
+    "status advertentie": "ad_delivery",
 
     # Nederlands — leads
     "facebook-leads": "results",

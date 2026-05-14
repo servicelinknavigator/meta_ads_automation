@@ -228,8 +228,15 @@ def _process_df(rows: list, campaign_type_override: str = "",
                                  ad_creatives=_ad_creatives_for_ai,
                                  cross_client_data=_cross_client_for_ai)
 
-    _INACTIVE_STATUSES = {"inactive", "not_delivering", "niet actief", "niet_actief",
-                          "paused", "gepauzeerd", "disabled"}
+    _INACTIVE_STATUSES = {
+        # Engels (Meta EN export)
+        "inactive", "not_delivering", "not delivering", "paused", "disabled",
+        "off", "stopped", "completed", "deleted", "archived", "rejected",
+        # Nederlands (Meta NL export)
+        "uitgeschakeld", "gepauzeerd", "niet actief", "niet_actief",
+        "gestopt", "verwijderd", "afgewezen", "gearchiveerd",
+        "niet geleverd", "niet_geleverd",
+    }
 
     # Ads met te weinig spend krijgen een label maar geen urgentie-melding
     low_data_ads = {a.ad_name for a in all_ads if 0 < a.spend < _LOW_SPEND_THRESHOLD}
