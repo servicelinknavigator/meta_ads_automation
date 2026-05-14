@@ -127,6 +127,7 @@ def build_campaigns(rows: list[dict]) -> list[Campaign]:
             for ad_name, ad_rows in _group_by(adset_rows, "ad_name").items():
                 ad_agg = _aggregate(ad_rows, "ad_name", ad_name)
                 ad_id = ad_rows[0].get("ad_id", "0")
+                delivery = str(ad_rows[0].get("ad_delivery", "") or "").lower().strip()
                 ads.append(Ad(
                     ad_id=str(ad_id),
                     ad_name=ad_name,
@@ -144,6 +145,7 @@ def build_campaigns(rows: list[dict]) -> list[Campaign]:
                     roas=ad_agg["roas"],
                     frequency=ad_agg["frequency"],
                     cost_per_result=ad_agg["cost_per_result"],
+                    delivery_status=delivery,
                 ))
 
             ad_sets.append(AdSet(

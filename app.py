@@ -256,7 +256,8 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "roas":          a.roas,
         "impressions":   a.impressions,
         "cpm":           a.cpm,
-        "frequency":     a.frequency,
+        "frequency":        a.frequency,
+        "delivery_status":  a.delivery_status,
     } for a in all_ads])
 
     # Limit top_ads to 5 entries to avoid session cookie overflow (4 KB browser limit)

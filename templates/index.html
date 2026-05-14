@@ -1459,7 +1459,9 @@ function escHtml(s) {
 }
 
 function renderUrgentActions() {
-  const burning = adsData.filter(a => a.results === 0 && a.spend > 50);
+  const inactive = ['paused','inactive','deleted','archived','uitgeschakeld','gepauzeerd'];
+  const isActive = a => !a.delivery_status || !inactive.some(s => a.delivery_status.includes(s));
+  const burning = adsData.filter(a => a.results === 0 && a.spend > 50 && isActive(a));
   const fatigue = adsData.filter(a => a.frequency > 3.5 && a.results > 0);
   const el = document.getElementById('urgentActions');
   if (!el || (!burning.length && !fatigue.length)) return;

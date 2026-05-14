@@ -20,6 +20,7 @@ class Ad:
     roas: float
     frequency: float
     cost_per_result: float
+    delivery_status: str = ""
 
     @property
     def performance_label(self) -> str:
