@@ -4,8 +4,11 @@ Always produces 3 shoots: safe (proven hook), new_hook (untested angle), format_
 Falls back to rule-based briefs without API.
 """
 from __future__ import annotations
+import logging
 from models.campaign import Ad, AnalysisSummary
 from core.ai_client import has_api, call_json, _SLN_SYSTEM_JSON
+
+logger = logging.getLogger(__name__)
 from core.hook_analyzer import (
     aggregate_hook_performance,
     aggregate_format_performance,
@@ -316,6 +319,7 @@ Return ALLEEN dit JSON:
 
     result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=3000)
     if "_error" in result or "shoots" not in result:
+        logger.warning("Shoot brief AI call failed: %s", result.get("_error", "no 'shoots' key in response"))
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
                                summary, top_ad, client_name)
     # Sanitize AI output: strip em dashes from all script lines and openingszin
