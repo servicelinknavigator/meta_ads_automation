@@ -492,7 +492,11 @@
         <div class="d-flex gap-2">
           {% if uploads %}
           <a href="/clients/{{ client.id }}/load/{{ uploads[0].id }}"
-             class="btn-nav" style="font-size:.75rem;padding:.3rem .85rem;"
+             style="font-size:.75rem;padding:.3rem .85rem;display:inline-flex;align-items:center;gap:.3rem;
+                    background:rgba(6,13,26,.1);color:#0f172a;border:1px solid rgba(0,0,0,.15);
+                    border-radius:8px;text-decoration:none;font-weight:600;transition:all .15s;"
+             onmouseover="this.style.background='rgba(6,13,26,.18)'"
+             onmouseout="this.style.background='rgba(6,13,26,.1)'"
              title="Laad de meest recente upload opnieuw">
             <i class="bi bi-play-fill me-1"></i>Laatste analyse
           </a>
