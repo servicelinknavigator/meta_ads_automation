@@ -239,17 +239,19 @@
         </div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-icon"><i class="bi bi-upload"></i></div>
+        <div class="hero-stat-icon"><i class="bi bi-currency-euro"></i></div>
         <div>
-          <div class="hero-stat-val">{{ clients | sum(attribute='upload_count') }}</div>
-          <div class="hero-stat-label">Totaal uploads</div>
+          {% set total_spend = clients | selectattr('last_spend') | sum(attribute='last_spend') %}
+          <div class="hero-stat-val">€{{ "%.0f"|format(total_spend) }}</div>
+          <div class="hero-stat-label">Totale spend</div>
         </div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-icon"><i class="bi bi-bar-chart-fill"></i></div>
+        <div class="hero-stat-icon"><i class="bi bi-bullseye"></i></div>
         <div>
-          <div class="hero-stat-val">{{ clients | selectattr('upload_count', 'gt', 0) | list | length }}</div>
-          <div class="hero-stat-label">Klanten met data</div>
+          {% set total_results = clients | selectattr('last_results') | sum(attribute='last_results') %}
+          <div class="hero-stat-val">{{ total_results | int }}</div>
+          <div class="hero-stat-label">Totaal leads gegenereerd</div>
         </div>
       </div>
     </div>
