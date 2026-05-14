@@ -261,13 +261,14 @@
         <div class="hero-stat-lbl">Uploads</div>
       </div>
       {% if uploads %}
+      {% set latest = uploads[0] %}
       <div>
-        <div class="hero-stat-val">€{{ "%.0f"|format(uploads|sum(attribute='total_spend')) }}</div>
-        <div class="hero-stat-lbl">Totaal spend</div>
+        <div class="hero-stat-val">€{{ "%.0f"|format(latest.total_spend) }}</div>
+        <div class="hero-stat-lbl">Laatste spend</div>
       </div>
       <div>
-        <div class="hero-stat-val">{{ uploads|sum(attribute='total_results') }}</div>
-        <div class="hero-stat-lbl">Totaal resultaten</div>
+        <div class="hero-stat-val">{{ latest.total_results }}</div>
+        <div class="hero-stat-lbl">Laatste resultaten</div>
       </div>
       {% endif %}
       <div>
