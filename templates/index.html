@@ -1459,7 +1459,7 @@ function escHtml(s) {
 }
 
 function renderUrgentActions() {
-  const inactive = ['paused','inactive','deleted','archived','uitgeschakeld','gepauzeerd'];
+  const inactive = ['paused','inactive','deleted','archived','uitgeschakeld','gepauzeerd','not_delivering','niet_actief'];
   const isActive = a => !a.delivery_status || !inactive.some(s => a.delivery_status.includes(s));
   const burning = adsData.filter(a => a.results === 0 && a.spend > 50 && isActive(a));
   const fatigue = adsData.filter(a => a.frequency > 3.5 && a.results > 0);
