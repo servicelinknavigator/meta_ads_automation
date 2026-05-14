@@ -177,12 +177,22 @@ def get_clients() -> list[dict]:
                    c.cpl_benchmark, c.roas_benchmark, c.notes, c.created_at,
                    COUNT(u.id) AS upload_count,
                    MAX(u.uploaded_at) AS last_upload,
-                   (SELECT u2.total_spend FROM uploads u2
-                    WHERE u2.client_id = c.id
-                    ORDER BY u2.uploaded_at DESC LIMIT 1) AS last_spend,
-                   (SELECT u2.total_results FROM uploads u2
-                    WHERE u2.client_id = c.id
-                    ORDER BY u2.uploaded_at DESC LIMIT 1) AS last_results
+                   (SELECT COALESCE(SUM(s.spend), 0) FROM (
+                       SELECT DISTINCT ON (COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''))
+                              u2.total_spend AS spend
+                       FROM uploads u2
+                       WHERE u2.client_id = c.id
+                       ORDER BY COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''),
+                                u2.uploaded_at DESC
+                   ) s) AS total_spend,
+                   (SELECT COALESCE(SUM(s.results), 0) FROM (
+                       SELECT DISTINCT ON (COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''))
+                              u2.total_results AS results
+                       FROM uploads u2
+                       WHERE u2.client_id = c.id
+                       ORDER BY COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''),
+                                u2.uploaded_at DESC
+                   ) s) AS total_results
             FROM clients c
             LEFT JOIN uploads u ON u.client_id = c.id
             GROUP BY c.id

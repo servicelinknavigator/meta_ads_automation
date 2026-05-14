@@ -241,7 +241,7 @@
       <div class="hero-stat">
         <div class="hero-stat-icon"><i class="bi bi-currency-euro"></i></div>
         <div>
-          {% set total_spend = clients | selectattr('last_spend') | sum(attribute='last_spend') %}
+          {% set total_spend = clients | sum(attribute='total_spend') %}
           <div class="hero-stat-val">€{{ "%.0f"|format(total_spend) }}</div>
           <div class="hero-stat-label">Totale spend</div>
         </div>
@@ -249,7 +249,7 @@
       <div class="hero-stat">
         <div class="hero-stat-icon"><i class="bi bi-bullseye"></i></div>
         <div>
-          {% set total_results = clients | selectattr('last_results') | sum(attribute='last_results') %}
+          {% set total_results = clients | sum(attribute='total_results') %}
           <div class="hero-stat-val">{{ total_results | int }}</div>
           <div class="hero-stat-label">Totaal leads gegenereerd</div>
         </div>
