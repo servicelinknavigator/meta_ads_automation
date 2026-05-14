@@ -183,17 +183,21 @@
       transition: transform .18s, box-shadow .18s;
     }
     .shoot-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-glass); }
-    .shoot-type-safe        { border-top: 4px solid #10B981; }
-    .shoot-type-new_hook    { border-top: 4px solid #ff5c2b; }
-    .shoot-type-format_test { border-top: 4px solid #8b5cf6; }
+    .shoot-type-safe          { border-top: 4px solid #10B981; }
+    .shoot-type-new_hook      { border-top: 4px solid #ff5c2b; }
+    .shoot-type-format_test   { border-top: 4px solid #8b5cf6; }
+    .shoot-type-winner_iterate{ border-top: 4px solid #f59e0b; }
+    .shoot-type-winner_scale  { border-top: 4px solid #0ea5e9; }
     .shoot-header { padding: 1rem 1.2rem .5rem; }
     .shoot-label {
       font-size: .7rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .1em; margin-bottom: .3rem;
     }
-    .shoot-label.safe        { color: #059669; }
-    .shoot-label.new_hook    { color: #ff5c2b; }
-    .shoot-label.format_test { color: #8b5cf6; }
+    .shoot-label.safe          { color: #059669; }
+    .shoot-label.new_hook      { color: #ff5c2b; }
+    .shoot-label.format_test   { color: #8b5cf6; }
+    .shoot-label.winner_iterate{ color: #d97706; }
+    .shoot-label.winner_scale  { color: #0284c7; }
     .shoot-name  { font-size: 1rem; font-weight: 700; color: #0f172a; }
     .shoot-concept { font-size: .82rem; color: #64748b; margin-top: .25rem; }
     .shoot-body { padding: .75rem 1.2rem 1.2rem; }
@@ -581,6 +585,8 @@
             {% if shoot.type == 'safe' %}<i class="bi bi-shield-check me-1"></i>Shoot 1 — Safe{% endif %}
             {% if shoot.type == 'new_hook' %}<i class="bi bi-lightning me-1"></i>Shoot 2 — New Hook{% endif %}
             {% if shoot.type == 'format_test' %}<i class="bi bi-camera-video me-1"></i>Shoot 3 — Format Test{% endif %}
+            {% if shoot.type == 'winner_iterate' %}<i class="bi bi-trophy me-1"></i>Shoot 4 — Winner Iterate{% endif %}
+            {% if shoot.type == 'winner_scale' %}<i class="bi bi-graph-up-arrow me-1"></i>Shoot 5 — Winner Scale{% endif %}
           </div>
           <div class="shoot-name">{{ shoot.naam_suggestie }}</div>
           <div class="shoot-concept">{{ shoot.concept }}</div>

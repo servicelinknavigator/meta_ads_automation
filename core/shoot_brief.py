@@ -213,9 +213,19 @@ def generate_shoot_brief(
     )
     test_format = untested_formats[0] if untested_formats else "testimonial"
 
+    # Second-best hook + format for winner_scale shoot
+    winner_hook = next(
+        (r["hook_type"] for r in hook_perf[1:] if r["results"] and r["results"] > 0 and r["hook_type"] != safe_hook),
+        new_hook,
+    )
+    winner_format = next(
+        (r["format_type"] for r in fmt_perf[1:] if r["results"] and r["results"] > 0 and r["format_type"] != safe_format),
+        safe_format,
+    )
+
     if not has_api():
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
-                               summary, top_ad, client_name)
+                               winner_hook, winner_format, summary, top_ad, client_name)
 
     ctx = _summary_context(summary, hook_perf, fmt_perf, untested_hooks, all_ads=all_ads)
     top_ad_str = f"Beste huidige ad: \"{top_ad.ad_name}\" (CPL €{top_ad.cost_per_result}, {top_ad.results} leads)" if top_ad else ""
@@ -234,7 +244,7 @@ De kijker van de advertentie is een potentiële klant van {client_name}, geen on
 Gebruik NOOIT em dashes (het teken —) in scripts of openingszinnen. Gebruik in plaats daarvan een punt of komma.
 """
 
-    prompt = f"""Genereer een shoot planning met 3 shoots op basis van deze performance data:
+    prompt = f"""Genereer een shoot planning met 5 shoots op basis van deze performance data:
 
 {ctx}
 {top_ad_str}
@@ -243,8 +253,11 @@ Shoots die je MOET opleveren:
 1. "safe" — bewezen hook ({safe_hook}) in bewezen format ({safe_format}), iteratie op best presterende ad
 2. "new_hook" — ongeteste hook ({new_hook}), zelfde format als safe
 3. "format_test" — beste hook ({safe_hook}) in nieuw format ({test_format})
+4. "winner_iterate" — directe herhaling van de winnende ad: ZELFDE hook ({safe_hook}) en format ({safe_format}) als shoot 1, maar een volledig nieuw script en nieuwe invalshoek. Doel: vers creatief op dezelfde winnende formule.
+5. "winner_scale" — schaal de #2 presterende combinatie op: hook={winner_hook}, format={winner_format}. Gebruik data uit de performance analyse om het script te onderbouwen.
 
-KRITISCH: Het script van shoot 3 (format_test) MOET inhoudelijk anders zijn dan shoot 1. Dezelfde hook-strategie ({safe_hook}), maar een ander verhaal, andere openingszin, andere body. Pas de scriptopbouw aan op het format {test_format} — de stijl, vertelvorm en opbouw moeten aantoonbaar verschillen van shoot 1.
+KRITISCH: Het script van shoot 3 (format_test) MOET inhoudelijk anders zijn dan shoot 1. Dezelfde hook-strategie ({safe_hook}), maar een ander verhaal, andere openingszin, andere body. Pas de scriptopbouw aan op het format {test_format}.
+KRITISCH: Shoot 4 (winner_iterate) en shoot 1 (safe) hebben DEZELFDE hook+format maar VOLLEDIG ANDERE scripts en invalshoeken. Behandel ze als twee aparte creatieve concepten op dezelfde strategie.
 
 Return ALLEEN dit JSON:
 {{
@@ -314,15 +327,59 @@ Return ALLEEN dit JSON:
         {{"time": "20-35s","tekst": "..."}},
         {{"time": "35-45s","tekst": "..."}}
       ]
+    }},
+    {{
+      "type": "winner_iterate",
+      "naam_suggestie": "...",
+      "concept": "...",
+      "hook_type": "{safe_hook}",
+      "openingszin": "...",
+      "format": "{safe_format}",
+      "aspect_ratio": "9:16",
+      "duur_seconden": 30,
+      "talent": "...",
+      "locatie": "...",
+      "shots": ["...", "...", "...", "...", "..."],
+      "key_message": "...",
+      "cta": "...",
+      "hypothese": "...",
+      "script": [
+        {{"time": "0-5s",  "tekst": "..."}},
+        {{"time": "5-18s", "tekst": "..."}},
+        {{"time": "18-25s","tekst": "..."}},
+        {{"time": "25-30s","tekst": "..."}}
+      ]
+    }},
+    {{
+      "type": "winner_scale",
+      "naam_suggestie": "...",
+      "concept": "...",
+      "hook_type": "{winner_hook}",
+      "openingszin": "...",
+      "format": "{winner_format}",
+      "aspect_ratio": "9:16",
+      "duur_seconden": 30,
+      "talent": "...",
+      "locatie": "...",
+      "shots": ["...", "...", "...", "...", "..."],
+      "key_message": "...",
+      "cta": "...",
+      "hypothese": "...",
+      "script": [
+        {{"time": "0-5s",  "tekst": "..."}},
+        {{"time": "5-18s", "tekst": "..."}},
+        {{"time": "18-25s","tekst": "..."}},
+        {{"time": "25-30s","tekst": "..."}}
+      ]
     }}
   ]
 }}"""
 
-    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=3000)
+    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=5000)
     if "_error" in result or "shoots" not in result:
         logger.warning("Shoot brief AI call failed: %s", result.get("_error", "no 'shoots' key in response"))
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
-                               summary, top_ad, client_name)
+                               winner_hook, winner_format, summary, top_ad, client_name)
     # Sanitize AI output: strip em dashes from all script lines and openingszin
     shoots = result["shoots"]
     for shoot in shoots:
@@ -336,6 +393,7 @@ Return ALLEEN dit JSON:
 def _fallback_brief(
     safe_hook: str, safe_format: str,
     new_hook: str, test_format: str,
+    winner_hook: str, winner_format: str,
     summary: AnalysisSummary,
     top_ad: Ad | None,
     client_name: str = "",
@@ -343,11 +401,18 @@ def _fallback_brief(
     is_leads = summary.campaign_type != "purchases"
     cta = "Plan een gratis proefles" if is_leads else "Bestel nu"
     name = client_name or "ons"
+    top_ad_name = f'"{top_ad.ad_name}"' if top_ad else "beste huidige ad"
 
-    def _base(shoot_type: str, hook: str, fmt: str, duur: int, script_hook: str | None = None) -> dict:
+    # Pick a third distinct hook for winner_iterate so its script differs from shoot 1
+    all_hooks = [h for h in HOOK_TYPES if h not in (safe_hook, new_hook)]
+    iterate_script_hook = all_hooks[0] if all_hooks else safe_hook
+
+    def _base(shoot_type: str, hook: str, fmt: str, duur: int,
+              script_hook: str | None = None, hypothese: str | None = None) -> dict:
         effective_hook = script_hook or hook
         script = _build_script(effective_hook, cta, client_name)
         opening = script[0]["tekst"] if script else _default_opening(effective_hook)
+        default_hyp = f"Test of de {hook}-hook beter converteert dan het huidige gemiddelde (CPL €{summary.avg_cost_per_result})."
         return {
             "type": shoot_type,
             "naam_suggestie": f"{hook.replace('_', '-').title()} {fmt.replace('_', '-').title()} V1",
@@ -368,7 +433,7 @@ def _fallback_brief(
             ],
             "key_message": f"Persoonlijke begeleiding bij {name} — eindelijk iets dat vol te houden is.",
             "cta": cta,
-            "hypothese": f"Test of de {hook}-hook beter converteert dan het huidige gemiddelde (CPL €{summary.avg_cost_per_result}).",
+            "hypothese": hypothese or default_hyp,
             "script": script,
             "_fallback": True,
         }
@@ -377,6 +442,17 @@ def _fallback_brief(
         _base("safe", safe_hook, safe_format, 30),
         _base("new_hook", new_hook, safe_format, 30),
         _base("format_test", safe_hook, test_format, 45, script_hook=new_hook),
+        _base(
+            "winner_iterate", safe_hook, safe_format, 30,
+            script_hook=iterate_script_hook,
+            hypothese=f"Vers creatief op de winnende formule ({safe_hook} + {safe_format}). "
+                      f"Gebaseerd op {top_ad_name}. Bewijst of de winnende strategie schaalbaar is met nieuwe inhoud.",
+        ),
+        _base(
+            "winner_scale", winner_hook, winner_format, 30,
+            hypothese=f"Schaal de #2 combinatie ({winner_hook} + {winner_format}) op. "
+                      f"Test of deze combo even goed converteert bij hogere budgetten.",
+        ),
     ]
 
 
