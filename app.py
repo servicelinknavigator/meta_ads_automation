@@ -1323,6 +1323,37 @@ def import_creatives_page(client_id):
     return render_template("import_creatives.html", client=client, creatives=creatives)
 
 
+@app.route("/clients/<int:client_id>/import/creatives/export", methods=["GET"])
+@login_required
+def export_creatives_csv(client_id):
+    """Download alle opgeslagen creative content als CSV."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    creatives = db.get_ad_creatives(client_id) if db.is_available() else {}
+    output = io.StringIO()
+    writer = _csv_module.writer(output)
+    writer.writerow(["Ad naam", "Script", "Headline", "Ad copy 1", "Ad copy 2", "Ad copy 3"])
+    for ad_naam, c in creatives.items():
+        writer.writerow([
+            ad_naam,
+            c.get("script") or "",
+            c.get("headline") or "",
+            c.get("ad_copy_1") or "",
+            c.get("ad_copy_2") or "",
+            c.get("ad_copy_3") or "",
+        ])
+    output.seek(0)
+    safe_name = re.sub(r"[^\w\-]", "_", client.name)
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"creatives_{safe_name}.csv",
+    )
+
+
 @app.route("/clients/<int:client_id>/import/videos", methods=["POST"])
 @login_required
 def import_videos(client_id):
