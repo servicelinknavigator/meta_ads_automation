@@ -495,6 +495,13 @@ def get_shoot_briefs(client_id: int, limit: int = 10) -> list[dict]:
     return rows
 
 
+def delete_shoot_brief(brief_id: int) -> None:
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM shoot_briefs WHERE id = %s", (brief_id,))
+        cur.close()
+
+
 # ── Insights history ──────────────────────────────────────────────────────────
 
 def save_insights(client_id: int, upload_id: int, insights_text: str) -> None:

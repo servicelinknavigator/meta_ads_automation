@@ -782,6 +782,17 @@ def upload_delete(client_id, upload_id):
     return redirect(url_for("client_profile", client_id=client_id))
 
 
+@app.route("/clients/<int:client_id>/briefs/<int:brief_id>/delete", methods=["POST"])
+@login_required
+def brief_delete(client_id, brief_id):
+    try:
+        db.delete_shoot_brief(brief_id)
+        flash("Shoot brief verwijderd.", "success")
+    except Exception as e:
+        flash(f"Fout bij verwijderen: {e}", "danger")
+    return redirect(url_for("client_profile", client_id=client_id))
+
+
 @app.route("/clients/<int:client_id>/load/<int:upload_id>")
 @login_required
 def client_load_upload(client_id, upload_id):

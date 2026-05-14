@@ -610,7 +610,17 @@
                 {{ brief.brief_json|length }} shoots
               </div>
             </div>
-            <i class="bi bi-chevron-down" id="chev-{{ loop.index0 }}" style="color:var(--muted);transition:transform .2s;"></i>
+            <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
+              <form method="POST" action="/clients/{{ client.id }}/briefs/{{ brief.id }}/delete"
+                    onsubmit="return confirm('Shoot brief verwijderen?')">
+                <button type="submit" style="background:none;border:none;padding:4px 6px;border-radius:6px;color:var(--muted);cursor:pointer;line-height:1;transition:background .15s,color .15s;"
+                        onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626'"
+                        onmouseout="this.style.background='none';this.style.color='var(--muted)'">
+                  <i class="bi bi-trash3" style="font-size:.85rem;"></i>
+                </button>
+              </form>
+              <i class="bi bi-chevron-down" id="chev-{{ loop.index0 }}" style="color:var(--muted);transition:transform .2s;"></i>
+            </div>
           </div>
           <div class="brief-body" id="brief-{{ loop.index0 }}">
             {% for shoot in brief.brief_json %}
