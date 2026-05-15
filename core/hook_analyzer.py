@@ -27,7 +27,6 @@ FORMAT_TYPES = [
     "reels",          # Short-form vertical video (≤60s), incl. talking head
     "testimonial",    # Client/customer on camera
     "ugc",            # User generated content style
-    "problem_solve",  # Show problem then solution
     "story",          # Narrative arc
     "carousel",       # Multiple images/slides
     "static",         # Single image
@@ -62,7 +61,6 @@ _FORMAT_KEYWORDS: list[tuple[list[str], str]] = [
     (["reels", "short", "60s", "30s", "15s"], "reels"),
     (["story", "verhaal", "narrative", "achtergrond"], "story"),
     (["talking head", "to camera", "direct"], "reels"),
-    (["probleem oplossing", "problem solve", "voor en na"], "problem_solve"),
 ]
 
 # Version pattern: V1, V2, V3, v1, version 1, hook 1, etc.

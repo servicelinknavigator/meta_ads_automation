@@ -599,7 +599,7 @@
         </div>
         <div class="shoot-spec-row" style="margin:0;flex-shrink:0;">
           <span class="spec-chip"><i class="bi bi-aspect-ratio"></i>{{ shoot.aspect_ratio }}</span>
-          <span class="spec-chip"><i class="bi bi-clock"></i>{{ shoot.duur_seconden }}s</span>
+          {% if shoot.duur_seconden %}<span class="spec-chip"><i class="bi bi-clock"></i>{{ shoot.duur_seconden }}s</span>{% endif %}
           <span class="spec-chip"><i class="bi bi-lightning"></i>{{ shoot.hook_type.replace('_',' ') }}</span>
           <span class="spec-chip"><i class="bi bi-camera-video"></i>{{ shoot.format.replace('_',' ') }}</span>
         </div>
@@ -608,11 +608,22 @@
       <!-- Card body: two-column layout -->
       <div class="shoot-body" style="padding:.5rem 1.4rem 1.4rem;">
         <div class="row g-4">
-          <!-- Left column: opening, key message, CTA, talent/locatie -->
+          <!-- Left column: opening, copy, headline, key message, CTA, talent/locatie -->
           <div class="col-lg-5">
-            <div class="shoot-section-label"><i class="bi bi-quote me-1"></i>Openingszin</div>
+            <div class="shoot-section-label"><i class="bi bi-quote me-1"></i>{% if shoot.format == 'static' %}Visual hook{% else %}Openingszin{% endif %}</div>
             <div class="shoot-opening mb-3">"{{ shoot.openingszin }}"</div>
 
+            {% if shoot.headline %}
+            <div class="shoot-section-label mb-1"><i class="bi bi-type-bold me-1"></i>Headline</div>
+            <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:.75rem;line-height:1.4;">{{ shoot.headline }}</div>
+            {% endif %}
+
+            {% if shoot.copy %}
+            <div class="shoot-section-label mb-1"><i class="bi bi-body-text me-1"></i>Copy</div>
+            <div style="font-size:.79rem;color:#374151;line-height:1.6;margin-bottom:.75rem;background:rgba(241,245,249,.6);border-radius:6px;padding:.5rem .7rem;border:1px solid rgba(0,0,0,.05);">{{ shoot.copy }}</div>
+            {% endif %}
+
+            {% if shoot.format != 'static' %}
             <div class="row g-2 mb-3">
               <div class="col-6">
                 <div class="shoot-section-label"><i class="bi bi-person me-1"></i>Talent</div>
@@ -623,6 +634,7 @@
                 <div style="font-size:.8rem;color:#0f172a;line-height:1.4;">{{ shoot.locatie }}</div>
               </div>
             </div>
+            {% endif %}
 
             <div class="row g-2">
               <div class="col-8">
@@ -636,31 +648,40 @@
             </div>
           </div>
 
-          <!-- Right column: shot list + script + hypothesis -->
+          <!-- Right column: visual/shots, script (video only), redenering, hypothese -->
           <div class="col-lg-7">
-            <div class="shoot-section-label"><i class="bi bi-film me-1"></i>Shot list</div>
-            <ul class="shot-list mb-3">
-              {% for shot in shoot.shots %}
-              <li>
-                <span class="shot-num">{{ loop.index }}</span>
-                <span>{{ shot }}</span>
-              </li>
-              {% endfor %}
-            </ul>
+            {% if shoot.format == 'static' %}
+              {% if shoot.visual_beschrijving %}
+              <div class="shoot-section-label"><i class="bi bi-image me-1"></i>Visuele beschrijving</div>
+              <div style="font-size:.82rem;color:#374151;line-height:1.6;margin-bottom:.75rem;background:rgba(240,249,255,.7);border:1px solid rgba(186,230,253,.5);border-radius:8px;padding:.6rem .85rem;">{{ shoot.visual_beschrijving }}</div>
+              {% endif %}
+            {% else %}
+              {% if shoot.shots %}
+              <div class="shoot-section-label"><i class="bi bi-film me-1"></i>Shot list</div>
+              <ul class="shot-list mb-3">
+                {% for shot in shoot.shots %}
+                <li>
+                  <span class="shot-num">{{ loop.index }}</span>
+                  <span>{{ shot }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+              {% endif %}
 
-            {% if shoot.script %}
-            <div class="mb-1 d-flex align-items-center justify-content-between">
-              <div class="shoot-section-label mb-0"><i class="bi bi-mic me-1"></i>Volledig script</div>
-              <button class="btn-script-toggle" onclick="toggleScript('script-{{ loop.index }}')">toon script</button>
-            </div>
-            <div class="script-block d-none mb-3" id="script-{{ loop.index }}">
-              {% for line in shoot.script %}
-              <div class="script-line">
-                <span class="script-time">{{ line.time }}</span>
-                <span class="script-tekst">"{{ line.tekst }}"</span>
+              {% if shoot.script %}
+              <div class="mb-1 d-flex align-items-center justify-content-between">
+                <div class="shoot-section-label mb-0"><i class="bi bi-mic me-1"></i>Volledig script</div>
+                <button class="btn-script-toggle" onclick="toggleScript('script-{{ loop.index }}')">toon script</button>
               </div>
-              {% endfor %}
-            </div>
+              <div class="script-block d-none mb-3" id="script-{{ loop.index }}">
+                {% for line in shoot.script %}
+                <div class="script-line">
+                  <span class="script-time">{{ line.time }}</span>
+                  <span class="script-tekst">"{{ line.tekst }}"</span>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
             {% endif %}
 
             {% if shoot.redenering %}

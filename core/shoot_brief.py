@@ -45,7 +45,6 @@ _FORMAT_NL: dict[str, str] = {
     "reels": "Reels / Short-form — ≤60s verticaal (incl. talking head / presentator in camera)",
     "testimonial": "Testimonial — klant aan het woord",
     "ugc": "UGC-stijl — authentiek, handheld, no-budget look",
-    "problem_solve": "Problem-solve — probleem tonen → oplossing",
     "story": "Verhalend — begin–midden–eind narratief",
     "carousel": "Carousel — meerdere slides of frames",
     "static": "Static — beeld met tekst overlay",
@@ -53,6 +52,8 @@ _FORMAT_NL: dict[str, str] = {
     "before_after": "Before/After — transformatie vergelijking",
     "animation": "Animatie — motion graphics of illustratie",
 }
+
+_STATIC_FORMATS = {"static", "carousel", "animation", "before_after"}
 
 
 def _best_hook(hook_perf: list[dict]) -> str:
@@ -159,6 +160,82 @@ def _build_script(hook: str, cta: str, client_name: str) -> list[dict]:
     ])
 
 
+def _build_copy(hook: str, cta: str, client_name: str) -> str:
+    n = client_name or "ons"
+    copies: dict[str, str] = {
+        "recognition": (
+            f"Herken je dat gevoel? Je wil iets doen, maar de drempel voelt groot. "
+            f"Bij {n} snappen we dat. Onze aanpak is persoonlijk, laagdrempelig en vol te houden. "
+            f"Geen gedoe. Gewoon resultaat op jouw tempo. {cta}."
+        ),
+        "frustration": (
+            f"Heb je het al zo vaak geprobeerd en houdt het toch nooit vol? Dat ligt echt niet aan jou. "
+            f"De meeste aanpakken zijn gewoon niet gemaakt voor mensen met een druk leven. "
+            f"Bij {n} is het anders. Persoonlijk, laagdrempelig, en eindelijk vol te houden. {cta}."
+        ),
+        "curiosity": (
+            f"Wist je dat je maar 20 minuten per week nodig hebt om echt sterker te worden? "
+            f"De methode van {n} activeert in één sessie meer spieren dan een uur in de sportschool. "
+            f"Wetenschappelijk onderbouwd, veilig en bewezen effectief. {cta}."
+        ),
+        "proof": (
+            f"Onze leden zeggen het zelf: sterker, fitter en meer energie in minder tijd. "
+            f"Bij {n} staat persoonlijke begeleiding centraal. "
+            f"Geen schema's voor iedereen. Een trainer die echt naar jou kijkt. {cta}."
+        ),
+        "promise": (
+            f"Stel je voor: in 20 minuten per week fitter, sterker en meer energie. "
+            f"{n} werkt met een bewezen methode die in één sessie 90% van je spieren activeert. "
+            f"Geen lange contracten. Geen gedoe. Gewoon resultaat dat je voelt. {cta}."
+        ),
+        "confrontation": (
+            f"Stop met wachten op het perfecte moment. Dat moment komt toch niet. "
+            f"Elke maand dat je wacht, is een maand minder energie. Bij {n} is de eerste stap gratis. "
+            f"Geen verplichtingen, geen druk. Gewoon kennismaken. {cta}."
+        ),
+        "urgency": (
+            f"Nog een beperkt aantal plekken beschikbaar. "
+            f"Bij {n} werken we bewust met kleine groepen voor persoonlijke aandacht. "
+            f"Dat betekent: we nemen niet onbeperkt nieuwe leden aan. Wil je dit kwartaal beginnen? {cta}."
+        ),
+        "problem_solve": (
+            f"Je wil fitter worden, maar een drukke sportschool past niet bij je. "
+            f"Weinig tijd, misschien lichamelijke klachten, en begeleiding die echt naar jou kijkt. "
+            f"Dat is precies waarom {n} bestaat. Persoonlijk, laagdrempelig, vol te houden. {cta}."
+        ),
+        "social_proof": (
+            f"Honderden mensen gingen je al voor bij {n}. Ze kwamen met twijfels en bleven vanwege de resultaten. "
+            f"Persoonlijk, rustig, zonder oordeel. Aantoonbaar sterker en fitter. "
+            f"Geen hype. Gewoon tevreden leden. {cta}."
+        ),
+        "educational": (
+            f"De EMS-methode van {n} activeert 90% van je spiergroepen in één sessie van 20 minuten. "
+            f"Bij gewone training is dat 30 tot 40 procent. "
+            f"Wetenschappelijk onderbouwd, veilig, en al bewezen bij duizenden mensen. {cta}."
+        ),
+    }
+    return copies.get(
+        hook,
+        f"Bij {n} staat persoonlijke begeleiding centraal. Op jouw tempo, zonder gedoe. {cta}."
+    )
+
+
+def _build_headline(hook: str) -> str:
+    headlines: dict[str, str] = {
+        "recognition": "Eindelijk iets dat bij jou past",
+        "frustration": "Stop met worstelen. Begin met resultaat.",
+        "curiosity": "20 minuten per week, meetbaar resultaat",
+        "proof": "Wat onze leden zeggen na 3 maanden",
+        "promise": "Fitter in 20 minuten per week",
+        "confrontation": "Stop met wachten. Begin vandaag.",
+        "urgency": "Nog beperkt aantal plekken beschikbaar",
+        "problem_solve": "Jouw oplossing voor een druk leven",
+        "social_proof": "500+ tevreden leden. Nu jij.",
+        "educational": "Zo werkt EMS-training in 30 seconden",
+    }
+    return headlines.get(hook, "Persoonlijke begeleiding, meetbaar resultaat")
+
+
 def _summary_context(summary: AnalysisSummary, hook_perf: list[dict], fmt_perf: list[dict],
                      untested_hooks: list[str], all_ads: list | None = None) -> str:
     is_leads = summary.campaign_type != "purchases"
@@ -238,31 +315,76 @@ KLANT INFORMATIE:
 Naam: {client_name or 'onbekend'}
 {('Context / ICP:\n' + client_context) if client_context else ''}
 
-KRITISCH: Schrijf alle scripts en openingszinnen vanuit het perspectief van de KLANT ({client_name}).
+KRITISCH: Schrijf alle teksten vanuit het perspectief van de KLANT ({client_name}).
 De klant adverteert aan hun eigen doelgroep voor hun eigen product/dienst.
 NIET vanuit het perspectief van een marketingbureau.
 De kijker van de advertentie is een potentiële klant van {client_name}, geen ondernemer die advertentiediensten zoekt.
-Gebruik NOOIT em dashes (het teken —) in scripts of openingszinnen. Gebruik in plaats daarvan een punt of komma.
+Gebruik NOOIT em dashes (het teken —) in scripts, copy of openingszinnen. Gebruik in plaats daarvan een punt of komma.
 """
+
+    def _media_block(fmt: str, times: list[str] | None = None) -> str:
+        """Return format-specific JSON fields: visual_beschrijving for static, shots+script for video."""
+        if fmt in _STATIC_FORMATS:
+            return (
+                '      "visual_beschrijving": "Exacte tekst overlay op het beeld, achtergrondkleur of -afbeelding, '
+                'compositie (waar staat wat), sfeer, CTA-element (knoptekst, positie)",'
+            )
+        t = times or ["0-5s", "5-18s", "18-25s", "25-30s"]
+        inner = ",\n        ".join(f'{{"time": "{x}", "tekst": "..."}}' for x in t)
+        return (
+            '      "shots": ["shot 1", "shot 2", "shot 3", "shot 4", "shot 5"],\n'
+            f'      "script": [\n        {inner}\n      ],'
+        )
+
+    def _talent_locatie(fmt: str) -> str:
+        if fmt in _STATIC_FORMATS:
+            return '      "talent": "n.v.t. — grafisch ontwerp",\n      "locatie": "stock beelden of eigen fotografie",'
+        return '      "talent": "...",\n      "locatie": "...",'
+
+    def _duur(fmt: str, seconden: int) -> str:
+        if fmt in _STATIC_FORMATS:
+            return '      "duur_seconden": null,'
+        return f'      "duur_seconden": {seconden},'
+
+    _m_safe  = _media_block(safe_format)
+    _m_new   = _media_block(safe_format)
+    _m_test  = _media_block(test_format, ["0-5s", "5-20s", "20-35s", "35-45s"])
+    _m_iter  = _media_block(safe_format)
+    _m_scale = _media_block(winner_format)
+
+    _tl_safe  = _talent_locatie(safe_format)
+    _tl_test  = _talent_locatie(test_format)
+    _tl_scale = _talent_locatie(winner_format)
+
+    _d_safe  = _duur(safe_format, 30)
+    _d_test  = _duur(test_format, 45)
+    _d_scale = _duur(winner_format, 30)
 
     prompt = f"""Genereer een shoot planning met 5 shoots op basis van deze performance data:
 
 {ctx}
 {top_ad_str}
 {client_block}
+COPY & HEADLINE (verplicht bij ALLE shoots):
+- "copy": 3-5 zinnen advertentietekst voor in de feed. Spreektaal, vanuit klantperspectief, gebaseerd op winnende ads of nieuwe inzichten.
+- "headline": max 8 woorden, pakkend en actiegericht (verschijnt als titel onder de creative).
+  Baseer copy en headline op de best presterende advertenties in het account en de hook-strategie.
+
+FORMAT-SPECIFIEK:
+- Static/carousel/animatie format: GEEN 'shots' en GEEN 'script'. Gebruik 'visual_beschrijving' voor het beeldconcept.
+- Video/reels format: 'shots' en 'script' zijn verplicht. Copy en headline zijn de advertentietekst bij het video-ad.
+
 Shoots die je MOET opleveren:
 1. "safe" — bewezen hook ({safe_hook}) in bewezen format ({safe_format}), iteratie op best presterende ad
 2. "new_hook" — ongeteste hook ({new_hook}), zelfde format als safe
 3. "format_test" — beste hook ({safe_hook}) in nieuw format ({test_format})
-4. "winner_iterate" — directe herhaling van de winnende ad: ZELFDE hook ({safe_hook}) en format ({safe_format}) als shoot 1, maar een volledig nieuw script en nieuwe invalshoek. Doel: vers creatief op dezelfde winnende formule.
-5. "winner_scale" — schaal de #2 presterende combinatie op: hook={winner_hook}, format={winner_format}. Gebruik data uit de performance analyse om het script te onderbouwen.
+4. "winner_iterate" — directe herhaling van de winnende ad: ZELFDE hook ({safe_hook}) en format ({safe_format}) als shoot 1, maar volledig nieuwe copy, headline en creatief concept. Doel: vers creatief op dezelfde winnende formule.
+5. "winner_scale" — schaal de #2 presterende combinatie op: hook={winner_hook}, format={winner_format}.
 
-KRITISCH: Het script van shoot 3 (format_test) MOET inhoudelijk anders zijn dan shoot 1. Dezelfde hook-strategie ({safe_hook}), maar een ander verhaal, andere openingszin, andere body. Pas de scriptopbouw aan op het format {test_format}.
-KRITISCH: Shoot 4 (winner_iterate) en shoot 1 (safe) hebben DEZELFDE hook+format maar VOLLEDIG ANDERE scripts en invalshoeken. Behandel ze als twee aparte creatieve concepten op dezelfde strategie.
+KRITISCH: Shoot 4 (winner_iterate) en shoot 1 (safe) hebben DEZELFDE hook+format maar VOLLEDIG ANDERE copy, headline en creatieve invalshoek.
+KRITISCH: Het creatieve concept van shoot 3 (format_test) MOET inhoudelijk anders zijn dan shoot 1. Pas copy en openingszin aan op het format {test_format}.
 
-Elk shoot-object bevat een "redenering" veld: 3-5 concrete zinnen die ONDERBOUWEN waarom deze shoot er is.
-Verwijs expliciet naar de performance data: noem echte CPL-cijfers, resultaten, CTR, ad-namen waar relevant.
-Leg uit: (1) waarom deze specifieke hook op basis van de data, (2) waarom dit format, (3) wat dit shoot toevoegt dat nog niet getest is. Wees specifiek, geen generieke tekst.
+Elk shoot-object bevat een "redenering" veld: 3-5 concrete zinnen onderbouwd met echte CPL-cijfers, resultaten en CTR uit de data.
 
 Return ALLEEN dit JSON:
 {{
@@ -271,24 +393,19 @@ Return ALLEEN dit JSON:
       "type": "safe",
       "naam_suggestie": "korte naam voor intern gebruik ≤40 tekens",
       "concept": "1-2 zinnen: wat het ad laat zien en waarom het werkt",
-      "redenering": "3-5 zinnen: waarom deze hook ({safe_hook}) en dit format ({safe_format}) — onderbouwd met CPL, resultaten en CTR uit de data.",
+      "redenering": "3-5 zinnen onderbouwd met CPL, resultaten en CTR uit de data.",
       "hook_type": "{safe_hook}",
-      "openingszin": "exacte eerste zin van het script (Nederlands)",
+      "openingszin": "exacte eerste zin / headline van het ad (Nederlands)",
       "format": "{safe_format}",
       "aspect_ratio": "9:16 of 1:1 of 16:9",
-      "duur_seconden": 30,
-      "talent": "omschrijving van wie voor de camera staat",
-      "locatie": "waar de shoot plaatsvindt",
-      "shots": ["shot 1 beschrijving", "shot 2", "shot 3", "shot 4", "shot 5"],
+      {_d_safe}
+      {_tl_safe}
+      "copy": "3-5 zinnen advertentietekst voor in de feed, gebaseerd op winnende ads",
+      "headline": "max 8 woorden, pakkend en actiegericht",
       "key_message": "de kern van het ad in 1 zin",
       "cta": "call-to-action tekst",
       "hypothese": "wat je wilt bewijzen met deze shoot",
-      "script": [
-        {{"time": "0-5s",  "tekst": "exacte openingsregels die de presenter uitspreekt"}},
-        {{"time": "5-18s", "tekst": "body: probleem, context of bewijs in spreektaal"}},
-        {{"time": "18-25s","tekst": "oplossing of sociale bewijskracht"}},
-        {{"time": "25-30s","tekst": "CTA: wat de kijker nu moet doen"}}
-      ]
+      {_m_safe}
     }},
     {{
       "type": "new_hook",
@@ -299,19 +416,14 @@ Return ALLEEN dit JSON:
       "openingszin": "...",
       "format": "{safe_format}",
       "aspect_ratio": "9:16",
-      "duur_seconden": 30,
-      "talent": "...",
-      "locatie": "...",
-      "shots": ["...", "...", "...", "...", "..."],
+      {_d_safe}
+      {_tl_safe}
+      "copy": "...",
+      "headline": "...",
       "key_message": "...",
       "cta": "...",
       "hypothese": "...",
-      "script": [
-        {{"time": "0-5s",  "tekst": "..."}},
-        {{"time": "5-18s", "tekst": "..."}},
-        {{"time": "18-25s","tekst": "..."}},
-        {{"time": "25-30s","tekst": "..."}}
-      ]
+      {_m_new}
     }},
     {{
       "type": "format_test",
@@ -322,19 +434,14 @@ Return ALLEEN dit JSON:
       "openingszin": "...",
       "format": "{test_format}",
       "aspect_ratio": "9:16",
-      "duur_seconden": 45,
-      "talent": "...",
-      "locatie": "...",
-      "shots": ["...", "...", "...", "...", "..."],
+      {_d_test}
+      {_tl_test}
+      "copy": "...",
+      "headline": "...",
       "key_message": "...",
       "cta": "...",
       "hypothese": "...",
-      "script": [
-        {{"time": "0-5s",  "tekst": "..."}},
-        {{"time": "5-20s", "tekst": "..."}},
-        {{"time": "20-35s","tekst": "..."}},
-        {{"time": "35-45s","tekst": "..."}}
-      ]
+      {_m_test}
     }},
     {{
       "type": "winner_iterate",
@@ -345,19 +452,14 @@ Return ALLEEN dit JSON:
       "openingszin": "...",
       "format": "{safe_format}",
       "aspect_ratio": "9:16",
-      "duur_seconden": 30,
-      "talent": "...",
-      "locatie": "...",
-      "shots": ["...", "...", "...", "...", "..."],
+      {_d_safe}
+      {_tl_safe}
+      "copy": "...",
+      "headline": "...",
       "key_message": "...",
       "cta": "...",
       "hypothese": "...",
-      "script": [
-        {{"time": "0-5s",  "tekst": "..."}},
-        {{"time": "5-18s", "tekst": "..."}},
-        {{"time": "18-25s","tekst": "..."}},
-        {{"time": "25-30s","tekst": "..."}}
-      ]
+      {_m_iter}
     }},
     {{
       "type": "winner_scale",
@@ -368,36 +470,31 @@ Return ALLEEN dit JSON:
       "openingszin": "...",
       "format": "{winner_format}",
       "aspect_ratio": "9:16",
-      "duur_seconden": 30,
-      "talent": "...",
-      "locatie": "...",
-      "shots": ["...", "...", "...", "...", "..."],
+      {_d_scale}
+      {_tl_scale}
+      "copy": "...",
+      "headline": "...",
       "key_message": "...",
       "cta": "...",
       "hypothese": "...",
-      "script": [
-        {{"time": "0-5s",  "tekst": "..."}},
-        {{"time": "5-18s", "tekst": "..."}},
-        {{"time": "18-25s","tekst": "..."}},
-        {{"time": "25-30s","tekst": "..."}}
-      ]
+      {_m_scale}
     }}
   ]
 }}"""
 
-    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=5000)
+    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=5500)
     if "_error" in result or "shoots" not in result:
         logger.warning("Shoot brief AI call failed: %s", result.get("_error", "no 'shoots' key in response"))
         return _fallback_brief(safe_hook, safe_format, new_hook, test_format,
                                winner_hook, winner_format, hook_perf, fmt_perf,
                                summary, top_ad, client_name)
-    # Sanitize AI output: strip em dashes from all script lines and openingszin
     shoots = result["shoots"]
     for shoot in shoots:
         if shoot.get("script"):
             shoot["script"] = _clean_script(shoot["script"])
-        if shoot.get("openingszin"):
-            shoot["openingszin"] = _strip_em_dashes(shoot["openingszin"])
+        for field in ("openingszin", "copy", "headline"):
+            if shoot.get(field):
+                shoot[field] = _strip_em_dashes(shoot[field])
     return shoots
 
 
@@ -447,34 +544,53 @@ def _fallback_brief(
               hypothese: str | None = None,
               redenering: str | None = None) -> dict:
         effective_hook = script_hook or hook
-        script = _build_script(effective_hook, cta, client_name)
-        opening = script[0]["tekst"] if script else _default_opening(effective_hook)
+        copy_text = _build_copy(effective_hook, cta, client_name)
+        headline_text = _build_headline(effective_hook)
+        is_static = fmt in _STATIC_FORMATS
         default_hyp = f"Test of de {hook}-hook beter converteert dan het huidige gemiddelde (CPL €{summary.avg_cost_per_result})."
-        return {
+
+        shoot: dict = {
             "type": shoot_type,
             "naam_suggestie": f"{hook.replace('_', '-').title()} {fmt.replace('_', '-').title()} V1",
             "concept": f"{_HOOK_NL.get(hook, hook)} gecombineerd met {_FORMAT_NL.get(fmt, fmt)}.",
             "redenering": redenering or "",
             "hook_type": hook,
-            "openingszin": opening,
+            "openingszin": headline_text if is_static else (_build_script(effective_hook, cta, client_name)[0]["tekst"] if _build_script(effective_hook, cta, client_name) else _default_opening(effective_hook)),
             "format": fmt,
-            "aspect_ratio": "9:16",
-            "duur_seconden": duur,
-            "talent": "Lid/klant of trainer (authentiek, warm — geen acteur)",
-            "locatie": "In de studio of locatie van de klant — herkenbare omgeving",
-            "shots": [
+            "aspect_ratio": "1:1 of 4:5" if is_static else "9:16",
+            "copy": copy_text,
+            "headline": headline_text,
+            "key_message": f"Persoonlijke begeleiding bij {name} — eindelijk iets dat vol te houden is.",
+            "cta": cta,
+            "hypothese": hypothese or default_hyp,
+            "_fallback": True,
+        }
+
+        if is_static:
+            shoot["talent"] = "n.v.t. — grafisch ontwerp"
+            shoot["locatie"] = f"Stock beelden of eigen fotografie van {name}"
+            shoot["visual_beschrijving"] = (
+                f"Rustige achtergrond in huisstijlkleuren. "
+                f"Grote headline in beeld: '{headline_text}'. "
+                f"Subkop: eerste zin van de copy. "
+                f"Onderin CTA-knop: '{cta}'. Logo rechtsboven. "
+                f"Sfeer: warm, professioneel, uitnodigend."
+            )
+        else:
+            script = _build_script(effective_hook, cta, client_name)
+            shoot["duur_seconden"] = duur
+            shoot["talent"] = "Lid/klant of trainer (authentiek, warm — geen acteur)"
+            shoot["locatie"] = "In de studio of locatie van de klant — herkenbare omgeving"
+            shoot["shots"] = [
                 "Shot 1: close-up gezicht bij opening — kijker moet zich herkend voelen",
                 "Shot 2: de situatie of het probleem visueel tonen (herkenbaar voor doelgroep)",
                 f"Shot 3: de oplossing — wat {name} biedt, liefst in actie",
                 "Shot 4: resultaat of bewijs — blije klant, zichtbaar verschil",
                 "Shot 5: directe CTA — kijker aankijken, actie benoemen",
-            ],
-            "key_message": f"Persoonlijke begeleiding bij {name} — eindelijk iets dat vol te houden is.",
-            "cta": cta,
-            "hypothese": hypothese or default_hyp,
-            "script": script,
-            "_fallback": True,
-        }
+            ]
+            shoot["script"] = script
+
+        return shoot
 
     num_hooks_with_data = sum(1 for r in hook_perf if r.get("results") and r["results"] > 0)
 
