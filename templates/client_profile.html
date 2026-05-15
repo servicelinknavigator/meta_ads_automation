@@ -1005,59 +1005,58 @@ function cpShowResult(d) {
   const hookLabel = (d.hook_type || 'onbekend').replace(/_/g, ' ');
   const el = document.getElementById('cp-static-result');
   el.innerHTML = `
-    <div style="display:flex;gap:.75rem;align-items:flex-start;flex-wrap:wrap;">
-      <div style="flex:0 0 80px;">
-        <img src="${document.getElementById('cp-static-preview-img').src}"
-             style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,.08);">
-        <div style="margin-top:.4rem;text-align:center;">
-          <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;
-                       background:rgba(139,92,246,.12);color:#7c3aed;border:1px solid rgba(139,92,246,.2);">
-            ${hookLabel}
-          </span>
-        </div>
-      </div>
-      <div style="flex:1;min-width:220px;">
-        ${d.visual_samenvatting ? `
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;">Wat communiceert dit beeld</div>
-        <div style="font-size:.79rem;color:#374151;line-height:1.5;margin-bottom:.85rem;font-style:italic;">${d.visual_samenvatting}</div>
-        ` : ''}
-        ${d.headline ? `
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;"><i class="bi bi-type-bold me-1"></i>Headline</div>
-        <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:.85rem;line-height:1.3;">${d.headline}</div>
-        ` : ''}
-        ${d.copy_1 ? `
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:.2rem;">
-          <i class="bi bi-check-circle me-1"></i>Copy variant 1 — bewezen aanpak
-        </div>
-        ${d.copy_1_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.3rem;">${d.copy_1_aanpak}</div>` : ''}
-        <div style="font-size:.79rem;color:#374151;line-height:1.55;margin-bottom:.85rem;
-                    background:rgba(236,253,245,.8);border-radius:8px;padding:.5rem .7rem;
-                    border:1px solid rgba(167,243,208,.6);">${d.copy_1}</div>
-        ` : ''}
-        ${d.copy_2 ? `
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:.2rem;">
-          <i class="bi bi-flask me-1"></i>Copy variant 2 — testoptie
-        </div>
-        ${d.copy_2_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.3rem;">${d.copy_2_aanpak}</div>` : ''}
-        <div style="font-size:.79rem;color:#374151;line-height:1.55;margin-bottom:.85rem;
-                    background:rgba(245,243,255,.8);border-radius:8px;padding:.5rem .7rem;
-                    border:1px solid rgba(196,181,253,.6);">${d.copy_2}</div>
-        ` : ''}
-        ${d.verbeterpunt ? `
-        <div style="background:rgba(255,251,235,.9);border:1px solid rgba(253,230,138,.7);
-                    border-radius:8px;padding:.45rem .7rem;font-size:.76rem;color:#92400e;line-height:1.5;">
-          <strong style="font-size:.67rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;">
-            <i class="bi bi-lightbulb me-1"></i>Verbeterpunt
-          </strong>
-          ${d.verbeterpunt}
-        </div>
-        ` : ''}
-      </div>
+    <!-- hook badge -->
+    <div style="margin-bottom:.75rem;">
+      <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;
+                   background:rgba(139,92,246,.12);color:#7c3aed;border:1px solid rgba(139,92,246,.2);">
+        ${hookLabel}
+      </span>
     </div>
-    <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(0,0,0,.06);display:flex;justify-content:flex-end;">
+
+    ${d.visual_samenvatting ? `
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.25rem;">Wat communiceert dit beeld</div>
+    <div style="font-size:.8rem;color:#374151;line-height:1.5;margin-bottom:.9rem;font-style:italic;">${d.visual_samenvatting}</div>
+    ` : ''}
+
+    ${d.headline ? `
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.25rem;"><i class="bi bi-type-bold me-1"></i>Headline</div>
+    <div style="font-size:.92rem;font-weight:700;color:#0f172a;margin-bottom:.9rem;line-height:1.35;">${d.headline}</div>
+    ` : ''}
+
+    ${d.copy_1 ? `
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:.25rem;">
+      <i class="bi bi-check-circle me-1"></i>Variant 1 — bewezen aanpak
+    </div>
+    ${d.copy_1_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.35rem;">${d.copy_1_aanpak}</div>` : ''}
+    <div style="font-size:.8rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
+                background:rgba(236,253,245,.8);border-radius:8px;padding:.6rem .75rem;
+                border:1px solid rgba(167,243,208,.6);">${d.copy_1}</div>
+    ` : ''}
+
+    ${d.copy_2 ? `
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:.25rem;">
+      <i class="bi bi-flask me-1"></i>Variant 2 — testoptie
+    </div>
+    ${d.copy_2_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.35rem;">${d.copy_2_aanpak}</div>` : ''}
+    <div style="font-size:.8rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
+                background:rgba(245,243,255,.8);border-radius:8px;padding:.6rem .75rem;
+                border:1px solid rgba(196,181,253,.6);">${d.copy_2}</div>
+    ` : ''}
+
+    ${d.verbeterpunt ? `
+    <div style="background:rgba(255,251,235,.9);border:1px solid rgba(253,230,138,.7);
+                border-radius:8px;padding:.55rem .75rem;font-size:.78rem;color:#92400e;line-height:1.5;margin-bottom:.75rem;">
+      <strong style="font-size:.67rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;">
+        <i class="bi bi-lightbulb me-1"></i>Verbeterpunt
+      </strong>
+      ${d.verbeterpunt}
+    </div>
+    ` : ''}
+
+    <div style="padding-top:.5rem;border-top:1px solid rgba(0,0,0,.06);">
       <button onclick="cpResetStatic()"
               style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
-                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;">
+                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;width:100%;justify-content:center;">
         <i class="bi bi-arrow-repeat me-1"></i>Nieuwe afbeelding
       </button>
     </div>`;
