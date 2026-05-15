@@ -1496,6 +1496,73 @@ def analyze_static_image_client(client_id: int):
     return jsonify(result)
 
 
+@app.route("/clients/<int:client_id>/generate-scripts", methods=["POST"])
+@login_required
+def generate_scripts_client(client_id: int):
+    """Generate 2 AI video script recommendations for a client using all available client data."""
+    if not db.is_available():
+        return jsonify({"error": "Database niet beschikbaar"}), 503
+
+    try:
+        client = db.get_client(client_id)
+    except Exception as e:
+        return jsonify({"error": f"Klant niet gevonden: {e}"}), 404
+
+    if not client:
+        return jsonify({"error": "Klant niet gevonden"}), 404
+
+    client_name    = client.get("name", "")
+    client_context = client.get("client_context", "")
+
+    try:
+        hook_perf_db = db.get_all_hook_performance(client_id)
+    except Exception:
+        hook_perf_db = []
+
+    hook_perf = [
+        {"hook_type": r["hook_type"], "cpl": r.get("overall_cpl"),
+         "results": r.get("total_results"), "avg_ctr": r.get("avg_ctr")}
+        for r in hook_perf_db if r.get("hook_type")
+    ]
+
+    # Build existing scripts from ad_creatives
+    existing_scripts = []
+    try:
+        creatives = db.get_ad_creatives(client_id)
+        cpl_by_hook: dict = {}
+        results_by_hook: dict = {}
+        for r in hook_perf_db:
+            ht = r.get("hook_type") or ""
+            if ht:
+                if r.get("overall_cpl"):  cpl_by_hook[ht]     = float(r["overall_cpl"])
+                if r.get("total_results"): results_by_hook[ht] = int(r["total_results"])
+
+        from core.hook_analyzer import detect_hook
+        for ad_naam, creative in creatives.items():
+            script_text = creative.get("script", "").strip()
+            if not script_text:
+                continue
+            hook_type = detect_hook(ad_naam)
+            existing_scripts.append({
+                "ad_name":     ad_naam,
+                "script_text": script_text,
+                "hook_type":   hook_type,
+                "cpl":         cpl_by_hook.get(hook_type),
+                "results":     results_by_hook.get(hook_type),
+            })
+    except Exception:
+        pass
+
+    from core.script_generator import generate_scripts
+    result = generate_scripts(
+        client_name=client_name,
+        client_context=client_context,
+        hook_perf=hook_perf or None,
+        existing_scripts=existing_scripts or None,
+    )
+    return jsonify(result)
+
+
 # ── Excel template downloads ───────────────────────────────────────────────────
 
 @app.route("/templates/videos")
