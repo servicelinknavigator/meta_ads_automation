@@ -618,9 +618,9 @@
             <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:.75rem;line-height:1.4;">{{ shoot.headline }}</div>
             {% endif %}
 
-            {% if shoot.copy %}
+            {% if shoot['copy'] %}
             <div class="shoot-section-label mb-1"><i class="bi bi-body-text me-1"></i>Copy</div>
-            <div style="font-size:.79rem;color:#374151;line-height:1.6;margin-bottom:.75rem;background:rgba(241,245,249,.6);border-radius:6px;padding:.5rem .7rem;border:1px solid rgba(0,0,0,.05);">{{ shoot.copy }}</div>
+            <div style="font-size:.79rem;color:#374151;line-height:1.6;margin-bottom:.75rem;background:rgba(241,245,249,.6);border-radius:6px;padding:.5rem .7rem;border:1px solid rgba(0,0,0,.05);">{{ shoot['copy'] }}</div>
             {% endif %}
 
             {% if shoot.format != 'static' %}
