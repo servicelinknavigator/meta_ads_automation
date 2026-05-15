@@ -46,6 +46,9 @@ def _make_workbook(columns: list[str], client_naam_label: str = "Klantnaam"):
         cell.fill = header_fill
         cell.alignment = center
 
+    wrap_top    = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    wrap_center = Alignment(horizontal="center", vertical="top", wrap_text=True)
+
     # Rij 4+: voorbeeld (lichtgrijs)
     example_fill = PatternFill("solid", fgColor="F5F5F5")
     example_data = _example_row(columns)
@@ -53,13 +56,32 @@ def _make_workbook(columns: list[str], client_naam_label: str = "Klantnaam"):
         cell = ws.cell(row=4, column=col_idx, value=val)
         cell.fill = example_fill
         cell.font = Font(italic=True, color="999999")
+        cell.alignment = wrap_top
+    ws.row_dimensions[4].height = 45
 
-    # Kolombreedte aanpassen
-    col_widths = {"Ad naam": 40, "Script": 60, "Headline": 40,
-                  "Ad copy 1": 50, "Ad copy 2": 50, "Ad copy 3": 50}
+    # Kolombreedte aanpassen — breed genoeg voor lange teksten
+    col_widths = {
+        "Ad naam":   42,
+        "Script":    80,
+        "Headline":  45,
+        "Ad copy 1": 70,
+        "Ad copy 2": 70,
+        "Ad copy 3": 70,
+    }
     for col_idx, col_name in enumerate(columns, start=1):
-        width = col_widths.get(col_name, 30)
-        ws.column_dimensions[ws.cell(row=3, column=col_idx).column_letter].width = width
+        col_letter = ws.cell(row=3, column=col_idx).column_letter
+        ws.column_dimensions[col_letter].width = col_widths.get(col_name, 35)
+        # Zet wrap_text op de hele kolom via een default cell style
+        # (nieuwe rijen die de gebruiker toevoegt krijgen dit mee)
+        ws.column_dimensions[col_letter].auto_size = False
+
+    # Datarijformat: stel in dat elke nieuwe rij tekst omloopt
+    # Rij 5 t/m 200 vooraf instellen met wrap_text zodat ingevoerde tekst zichtbaar blijft
+    for row_idx in range(5, 201):
+        for col_idx in range(1, len(columns) + 1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.alignment = wrap_top
+        ws.row_dimensions[row_idx].height = 60
 
     ws.freeze_panes = "A4"
     return wb
