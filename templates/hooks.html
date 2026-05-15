@@ -840,7 +840,7 @@ function showStaticResult(d) {
   const el = document.getElementById('static-result');
   el.innerHTML = `
     <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
-      <!-- Left: image + samenvatting -->
+      <!-- Left: image + hook badge -->
       <div style="flex:0 0 110px;">
         <img src="${document.getElementById('static-preview-img').src}"
              style="width:110px;height:110px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,.08);">
@@ -863,11 +863,29 @@ function showStaticResult(d) {
         <div style="font-size:.95rem;font-weight:700;color:#0f172a;margin-bottom:.9rem;line-height:1.3;">${d.headline}</div>
         ` : ''}
 
-        ${d.copy ? `
+        ${d.copy_1 ? `
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:.2rem;">
+          <i class="bi bi-check-circle me-1"></i>Copy variant 1 — bewezen aanpak
+        </div>
+        ${d.copy_1_aanpak ? `<div style="font-size:.72rem;color:#6b7280;font-style:italic;margin-bottom:.3rem;">${d.copy_1_aanpak}</div>` : ''}
+        <div style="font-size:.82rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
+                    background:rgba(236,253,245,.8);border-radius:8px;padding:.55rem .75rem;
+                    border:1px solid rgba(167,243,208,.6);">${d.copy_1}</div>
+        ` : (d.copy ? `
         <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;"><i class="bi bi-body-text me-1"></i>Copy</div>
         <div style="font-size:.82rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
                     background:rgba(241,245,249,.7);border-radius:8px;padding:.55rem .75rem;
                     border:1px solid rgba(0,0,0,.05);">${d.copy}</div>
+        ` : '')}
+
+        ${d.copy_2 ? `
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:.2rem;">
+          <i class="bi bi-flask me-1"></i>Copy variant 2 — testoptie
+        </div>
+        ${d.copy_2_aanpak ? `<div style="font-size:.72rem;color:#6b7280;font-style:italic;margin-bottom:.3rem;">${d.copy_2_aanpak}</div>` : ''}
+        <div style="font-size:.82rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
+                    background:rgba(245,243,255,.8);border-radius:8px;padding:.55rem .75rem;
+                    border:1px solid rgba(196,181,253,.6);">${d.copy_2}</div>
         ` : ''}
 
         ${d.verbeterpunt ? `

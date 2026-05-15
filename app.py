@@ -1286,31 +1286,74 @@ def hooks():
     )
 
 
-@app.route("/hooks/analyze-static", methods=["POST"])
-@login_required
-def analyze_static_image():
-    """Receive a static ad image, analyse with Claude Vision, return copy + headline."""
-    if "image" not in request.files:
-        return jsonify({"error": "Geen afbeelding meegestuurd"}), 400
-
-    f = request.files["image"]
+def _parse_static_image_upload(request_obj):
+    """Validate and read uploaded image from a request. Returns (image_data, media_type) or raises ValueError."""
+    if "image" not in request_obj.files:
+        raise ValueError("Geen afbeelding meegestuurd")
+    f = request_obj.files["image"]
     if not f.filename:
-        return jsonify({"error": "Geen bestand geselecteerd"}), 400
-
+        raise ValueError("Geen bestand geselecteerd")
     allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
     media_type = f.content_type or "image/jpeg"
     if media_type not in allowed_types:
-        return jsonify({"error": "Alleen JPEG, PNG, WebP en GIF zijn toegestaan"}), 400
-
+        raise ValueError("Alleen JPEG, PNG, WebP en GIF zijn toegestaan")
     image_data = f.read()
     if len(image_data) > 5 * 1024 * 1024:
-        return jsonify({"error": "Afbeelding mag maximaal 5MB zijn"}), 400
+        raise ValueError("Afbeelding mag maximaal 5MB zijn")
+    return image_data, media_type
 
-    # Build account context from active session
+
+def _build_existing_copies(client_id: int, hook_perf_db: list[dict] | None) -> list[dict]:
+    """Build existing_copies list from ad_creatives + hook performance for a client."""
+    if not db.is_available():
+        return []
+    try:
+        creatives = db.get_ad_creatives(client_id)
+    except Exception:
+        return []
+
+    cpl_by_hook: dict[str, float] = {}
+    results_by_hook: dict[str, int] = {}
+    if hook_perf_db:
+        for row in hook_perf_db:
+            ht = row.get("hook_type") or ""
+            if ht and row.get("overall_cpl"):
+                cpl_by_hook[ht] = float(row["overall_cpl"])
+            if ht and row.get("total_results"):
+                results_by_hook[ht] = int(row["total_results"])
+
+    result = []
+    for ad_naam, creative in creatives.items():
+        for copy_key in ("ad_copy_1", "ad_copy_2", "ad_copy_3"):
+            copy_text = creative.get(copy_key, "").strip()
+            if not copy_text:
+                continue
+            from core.hook_analyzer import detect_hook
+            hook_type = detect_hook(ad_naam)
+            result.append({
+                "ad_name": ad_naam,
+                "copy": copy_text,
+                "hook_type": hook_type,
+                "cpl": cpl_by_hook.get(hook_type),
+                "results": results_by_hook.get(hook_type),
+            })
+    return result
+
+
+@app.route("/hooks/analyze-static", methods=["POST"])
+@login_required
+def analyze_static_image():
+    """Receive a static ad image, analyse with Claude Vision, return 2 copy variants."""
+    try:
+        image_data, media_type = _parse_static_image_upload(request)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
     hook_perf = None
     top_ads = None
     client_name = ""
     client_context = ""
+    existing_copies = []
 
     rows = _load_rows_from_session()
     if rows:
@@ -1328,6 +1371,14 @@ def analyze_static_image():
             if _client:
                 client_name = _client.get("name", "")
                 client_context = _client.get("client_context", "")
+            hook_perf_db = db.get_all_hook_performance(client_id)
+            existing_copies = _build_existing_copies(client_id, hook_perf_db)
+            if not hook_perf:
+                hook_perf = [
+                    {"hook_type": r["hook_type"], "cpl": r.get("overall_cpl"),
+                     "results": r.get("total_results"), "avg_ctr": r.get("avg_ctr")}
+                    for r in hook_perf_db if r.get("hook_type")
+                ]
         except Exception:
             pass
 
@@ -1338,6 +1389,53 @@ def analyze_static_image():
         client_context=client_context,
         hook_perf=hook_perf,
         top_ads=top_ads,
+        existing_copies=existing_copies,
+    )
+    return jsonify(result)
+
+
+@app.route("/clients/<int:client_id>/analyze-static", methods=["POST"])
+@login_required
+def analyze_static_image_client(client_id: int):
+    """Client profile static image analyser — uses DB data instead of session."""
+    try:
+        image_data, media_type = _parse_static_image_upload(request)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    if not db.is_available():
+        return jsonify({"error": "Database niet beschikbaar"}), 503
+
+    try:
+        client = db.get_client(client_id)
+    except Exception as e:
+        return jsonify({"error": f"Klant niet gevonden: {e}"}), 404
+
+    if not client:
+        return jsonify({"error": "Klant niet gevonden"}), 404
+
+    client_name = client.get("name", "")
+    client_context = client.get("client_context", "")
+
+    try:
+        hook_perf_db = db.get_all_hook_performance(client_id)
+    except Exception:
+        hook_perf_db = []
+
+    hook_perf = [
+        {"hook_type": r["hook_type"], "cpl": r.get("overall_cpl"),
+         "results": r.get("total_results"), "avg_ctr": r.get("avg_ctr")}
+        for r in hook_perf_db if r.get("hook_type")
+    ]
+    existing_copies = _build_existing_copies(client_id, hook_perf_db)
+
+    from core.static_analyzer import analyze_static
+    result = analyze_static(
+        image_data, media_type,
+        client_name=client_name,
+        client_context=client_context,
+        hook_perf=hook_perf or None,
+        existing_copies=existing_copies or None,
     )
     return jsonify(result)
 

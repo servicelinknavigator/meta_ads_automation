@@ -719,6 +719,65 @@
         </div>
       </div>
 
+      <!-- Static Image Analyser -->
+      <div class="section-title"><i class="bi bi-image" style="color:#8b5cf6;"></i>Static copy generator</div>
+      <div class="card-sln mb-4" id="static-analyzer-card">
+        <div style="padding:1rem;">
+          <div style="font-size:.8rem;color:#64748b;margin-bottom:.85rem;line-height:1.5;">
+            Upload een static ad — de AI analyseert de copy-patronen van <strong>{{ client.name }}</strong> en genereert 2 op maat gemaakte varianten.
+          </div>
+
+          <!-- Drop zone -->
+          <div id="cp-static-drop"
+               style="border:2px dashed rgba(139,92,246,.35);border-radius:12px;padding:1.4rem;
+                      text-align:center;cursor:pointer;transition:all .2s;background:rgba(139,92,246,.04);"
+               ondragover="event.preventDefault();this.style.borderColor='#8b5cf6';this.style.background='rgba(139,92,246,.1)'"
+               ondragleave="this.style.borderColor='rgba(139,92,246,.35)';this.style.background='rgba(139,92,246,.04)'"
+               ondrop="cpHandleDrop(event)"
+               onclick="document.getElementById('cp-static-input').click()">
+            <input type="file" id="cp-static-input" accept="image/jpeg,image/png,image/webp,image/gif"
+                   style="display:none" onchange="cpHandleFile(this.files[0])">
+            <i class="bi bi-image" style="font-size:1.6rem;color:rgba(139,92,246,.5);display:block;margin-bottom:.4rem;"></i>
+            <div style="font-size:.8rem;color:#64748b;">Sleep een static of <span style="color:#8b5cf6;font-weight:600;">klik om te uploaden</span></div>
+            <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">JPEG, PNG, WebP · max 5MB</div>
+          </div>
+
+          <!-- Preview area -->
+          <div id="cp-static-preview-area" style="display:none;margin-top:.85rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;">
+              <img id="cp-static-preview-img" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,.08);">
+              <div style="flex:1;min-width:0;">
+                <div id="cp-static-preview-name" style="font-weight:600;font-size:.82rem;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                <div id="cp-static-preview-size" style="font-size:.72rem;color:#64748b;"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:.5rem;margin-top:.75rem;">
+              <button id="cp-static-analyze-btn"
+                      style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;
+                             border-radius:8px;padding:.42rem 1.1rem;font-weight:600;font-size:.8rem;cursor:pointer;flex:1;"
+                      onclick="cpAnalyzeStatic()">
+                <i class="bi bi-magic me-1"></i>Genereer 2 copy-varianten
+              </button>
+              <button style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
+                             border-radius:8px;padding:.42rem .8rem;font-size:.8rem;cursor:pointer;"
+                      onclick="cpResetStatic()">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div id="cp-static-loading" style="display:none;text-align:center;padding:1.2rem 0;">
+            <div style="display:inline-block;width:22px;height:22px;border:3px solid rgba(139,92,246,.2);
+                        border-top-color:#8b5cf6;border-radius:50%;animation:spin .7s linear infinite;"></div>
+            <div style="font-size:.78rem;color:#64748b;margin-top:.5rem;">AI analyseert copy-patronen van {{ client.name }}...</div>
+          </div>
+
+          <!-- Result -->
+          <div id="cp-static-result" style="display:none;margin-top:.85rem;"></div>
+        </div>
+      </div>
+
       <!-- Shoot brief history -->
       <div class="section-title"><i class="bi bi-camera-fill" style="color:#ff5c2b;"></i>Shoot brief history</div>
       {% if shoot_briefs %}
@@ -891,6 +950,135 @@ function toggleScriptMini(id) {
   btn.innerHTML = el.classList.contains('open')
     ? '<i class="bi bi-mic me-1"></i>script verbergen'
     : '<i class="bi bi-mic me-1"></i>script bekijken';
+}
+
+/* ── Static analyzer (client profile) ── */
+let _cpFile = null;
+function cpHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('cp-static-drop').style.borderColor = 'rgba(139,92,246,.35)';
+  document.getElementById('cp-static-drop').style.background = 'rgba(139,92,246,.04)';
+  const file = e.dataTransfer.files[0];
+  if (file) cpHandleFile(file);
+}
+function cpHandleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  _cpFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => { document.getElementById('cp-static-preview-img').src = ev.target.result; };
+  reader.readAsDataURL(file);
+  document.getElementById('cp-static-preview-name').textContent = file.name;
+  document.getElementById('cp-static-preview-size').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('cp-static-drop').style.display = 'none';
+  document.getElementById('cp-static-preview-area').style.display = 'block';
+  document.getElementById('cp-static-result').style.display = 'none';
+  document.getElementById('cp-static-result').innerHTML = '';
+}
+function cpResetStatic() {
+  _cpFile = null;
+  document.getElementById('cp-static-drop').style.display = 'block';
+  document.getElementById('cp-static-preview-area').style.display = 'none';
+  document.getElementById('cp-static-result').style.display = 'none';
+  document.getElementById('cp-static-result').innerHTML = '';
+  document.getElementById('cp-static-loading').style.display = 'none';
+  document.getElementById('cp-static-input').value = '';
+}
+async function cpAnalyzeStatic() {
+  if (!_cpFile) return;
+  document.getElementById('cp-static-preview-area').style.display = 'none';
+  document.getElementById('cp-static-loading').style.display = 'block';
+  document.getElementById('cp-static-result').style.display = 'none';
+  const fd = new FormData();
+  fd.append('image', _cpFile);
+  try {
+    const resp = await fetch('/clients/{{ client.id }}/analyze-static', { method: 'POST', body: fd });
+    const data = await resp.json();
+    document.getElementById('cp-static-loading').style.display = 'none';
+    if (data.error) { cpShowError(data.error); return; }
+    cpShowResult(data);
+  } catch(err) {
+    document.getElementById('cp-static-loading').style.display = 'none';
+    cpShowError('Er ging iets mis. Probeer het opnieuw.');
+  }
+}
+function cpShowResult(d) {
+  const hookLabel = (d.hook_type || 'onbekend').replace(/_/g, ' ');
+  const el = document.getElementById('cp-static-result');
+  el.innerHTML = `
+    <div style="display:flex;gap:.75rem;align-items:flex-start;flex-wrap:wrap;">
+      <div style="flex:0 0 80px;">
+        <img src="${document.getElementById('cp-static-preview-img').src}"
+             style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,.08);">
+        <div style="margin-top:.4rem;text-align:center;">
+          <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:700;
+                       background:rgba(139,92,246,.12);color:#7c3aed;border:1px solid rgba(139,92,246,.2);">
+            ${hookLabel}
+          </span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:220px;">
+        ${d.visual_samenvatting ? `
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;">Wat communiceert dit beeld</div>
+        <div style="font-size:.79rem;color:#374151;line-height:1.5;margin-bottom:.85rem;font-style:italic;">${d.visual_samenvatting}</div>
+        ` : ''}
+        ${d.headline ? `
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;"><i class="bi bi-type-bold me-1"></i>Headline</div>
+        <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:.85rem;line-height:1.3;">${d.headline}</div>
+        ` : ''}
+        ${d.copy_1 ? `
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:.2rem;">
+          <i class="bi bi-check-circle me-1"></i>Copy variant 1 — bewezen aanpak
+        </div>
+        ${d.copy_1_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.3rem;">${d.copy_1_aanpak}</div>` : ''}
+        <div style="font-size:.79rem;color:#374151;line-height:1.55;margin-bottom:.85rem;
+                    background:rgba(236,253,245,.8);border-radius:8px;padding:.5rem .7rem;
+                    border:1px solid rgba(167,243,208,.6);">${d.copy_1}</div>
+        ` : ''}
+        ${d.copy_2 ? `
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:.2rem;">
+          <i class="bi bi-flask me-1"></i>Copy variant 2 — testoptie
+        </div>
+        ${d.copy_2_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.3rem;">${d.copy_2_aanpak}</div>` : ''}
+        <div style="font-size:.79rem;color:#374151;line-height:1.55;margin-bottom:.85rem;
+                    background:rgba(245,243,255,.8);border-radius:8px;padding:.5rem .7rem;
+                    border:1px solid rgba(196,181,253,.6);">${d.copy_2}</div>
+        ` : ''}
+        ${d.verbeterpunt ? `
+        <div style="background:rgba(255,251,235,.9);border:1px solid rgba(253,230,138,.7);
+                    border-radius:8px;padding:.45rem .7rem;font-size:.76rem;color:#92400e;line-height:1.5;">
+          <strong style="font-size:.67rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;">
+            <i class="bi bi-lightbulb me-1"></i>Verbeterpunt
+          </strong>
+          ${d.verbeterpunt}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+    <div style="margin-top:.85rem;padding-top:.65rem;border-top:1px solid rgba(0,0,0,.06);display:flex;justify-content:flex-end;">
+      <button onclick="cpResetStatic()"
+              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
+                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;">
+        <i class="bi bi-arrow-repeat me-1"></i>Nieuwe afbeelding
+      </button>
+    </div>`;
+  el.style.display = 'block';
+}
+function cpShowError(msg) {
+  const el = document.getElementById('cp-static-result');
+  el.innerHTML = `
+    <div style="background:rgba(254,242,242,.9);border:1px solid rgba(254,202,202,.8);
+                border-radius:8px;padding:.65rem .85rem;font-size:.8rem;color:#dc2626;">
+      <i class="bi bi-exclamation-triangle me-1"></i>${msg}
+    </div>
+    <div style="margin-top:.6rem;">
+      <button onclick="cpResetStatic()"
+              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
+                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;">
+        Opnieuw proberen
+      </button>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('cp-static-preview-area').style.display = 'block';
 }
 </script>
 </body>
