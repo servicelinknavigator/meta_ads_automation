@@ -336,6 +336,69 @@
     .alert-success { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.25); color: #065f46; }
     .alert-danger  { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.25); color: #991b1b; }
     .alert-warning { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.25); color: #92400e; }
+
+    /* ── Action Hub ── */
+    .action-hub {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: .85rem;
+    }
+    @media (max-width: 1200px) { .action-hub { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 768px)  { .action-hub { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px)  { .action-hub { grid-template-columns: 1fr; } }
+    .action-card {
+      background: var(--glass);
+      -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      padding: 1.1rem;
+      display: flex; flex-direction: column;
+      transition: transform .18s, box-shadow .18s;
+    }
+    .action-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-glass); }
+    .action-card-icon {
+      width: 40px; height: 40px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; margin-bottom: .6rem;
+    }
+    .action-card-title { font-size: .9rem; font-weight: 800; color: #0f172a; margin-bottom: .25rem; }
+    .action-card-desc  { font-size: .72rem; color: #64748b; line-height: 1.45; flex: 1; margin-bottom: .7rem; }
+    .action-card-meta  { font-size: .68rem; color: #94a3b8; margin-bottom: .5rem; }
+    .action-btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: .35rem;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
+      color: #fff; border: none;
+      padding: .42rem .75rem; border-radius: 8px;
+      font-size: .76rem; font-weight: 700; cursor: pointer; text-decoration: none;
+      box-shadow: 0 3px 10px rgba(255,92,43,.25); transition: all .15s;
+      width: 100%;
+    }
+    .action-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(255,92,43,.35); color: #fff; }
+    .action-btn-secondary {
+      display: flex; align-items: center; justify-content: center; gap: .35rem;
+      background: rgba(255,255,255,.6); color: #0f172a;
+      border: 1px solid rgba(0,0,0,.1);
+      padding: .38rem .75rem; border-radius: 8px;
+      font-size: .73rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: all .15s; width: 100%; margin-top: .4rem;
+    }
+    .action-btn-secondary:hover { background: rgba(255,255,255,.9); color: #0f172a; }
+    .action-btn-disabled {
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(241,245,249,.7); color: #94a3b8;
+      border: 1px solid rgba(0,0,0,.07);
+      padding: .42rem .75rem; border-radius: 8px;
+      font-size: .73rem; font-weight: 600;
+      width: 100%; cursor: default;
+    }
+
+    /* ── Collapsible sections ── */
+    .section-toggle { cursor: pointer; user-select: none; }
+    .section-toggle:hover .section-title { opacity: .8; }
+    .section-body { }
+    .section-body.collapsed { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -476,6 +539,103 @@
     </div>
   </div>
   {% endif %}
+
+  <!-- ── Action Hub ── -->
+  <div class="action-hub mb-4">
+
+    <!-- Analyse -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(255,92,43,.12);">
+        <i class="bi bi-graph-up" style="color:#ff5c2b;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Analyse</div>
+      <div class="action-card-desc">Ad prestaties, CPL trends en aanbevelingen per campagne</div>
+      {% if uploads %}
+      <div class="action-card-meta"><i class="bi bi-clock me-1"></i>{{ uploads[0].date_from }} — {{ uploads[0].date_to }}</div>
+      <a href="/clients/{{ client.id }}/go/analyse" class="action-btn-primary">
+        <i class="bi bi-play-fill"></i>Laad analyse
+      </a>
+      <button class="action-btn-secondary"
+              onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
+        <i class="bi bi-upload"></i>Nieuwe upload
+      </button>
+      {% else %}
+      <button class="action-btn-primary"
+              onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
+        <i class="bi bi-upload"></i>Upload CSV
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Creative Report -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(16,185,129,.12);">
+        <i class="bi bi-trophy" style="color:#059669;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Creative Report</div>
+      <div class="action-card-desc">Winners en losers per advertentie met testkit en verbeterpunten</div>
+      {% if uploads %}
+      <a href="/clients/{{ client.id }}/go/creative" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 3px 10px rgba(16,185,129,.25);">
+        <i class="bi bi-bar-chart-fill"></i>Bekijk rapport
+      </a>
+      {% else %}
+      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
+      {% endif %}
+    </div>
+
+    <!-- Hooks & Brief -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(245,158,11,.12);">
+        <i class="bi bi-lightning-charge-fill" style="color:#d97706;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Hooks & Brief</div>
+      <div class="action-card-desc">Hook ranking, format prestaties en shoot brief genereren</div>
+      {% if uploads %}
+      <a href="/clients/{{ client.id }}/go/hooks" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#d97706,#f59e0b);box-shadow:0 3px 10px rgba(245,158,11,.25);">
+        <i class="bi bi-lightning-fill"></i>Bekijk hooks
+      </a>
+      {% else %}
+      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
+      {% endif %}
+    </div>
+
+    <!-- Static Copy -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(139,92,246,.12);">
+        <i class="bi bi-image" style="color:#7c3aed;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Static Copy</div>
+      <div class="action-card-desc">Upload een static ad — AI genereert 2 copy varianten op basis van klantdata</div>
+      <button class="action-btn-primary"
+              style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 3px 10px rgba(139,92,246,.25);"
+              onclick="document.getElementById('static-section').scrollIntoView({behavior:'smooth'})">
+        <i class="bi bi-magic"></i>Genereer copy
+      </button>
+    </div>
+
+    <!-- Rapporten -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(14,165,233,.12);">
+        <i class="bi bi-file-earmark-pdf" style="color:#0ea5e9;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Rapporten</div>
+      <div class="action-card-desc">Download analyse en creative rapporten als PDF voor de klant</div>
+      {% if uploads %}
+      <a href="/clients/{{ client.id }}/go/export/pdf" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 3px 10px rgba(14,165,233,.25);">
+        <i class="bi bi-download"></i>Analyse PDF
+      </a>
+      <a href="/clients/{{ client.id }}/go/creative" class="action-btn-secondary">
+        <i class="bi bi-printer"></i>Creative rapport
+      </a>
+      {% else %}
+      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
+      {% endif %}
+    </div>
+
+  </div>
 
   <div class="row g-4">
     <div class="col-12">
@@ -672,7 +832,7 @@
       {% endif %}
 
       <!-- Static Image Analyser -->
-      <div class="section-title"><i class="bi bi-image" style="color:#8b5cf6;"></i>Static copy generator</div>
+      <div id="static-section" class="section-title"><i class="bi bi-image" style="color:#8b5cf6;"></i>Static copy generator</div>
       <div class="card-sln mb-4" id="static-analyzer-card">
         <div style="padding:1rem;">
           <div style="font-size:.8rem;color:#64748b;margin-bottom:.85rem;line-height:1.5;">

@@ -840,6 +840,62 @@ def brief_delete(client_id, brief_id):
     return redirect(url_for("client_profile", client_id=client_id))
 
 
+@app.route("/clients/<int:client_id>/go/<path:destination>")
+@login_required
+def client_go(client_id, destination):
+    """Load the latest upload for a client into session, then redirect to destination."""
+    if not db.is_available():
+        flash("Database niet beschikbaar.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    uploads = db.get_uploads(client_id)
+    if not uploads:
+        flash("Geen uploads gevonden voor deze klant. Upload eerst een CSV.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    latest = uploads[0]
+    session["client_id"] = client_id
+
+    rows = None
+    try:
+        csv_text = db.get_upload_csv_content(latest["id"])
+        if csv_text:
+            rows = parse_csv_string(csv_text)
+            session["data_source"] = f"db:{latest['id']}"
+    except Exception:
+        pass
+
+    if rows is None:
+        file_path = UPLOAD_FOLDER / latest["filename"] if latest.get("filename") else None
+        if file_path and file_path.exists():
+            try:
+                rows = parse_csv(file_path)
+                session["data_source"] = str(file_path)
+            except Exception:
+                pass
+
+    if rows is None:
+        flash("CSV niet meer beschikbaar. Upload de export opnieuw.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    name_overrides = _load_name_overrides()
+    _process_df(rows,
+                campaign_type_override=latest.get("campaign_type", ""),
+                date_from=latest.get("date_from") or "",
+                date_to=latest.get("date_to") or "",
+                name_overrides=name_overrides,
+                skip_db_save=True)
+    session["upload_id"] = latest["id"]
+
+    dest_map = {
+        "analyse":    url_for("index"),
+        "creative":   url_for("creative"),
+        "hooks":      url_for("hooks"),
+        "export/pdf": url_for("export_pdf"),
+    }
+    return redirect(dest_map.get(destination, url_for("index")))
+
+
 @app.route("/clients/<int:client_id>/load/<int:upload_id>")
 @login_required
 def client_load_upload(client_id, upload_id):
