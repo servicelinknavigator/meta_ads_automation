@@ -170,6 +170,11 @@ def init_schema() -> None:
             "shoot_briefs", "insights_history", "ad_creatives",
         ):
             cur.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+
+        # Migrations: add columns introduced after initial schema creation
+        cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS headline_2 VARCHAR(500)")
+        cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS headline_3 VARCHAR(500)")
+
         cur.close()
     logger.info("DB schema OK")
 
@@ -524,48 +529,55 @@ def save_insights(client_id: int, upload_id: int, insights_text: str) -> None:
 # ── Ad creatives ──────────────────────────────────────────────────────────────
 
 def get_ad_creatives(client_id: int) -> dict[str, dict]:
-    """Return {ad_naam: {script, headline, ad_copy_1, ...}} for all saved creatives."""
+    """Return {ad_naam: {script, headline, headline_2, headline_3, ad_copy_1, ...}} for all saved creatives."""
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT ad_naam, script, headline, ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad
+            SELECT ad_naam, script, headline, headline_2, headline_3,
+                   ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad
             FROM ad_creatives WHERE client_id = %s
         """, (client_id,))
         rows = cur.fetchall()
         cur.close()
     return {
         r[0]: {
-            "script": r[1] or "",
-            "headline": r[2] or "",
-            "ad_copy_1": r[3] or "",
-            "ad_copy_2": r[4] or "",
-            "ad_copy_3": r[5] or "",
-            "afbeelding_pad": r[6] or "",
+            "script":         r[1] or "",
+            "headline":       r[2] or "",
+            "headline_2":     r[3] or "",
+            "headline_3":     r[4] or "",
+            "ad_copy_1":      r[5] or "",
+            "ad_copy_2":      r[6] or "",
+            "ad_copy_3":      r[7] or "",
+            "afbeelding_pad": r[8] or "",
         }
         for r in rows
     }
 
 
 def upsert_ad_creative(client_id: int, ad_naam: str, script: str = "",
-                        headline: str = "", ad_copy_1: str = "",
-                        ad_copy_2: str = "", ad_copy_3: str = "",
+                        headline: str = "", headline_2: str = "", headline_3: str = "",
+                        ad_copy_1: str = "", ad_copy_2: str = "", ad_copy_3: str = "",
                         afbeelding_pad: str = "") -> None:
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO ad_creatives
-                (client_id, ad_naam, script, headline, ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                (client_id, ad_naam, script, headline, headline_2, headline_3,
+                 ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (client_id, ad_naam)
             DO UPDATE SET
                 script         = COALESCE(NULLIF(EXCLUDED.script, ''),         ad_creatives.script),
                 headline       = COALESCE(NULLIF(EXCLUDED.headline, ''),       ad_creatives.headline),
+                headline_2     = COALESCE(NULLIF(EXCLUDED.headline_2, ''),     ad_creatives.headline_2),
+                headline_3     = COALESCE(NULLIF(EXCLUDED.headline_3, ''),     ad_creatives.headline_3),
                 ad_copy_1      = COALESCE(NULLIF(EXCLUDED.ad_copy_1, ''),      ad_creatives.ad_copy_1),
                 ad_copy_2      = COALESCE(NULLIF(EXCLUDED.ad_copy_2, ''),      ad_creatives.ad_copy_2),
                 ad_copy_3      = COALESCE(NULLIF(EXCLUDED.ad_copy_3, ''),      ad_creatives.ad_copy_3),
                 afbeelding_pad = COALESCE(NULLIF(EXCLUDED.afbeelding_pad, ''), ad_creatives.afbeelding_pad),
                 updated_at     = NOW()
         """, (client_id, ad_naam, script or None, headline or None,
+              headline_2 or None, headline_3 or None,
               ad_copy_1 or None, ad_copy_2 or None, ad_copy_3 or None,
               afbeelding_pad or None))
         cur.close()
@@ -580,26 +592,30 @@ def bulk_upsert_ad_creatives(client_id: int, creatives: list[dict]) -> int:
         for c in creatives:
             script         = c.get("script", "") or None
             headline       = c.get("headline", "") or None
+            headline_2     = c.get("headline_2", "") or None
+            headline_3     = c.get("headline_3", "") or None
             ad_copy_1      = c.get("ad_copy_1", "") or None
             ad_copy_2      = c.get("ad_copy_2", "") or None
             ad_copy_3      = c.get("ad_copy_3", "") or None
             afbeelding_pad = c.get("afbeelding_pad", "") or None
             cur.execute("""
                 INSERT INTO ad_creatives
-                    (client_id, ad_naam, script, headline, ad_copy_1, ad_copy_2, ad_copy_3,
-                     afbeelding_pad, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    (client_id, ad_naam, script, headline, headline_2, headline_3,
+                     ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (client_id, ad_naam)
                 DO UPDATE SET
                     script         = COALESCE(NULLIF(EXCLUDED.script, ''),         ad_creatives.script),
                     headline       = COALESCE(NULLIF(EXCLUDED.headline, ''),       ad_creatives.headline),
+                    headline_2     = COALESCE(NULLIF(EXCLUDED.headline_2, ''),     ad_creatives.headline_2),
+                    headline_3     = COALESCE(NULLIF(EXCLUDED.headline_3, ''),     ad_creatives.headline_3),
                     ad_copy_1      = COALESCE(NULLIF(EXCLUDED.ad_copy_1, ''),      ad_creatives.ad_copy_1),
                     ad_copy_2      = COALESCE(NULLIF(EXCLUDED.ad_copy_2, ''),      ad_creatives.ad_copy_2),
                     ad_copy_3      = COALESCE(NULLIF(EXCLUDED.ad_copy_3, ''),      ad_creatives.ad_copy_3),
                     afbeelding_pad = COALESCE(NULLIF(EXCLUDED.afbeelding_pad, ''), ad_creatives.afbeelding_pad),
                     updated_at     = NOW()
             """, (client_id, c.get("ad_naam", ""), script, headline,
-                  ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad))
+                  headline_2, headline_3, ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad))
         cur.close()
     return len(creatives)
 

@@ -48,11 +48,12 @@ def _format_creative_context(ad_creatives: dict, winning_ad_names: list[str],
         entry = [f"**[WINNAAR] {ad_naam}**"]
         if c.get("script"):
             entry.append(f"  Script: {c['script'][:300]}")
-        if c.get("headline"):
-            entry.append(f"  Headline: {c['headline']}")
+        headlines = [c[k] for k in ("headline", "headline_2", "headline_3") if c.get(k)]
+        if headlines:
+            entry.append(f"  Headlines: {' / '.join(headlines)}")
         copies = [v for k in ("ad_copy_1", "ad_copy_2", "ad_copy_3") if (v := c.get(k))]
         if copies:
-            entry.append("  Ad copies: " + " | ".join(c[:200] for c in copies))
+            entry.append("  Ad copies: " + " | ".join(cv[:200] for cv in copies))
         other_winner_lines.extend(entry)
         shown.add(ad_naam)
 
@@ -71,8 +72,9 @@ def _format_creative_context(ad_creatives: dict, winning_ad_names: list[str],
             entry = [f"\n**{ad_naam}**"]
             if c.get("script"):
                 entry.append(f"  Script: {c['script'][:200]}")
-            if c.get("headline"):
-                entry.append(f"  Headline: {c['headline']}")
+            headlines = [c[k] for k in ("headline", "headline_2", "headline_3") if c.get(k)]
+            if headlines:
+                entry.append(f"  Headlines: {' / '.join(headlines)}")
             copies = [v for k in ("ad_copy_1", "ad_copy_2", "ad_copy_3") if (v := c.get(k))]
             if copies:
                 entry.append("  Ad copies: " + " | ".join(cv[:150] for cv in copies))

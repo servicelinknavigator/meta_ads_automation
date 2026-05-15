@@ -237,8 +237,8 @@
   <div class="info-bar mb-4">
     <i class="bi bi-info-circle" style="color:#6366f1;font-size:1rem;flex-shrink:0;margin-top:2px;"></i>
     <span style="font-size:.82rem;color:#374151;line-height:1.6;">
-      Meta roteert <strong>Ad copy 1, 2 en 3 willekeurig</strong> per advertentie — ze wegen even zwaar.
-      Vul er zoveel in als je hebt. Script en headline worden gebruikt voor de shoot brief op de Hooks-pagina.
+      Meta roteert <strong>Headline 1, 2 en 3</strong> én <strong>Ad copy 1, 2 en 3</strong> willekeurig per advertentie — ze wegen even zwaar.
+      Vul er zoveel in als je hebt. Script wordt gebruikt voor de shoot brief op de Hooks-pagina.
     </span>
   </div>
 
@@ -272,17 +272,33 @@
                         placeholder="Heb jij ook het gevoel dat je al maanden traint zonder resultaat?…"
                         rows="3"></textarea>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <div class="form-label-sm">
-                Headline <span class="optional-badge">statics</span>
+                Headline 1 <span class="rotate-badge">Meta roteert</span>
                 <span class="help-icon" data-bs-toggle="tooltip"
-                  title="De vetgedrukte kopregel van een static advertentie — max. 40 tekens.">
+                  title="Meta roteert Headline 1, 2 en 3 willekeurig — ze wegen even zwaar. Max. 40 tekens per headline.">
                   <i class="bi bi-question-lg"></i>
                 </span>
               </div>
               <input type="text" class="form-control"
                      name="headline_{{ safe_key }}"
                      placeholder="Van 0 naar resultaat in 8 weken">
+            </div>
+            <div class="col-md-4">
+              <div class="form-label-sm">
+                Headline 2 <span class="rotate-badge">Meta roteert</span>
+              </div>
+              <input type="text" class="form-control"
+                     name="headline2_{{ safe_key }}"
+                     placeholder="Variant 2…">
+            </div>
+            <div class="col-md-4">
+              <div class="form-label-sm">
+                Headline 3 <span class="rotate-badge">Meta roteert</span>
+              </div>
+              <input type="text" class="form-control"
+                     name="headline3_{{ safe_key }}"
+                     placeholder="Variant 3…">
             </div>
             <div class="col-md-6">
               <div class="form-label-sm">

@@ -61,12 +61,14 @@ def _make_workbook(columns: list[str], client_naam_label: str = "Klantnaam"):
 
     # Kolombreedte aanpassen — breed genoeg voor lange teksten
     col_widths = {
-        "Ad naam":   42,
-        "Script":    80,
-        "Headline":  45,
-        "Ad copy 1": 70,
-        "Ad copy 2": 70,
-        "Ad copy 3": 70,
+        "Ad naam":    42,
+        "Script":     80,
+        "Headline 1": 45,
+        "Headline 2": 45,
+        "Headline 3": 45,
+        "Ad copy 1":  70,
+        "Ad copy 2":  70,
+        "Ad copy 3":  70,
     }
     for col_idx, col_name in enumerate(columns, start=1):
         col_letter = ws.cell(row=3, column=col_idx).column_letter
@@ -91,7 +93,9 @@ def _example_row(columns: list[str]) -> list[str]:
     mapping = {
         "Ad naam":    "Static - Proof - V1 - Klantresultaat fitness",
         "Script":     "Heb jij ook het gevoel dat je al maanden traint zonder resultaat?...",
-        "Headline":   "Van 0 naar resultaat in 8 weken",
+        "Headline 1": "Van 0 naar resultaat in 8 weken",
+        "Headline 2": "Eindelijk iets dat bij jou past",
+        "Headline 3": "",
         "Ad copy 1":  "Meer dan 500 klanten gingen je voor. Ontdek het programma dat écht werkt.",
         "Ad copy 2":  "Geen resultaat = geld terug. Zo zeker zijn wij van ons programma.",
         "Ad copy 3":  "",
@@ -110,7 +114,7 @@ def generate_videos_template() -> bytes:
 
 def generate_statics_template() -> bytes:
     """Genereer de statics Excel template als bytes."""
-    columns = ["Ad naam", "Headline", "Ad copy 1", "Ad copy 2", "Ad copy 3"]
+    columns = ["Ad naam", "Headline 1", "Headline 2", "Headline 3", "Ad copy 1", "Ad copy 2", "Ad copy 3"]
     wb = _make_workbook(columns)
     buf = io.BytesIO()
     wb.save(buf)
@@ -169,10 +173,12 @@ def parse_template(file_obj: BinaryIO, template_type: str) -> tuple[str, list[di
             creative["ad_copy_2"] = row_dict.get("Ad copy 2", "")
             creative["ad_copy_3"] = row_dict.get("Ad copy 3", "")
         elif template_type == "statics":
-            creative["headline"]  = row_dict.get("Headline", "")
-            creative["ad_copy_1"] = row_dict.get("Ad copy 1", "")
-            creative["ad_copy_2"] = row_dict.get("Ad copy 2", "")
-            creative["ad_copy_3"] = row_dict.get("Ad copy 3", "")
+            creative["headline"]   = row_dict.get("Headline 1", "") or row_dict.get("Headline", "")
+            creative["headline_2"] = row_dict.get("Headline 2", "")
+            creative["headline_3"] = row_dict.get("Headline 3", "")
+            creative["ad_copy_1"]  = row_dict.get("Ad copy 1", "")
+            creative["ad_copy_2"]  = row_dict.get("Ad copy 2", "")
+            creative["ad_copy_3"]  = row_dict.get("Ad copy 3", "")
 
         creatives.append(creative)
 

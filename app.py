@@ -1420,8 +1420,9 @@ def export_creatives_csv(client_id):
     cell_border   = Border(bottom=Border(bottom=border_side).bottom)
     wrap_align    = Alignment(wrap_text=True, vertical="top")
 
-    headers = ["Ad naam", "Script", "Headline", "Ad copy 1", "Ad copy 2", "Ad copy 3"]
-    col_widths = [40, 60, 35, 45, 45, 45]
+    headers = ["Ad naam", "Script", "Headline 1", "Headline 2", "Headline 3",
+               "Ad copy 1", "Ad copy 2", "Ad copy 3"]
+    col_widths = [40, 65, 38, 38, 38, 55, 55, 55]
 
     for col_idx, (header, width) in enumerate(zip(headers, col_widths), start=1):
         cell = ws.cell(row=1, column=col_idx, value=header)
@@ -1437,6 +1438,8 @@ def export_creatives_csv(client_id):
             ad_naam,
             c.get("script") or "",
             c.get("headline") or "",
+            c.get("headline_2") or "",
+            c.get("headline_3") or "",
             c.get("ad_copy_1") or "",
             c.get("ad_copy_2") or "",
             c.get("ad_copy_3") or "",
@@ -1661,15 +1664,18 @@ def new_ads_content_save(client_id):
     remaining = []
 
     for idx, ad_naam in enumerate(pending, start=1):
-        script    = request.form.get(f"script_{idx}", "").strip()
-        headline  = request.form.get(f"headline_{idx}", "").strip()
-        copy1     = request.form.get(f"copy1_{idx}", "").strip()
-        copy2     = request.form.get(f"copy2_{idx}", "").strip()
-        copy3     = request.form.get(f"copy3_{idx}", "").strip()
+        script     = request.form.get(f"script_{idx}", "").strip()
+        headline   = request.form.get(f"headline_{idx}", "").strip()
+        headline_2 = request.form.get(f"headline2_{idx}", "").strip()
+        headline_3 = request.form.get(f"headline3_{idx}", "").strip()
+        copy1      = request.form.get(f"copy1_{idx}", "").strip()
+        copy2      = request.form.get(f"copy2_{idx}", "").strip()
+        copy3      = request.form.get(f"copy3_{idx}", "").strip()
 
         if any([script, headline, copy1]):
             try:
-                db.upsert_ad_creative(client_id, ad_naam, script=script, headline=headline,
+                db.upsert_ad_creative(client_id, ad_naam, script=script,
+                                      headline=headline, headline_2=headline_2, headline_3=headline_3,
                                       ad_copy_1=copy1, ad_copy_2=copy2, ad_copy_3=copy3)
                 saved_count += 1
             except Exception as e:
@@ -1706,6 +1712,8 @@ def save_creative(client_id):
             ad_naam=ad_naam,
             script=request.form.get("script", "").strip(),
             headline=request.form.get("headline", "").strip(),
+            headline_2=request.form.get("headline_2", "").strip(),
+            headline_3=request.form.get("headline_3", "").strip(),
             ad_copy_1=request.form.get("ad_copy_1", "").strip(),
             ad_copy_2=request.form.get("ad_copy_2", "").strip(),
             ad_copy_3=request.form.get("ad_copy_3", "").strip(),
