@@ -98,6 +98,42 @@ Return uitsluitend dit JSON object (sleutels zijn de nummers als string):
     return result
 
 
+def call_json_with_image(
+    prompt: str,
+    image_data: bytes,
+    media_type: str = "image/jpeg",
+    system: str = _SLN_SYSTEM_JSON,
+    max_tokens: int = 1000,
+) -> dict:
+    try:
+        import base64
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        b64 = base64.standard_b64encode(image_data).decode("utf-8")
+        msg = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": b64,
+                        },
+                    },
+                    {"type": "text", "text": prompt},
+                ],
+            }],
+        )
+        return json.loads(_extract_json(msg.content[0].text))
+    except Exception as e:
+        return {"_error": str(e)}
+
+
 def call_text(prompt: str, system: str = _SLN_SYSTEM_TEXT, max_tokens: int = 1200) -> str:
     try:
         model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")

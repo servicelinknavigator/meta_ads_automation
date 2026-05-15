@@ -704,7 +704,211 @@
   <div style="color:#64748b;font-size:.85rem;padding:1rem 0;">Shoot brief kon niet worden gegenereerd.</div>
   {% endif %}
 
+  <!-- ── Static Image Analyser ── -->
+  <div class="mb-2 d-flex align-items-center justify-content-between mt-2">
+    <div class="section-title mb-0">
+      <i class="bi bi-image me-2" style="color:#8b5cf6;"></i>Static Analyser — Copy &amp; Headline Generator
+    </div>
+  </div>
+  <p style="font-size:.82rem;color:#64748b;margin-bottom:1.25rem;margin-top:-.25rem;">
+    Upload een bestaande static ad. AI analyseert het beeld en schrijft copy + headline op basis van wat er in staat én de best presterende hooks in dit account.
+  </p>
+
+  <div class="card-sln mb-5">
+    <div class="card-header-sln">
+      <i class="bi bi-magic me-2" style="color:#a78bfa;"></i>
+      Upload static afbeelding
+      <span style="margin-left:auto;font-size:.72rem;font-weight:400;color:rgba(255,255,255,.45);">JPEG · PNG · WebP · max 5MB</span>
+    </div>
+    <div class="p-4">
+
+      <!-- Drop zone -->
+      <div id="drop-zone"
+           style="border:2px dashed rgba(139,92,246,.35);border-radius:12px;padding:2.5rem 1.5rem;
+                  text-align:center;cursor:pointer;background:rgba(139,92,246,.03);transition:all .2s;"
+           onclick="document.getElementById('static-upload').click()"
+           ondragover="event.preventDefault();this.style.background='rgba(139,92,246,.08)';this.style.borderColor='rgba(139,92,246,.7)';"
+           ondragleave="this.style.background='rgba(139,92,246,.03)';this.style.borderColor='rgba(139,92,246,.35)';"
+           ondrop="handleDrop(event)">
+        <i class="bi bi-cloud-upload" style="font-size:2rem;color:#8b5cf6;display:block;margin-bottom:.6rem;"></i>
+        <div style="font-weight:600;color:#0f172a;margin-bottom:.2rem;">Sleep een afbeelding hierheen</div>
+        <div style="font-size:.78rem;color:#94a3b8;">of klik om te selecteren</div>
+      </div>
+      <input type="file" id="static-upload" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;" onchange="onFileSelected(this.files[0])">
+
+      <!-- Preview + trigger -->
+      <div id="static-preview-area" style="display:none;margin-top:1.25rem;">
+        <div class="d-flex align-items-start gap-3">
+          <img id="static-preview-img" style="width:110px;height:110px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,.08);flex-shrink:0;">
+          <div>
+            <div id="static-preview-name" style="font-weight:600;font-size:.85rem;color:#0f172a;margin-bottom:.2rem;"></div>
+            <div id="static-preview-size" style="font-size:.74rem;color:#64748b;margin-bottom:.75rem;"></div>
+            <button id="static-analyze-btn"
+                    style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;
+                           border-radius:8px;padding:.42rem 1.1rem;font-weight:600;font-size:.82rem;cursor:pointer;"
+                    onclick="analyzeStatic()">
+              <i class="bi bi-magic me-1"></i>Analyseer &amp; genereer copy
+            </button>
+            <button style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
+                           border-radius:8px;padding:.42rem .8rem;font-size:.82rem;cursor:pointer;margin-left:.4rem;"
+                    onclick="resetStaticUpload()">
+              <i class="bi bi-x"></i> Verwijder
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="static-loading" style="display:none;text-align:center;padding:2rem 1rem;">
+        <div class="spinner-border spinner-border-sm" style="color:#8b5cf6;margin-bottom:.6rem;"></div>
+        <div style="font-size:.82rem;color:#64748b;margin-top:.5rem;">AI analyseert je afbeelding en schrijft copy...</div>
+      </div>
+
+      <!-- Result -->
+      <div id="static-result" style="display:none;margin-top:1.5rem;"></div>
+
+    </div>
+  </div>
+
 </div>
+
+<script>
+let _selectedFile = null;
+
+function onFileSelected(file) {
+  if (!file) return;
+  _selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('static-preview-img').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('static-preview-name').textContent = file.name;
+  document.getElementById('static-preview-size').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  document.getElementById('drop-zone').style.display = 'none';
+  document.getElementById('static-preview-area').style.display = 'block';
+  document.getElementById('static-result').style.display = 'none';
+  document.getElementById('static-result').innerHTML = '';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').style.background = 'rgba(139,92,246,.03)';
+  document.getElementById('drop-zone').style.borderColor = 'rgba(139,92,246,.35)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) onFileSelected(file);
+}
+
+function resetStaticUpload() {
+  _selectedFile = null;
+  document.getElementById('static-upload').value = '';
+  document.getElementById('drop-zone').style.display = 'block';
+  document.getElementById('static-preview-area').style.display = 'none';
+  document.getElementById('static-result').style.display = 'none';
+  document.getElementById('static-result').innerHTML = '';
+  document.getElementById('static-loading').style.display = 'none';
+}
+
+async function analyzeStatic() {
+  if (!_selectedFile) return;
+
+  document.getElementById('static-preview-area').style.display = 'none';
+  document.getElementById('static-loading').style.display = 'block';
+  document.getElementById('static-result').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('image', _selectedFile);
+
+  try {
+    const resp = await fetch('/hooks/analyze-static', { method: 'POST', body: formData });
+    const data = await resp.json();
+    document.getElementById('static-loading').style.display = 'none';
+
+    if (data.error) {
+      showStaticError(data.error);
+      return;
+    }
+    showStaticResult(data);
+  } catch (err) {
+    document.getElementById('static-loading').style.display = 'none';
+    showStaticError('Er ging iets mis. Probeer het opnieuw.');
+  }
+}
+
+function showStaticResult(d) {
+  const hookLabel = (d.hook_type || 'onbekend').replace(/_/g, ' ');
+  const el = document.getElementById('static-result');
+  el.innerHTML = `
+    <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+      <!-- Left: image + samenvatting -->
+      <div style="flex:0 0 110px;">
+        <img src="${document.getElementById('static-preview-img').src}"
+             style="width:110px;height:110px;object-fit:cover;border-radius:10px;border:1px solid rgba(0,0,0,.08);">
+        <div style="margin-top:.5rem;text-align:center;">
+          <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;
+                       background:rgba(139,92,246,.12);color:#7c3aed;border:1px solid rgba(139,92,246,.2);">
+            ${hookLabel}
+          </span>
+        </div>
+      </div>
+      <!-- Right: results -->
+      <div style="flex:1;min-width:260px;">
+        ${d.visual_samenvatting ? `
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;">Wat communiceert dit beeld</div>
+        <div style="font-size:.82rem;color:#374151;line-height:1.55;margin-bottom:.9rem;font-style:italic;">${d.visual_samenvatting}</div>
+        ` : ''}
+
+        ${d.headline ? `
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;"><i class="bi bi-type-bold me-1"></i>Headline</div>
+        <div style="font-size:.95rem;font-weight:700;color:#0f172a;margin-bottom:.9rem;line-height:1.3;">${d.headline}</div>
+        ` : ''}
+
+        ${d.copy ? `
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.2rem;"><i class="bi bi-body-text me-1"></i>Copy</div>
+        <div style="font-size:.82rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
+                    background:rgba(241,245,249,.7);border-radius:8px;padding:.55rem .75rem;
+                    border:1px solid rgba(0,0,0,.05);">${d.copy}</div>
+        ` : ''}
+
+        ${d.verbeterpunt ? `
+        <div style="background:rgba(255,251,235,.9);border:1px solid rgba(253,230,138,.7);
+                    border-radius:8px;padding:.55rem .85rem;font-size:.79rem;color:#92400e;line-height:1.5;">
+          <strong style="font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;">
+            <i class="bi bi-lightbulb me-1"></i>Verbeterpunt
+          </strong>
+          ${d.verbeterpunt}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+    <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid rgba(0,0,0,.06);display:flex;justify-content:flex-end;">
+      <button onclick="resetStaticUpload()"
+              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
+                     border-radius:8px;padding:.38rem .9rem;font-size:.78rem;cursor:pointer;">
+        <i class="bi bi-arrow-repeat me-1"></i>Nieuwe afbeelding analyseren
+      </button>
+    </div>`;
+  el.style.display = 'block';
+}
+
+function showStaticError(msg) {
+  const el = document.getElementById('static-result');
+  el.innerHTML = `
+    <div style="background:rgba(254,242,242,.9);border:1px solid rgba(254,202,202,.8);
+                border-radius:8px;padding:.75rem 1rem;font-size:.82rem;color:#dc2626;">
+      <i class="bi bi-exclamation-triangle me-1"></i>${msg}
+    </div>
+    <div style="margin-top:.75rem;">
+      <button onclick="resetStaticUpload()"
+              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
+                     border-radius:8px;padding:.38rem .9rem;font-size:.78rem;cursor:pointer;">
+        Opnieuw proberen
+      </button>
+    </div>`;
+  el.style.display = 'block';
+  document.getElementById('static-preview-area').style.display = 'block';
+}
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>

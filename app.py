@@ -9,7 +9,7 @@ import hmac
 from pathlib import Path
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify
 from markupsafe import Markup
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -1284,6 +1284,62 @@ def hooks():
         t_win=thresholds.get("winner", 30),
         t_mid=thresholds.get("mid", 50),
     )
+
+
+@app.route("/hooks/analyze-static", methods=["POST"])
+@login_required
+def analyze_static_image():
+    """Receive a static ad image, analyse with Claude Vision, return copy + headline."""
+    if "image" not in request.files:
+        return jsonify({"error": "Geen afbeelding meegestuurd"}), 400
+
+    f = request.files["image"]
+    if not f.filename:
+        return jsonify({"error": "Geen bestand geselecteerd"}), 400
+
+    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    media_type = f.content_type or "image/jpeg"
+    if media_type not in allowed_types:
+        return jsonify({"error": "Alleen JPEG, PNG, WebP en GIF zijn toegestaan"}), 400
+
+    image_data = f.read()
+    if len(image_data) > 5 * 1024 * 1024:
+        return jsonify({"error": "Afbeelding mag maximaal 5MB zijn"}), 400
+
+    # Build account context from active session
+    hook_perf = None
+    top_ads = None
+    client_name = ""
+    client_context = ""
+
+    rows = _load_rows_from_session()
+    if rows:
+        from core.analysis import build_campaigns, get_all_ads
+        campaigns = build_campaigns(rows)
+        all_ads = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
+        name_overrides = _load_name_overrides()
+        hook_perf = aggregate_hook_performance(all_ads, overrides=name_overrides)
+        top_ads = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0][:5]
+
+    client_id = session.get("client_id")
+    if client_id and db.is_available():
+        try:
+            _client = db.get_client(client_id)
+            if _client:
+                client_name = _client.get("name", "")
+                client_context = _client.get("client_context", "")
+        except Exception:
+            pass
+
+    from core.static_analyzer import analyze_static
+    result = analyze_static(
+        image_data, media_type,
+        client_name=client_name,
+        client_context=client_context,
+        hook_perf=hook_perf,
+        top_ads=top_ads,
+    )
+    return jsonify(result)
 
 
 # ── Excel template downloads ───────────────────────────────────────────────────
