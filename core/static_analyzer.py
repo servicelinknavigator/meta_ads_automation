@@ -169,6 +169,29 @@ def _build_client_block(client_name: str, client_context: str) -> str:
     return "\n".join(lines)
 
 
+def detect_hook_from_image(image_data: bytes, media_type: str) -> dict:
+    """
+    Lightweight vision call: reads text from the image and returns
+    hook_type, visual_summary, pain_point.  Used in the nieuwe-advertentie flow.
+    """
+    if not has_api():
+        return {"hook_type": "proof", "visual_summary": "", "pain_point": "", "_fallback": True}
+
+    prompt = """Analyseer deze Meta advertentie afbeelding zeer specifiek.
+Lees alle tekst die zichtbaar is op de afbeelding.
+Bepaal:
+1. hook_type: op basis van de dominante boodschap (promise, proof, urgency, frustration, recognition, curiosity, confrontation, problem_solve, social_proof, educational)
+2. visual_summary: beschrijf in 5-8 woorden wat er letterlijk op staat — gebruik de exacte woorden van de afbeelding, geen generieke omschrijving
+3. pain_point: welk pijnpunt wordt aangesproken
+
+Geef terug als JSON: hook_type, visual_summary, pain_point"""
+
+    result = call_json_with_image(prompt, image_data, media_type, max_tokens=400)
+    if "_error" in result or not result.get("hook_type"):
+        return {"hook_type": "proof", "visual_summary": "", "pain_point": "", "_fallback": True}
+    return result
+
+
 def _fallback(error: str = "") -> dict:
     return {
         "hook_type": "unknown",

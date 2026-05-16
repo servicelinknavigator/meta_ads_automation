@@ -2013,20 +2013,25 @@ def _parse_srt(srt_text: str) -> str:
     return " ".join(out).strip()
 
 
-def _next_version(client_id: int, hook_type: str, format_type: str) -> int:
-    """Haal het hoogste versienummer op voor hook+format en geef n+1 terug."""
+def _smart_version(client_id: int, format_type: str, hook_type: str, slug: str) -> int:
+    """
+    Bepaal versienummer door slug-woorden (3 kernwoorden) te vergelijken met
+    bestaande ad-namen.  Minimaal 2 van de 3 slug-woorden moeten matchen.
+    Geeft hoogste overeenkomende versie + 1 terug, of 1 als er geen match is.
+    """
+    import re as _re
     try:
         creatives = db.get_ad_creatives(client_id)
-        import re as _re
-        pattern = _re.compile(
-            rf"^{_re.escape(format_type)}-{_re.escape(hook_type)}-v(\d+)",
-            _re.IGNORECASE,
-        )
+        candidate_words = set(slug.split("-")) - {""}
         highest = 0
         for naam in creatives:
-            m = pattern.match(naam)
-            if m:
-                highest = max(highest, int(m.group(1)))
+            m = _re.search(r"-v(\d+)-(.*)", naam, _re.IGNORECASE)
+            if not m:
+                continue
+            version_num = int(m.group(1))
+            existing_slug_words = set(m.group(2).split("-")) - {""}
+            if len(candidate_words & existing_slug_words) >= 2:
+                highest = max(highest, version_num)
         return highest + 1
     except Exception:
         return 1
@@ -2111,11 +2116,9 @@ Geef terug als JSON: hook_type, hook_explanation, core_promise, pain_point"""
     hook_type    = hook_data.get("hook_type", "proof").lower().replace(" ", "_")
     core_promise = hook_data.get("core_promise", "")
 
-    # Stap 3 — Versienummer
-    versie = _next_version(client_id, hook_type, "reels")
-
-    # Stap 4 — Naam genereren
-    slug = _slug_words(core_promise, 3) or "advertentie"
+    # Stap 3 — Naam genereren met slimme versiedetectie
+    slug    = _slug_words(core_promise, 3) or "advertentie"
+    versie  = _smart_version(client_id, "reels", hook_type, slug)
     ad_naam = f"reels-{hook_type}-v{versie}-{slug}"
 
     # Stap 5 — Copy genereren
@@ -2225,7 +2228,8 @@ def nieuwe_advertentie_static(client_id):
     media_type_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
     media_type = media_type_map.get(ext, "image/jpeg")
 
-    from core.ai_client import call_json_with_image, call_json, has_api
+    from core.ai_client import call_json, has_api
+    from core.static_analyzer import detect_hook_from_image
 
     # Sla afbeelding op
     import uuid as _uuid
@@ -2237,38 +2241,22 @@ def nieuwe_advertentie_static(client_id):
     except Exception:
         afbeelding_pad = ""
 
-    # Stap 1 — Vision analyse
-    hook_type    = "proof"
+    # Stap 1 — Vision analyse (gefocuste hook+tekst detectie)
+    hook_type      = "proof"
     visual_summary = ""
-    pain_point   = ""
+    pain_point     = ""
     client_context = client.get("client_context") or ""
-    hook_data_raw = {}
-    if has_api():
-        try:
-            hook_perf_lines = ""
-            if db.is_available():
-                from core.hook_analyzer import aggregate_hook_performance
-                pass  # hook perf vereist ads uit CSV — gebruik client context
-            vision_prompt = f"""Analyseer deze Meta advertentie afbeelding.
-Bepaal: hook_type, visuele boodschap, aangesproken pijnpunt.
+    try:
+        hook_data_raw  = detect_hook_from_image(img_data, media_type)
+        hook_type      = hook_data_raw.get("hook_type", "proof").lower().replace(" ", "_")
+        visual_summary = hook_data_raw.get("visual_summary", "")
+        pain_point     = hook_data_raw.get("pain_point", "")
+    except Exception as e:
+        logger.warning("Vision analyse mislukt: %s", e)
 
-Klantcontext / ICP:
-{client_context[:500] if client_context else 'niet opgegeven'}
-
-Geef terug als JSON: hook_type (kies uit: recognition, frustration, curiosity, proof, promise, confrontation, urgency, problem_solve, social_proof, educational), visual_summary, pain_point"""
-            hook_data_raw = call_json_with_image(vision_prompt, img_data, media_type=media_type, max_tokens=600)
-            if not hook_data_raw.get("_error"):
-                hook_type     = hook_data_raw.get("hook_type", "proof").lower().replace(" ", "_")
-                visual_summary = hook_data_raw.get("visual_summary", "")
-                pain_point    = hook_data_raw.get("pain_point", "")
-        except Exception as e:
-            logger.warning("Vision analyse mislukt: %s", e)
-
-    # Stap 2 — Versienummer
-    versie = _next_version(client_id, hook_type, "static")
-
-    # Stap 3 — Naam genereren
+    # Stap 2 — Naam genereren met slimme versiedetectie
     slug    = _slug_words(visual_summary, 3) or "advertentie"
+    versie  = _smart_version(client_id, "static", hook_type, slug)
     ad_naam = f"static-{hook_type}-v{versie}-{slug}"
 
     # Stap 4 — Copy genereren
