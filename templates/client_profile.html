@@ -340,12 +340,17 @@
     /* ── Action Hub ── */
     .action-hub {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
       gap: .85rem;
     }
-    @media (max-width: 1200px) { .action-hub { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 768px)  { .action-hub { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 480px)  { .action-hub { grid-template-columns: 1fr; } }
+    /* transcript upload section */
+    .transcript-drop {
+      background: var(--glass); backdrop-filter: var(--blur);
+      border: 2px dashed rgba(99,102,241,.35); border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem; box-shadow: var(--shadow-card);
+    }
     .action-card {
       background: var(--glass);
       -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
@@ -649,6 +654,110 @@
       {% endif %}
     </div>
 
+    <!-- Meta Ads koppeling -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(24,119,242,.12);">
+        <i class="bi bi-meta" style="color:#1877f2;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Meta Ads</div>
+      {% if meta_connection %}
+      <div class="action-card-desc">Verbonden · laatste sync {{ meta_connection.last_sync_at.strftime('%d %b %H:%M') if meta_connection.last_sync_at else 'nooit' }}</div>
+      <a href="/client/{{ client.id }}/meta-status" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#1877f2,#42a5f5);box-shadow:0 3px 10px rgba(24,119,242,.25);">
+        <i class="bi bi-arrow-repeat"></i>Beheer sync
+      </a>
+      {% else %}
+      <div class="action-card-desc">Koppel Meta Ads voor automatische datasync zonder CSV-export</div>
+      <a href="/client/{{ client.id }}/connect-meta" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#1877f2,#42a5f5);box-shadow:0 3px 10px rgba(24,119,242,.25);">
+        <i class="bi bi-plug-fill"></i>Koppel Meta Ads
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Weekplan -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(16,185,129,.1);">
+        <i class="bi bi-calendar-check-fill" style="color:#059669;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Weekplan</div>
+      <div class="action-card-desc">Concreet actieplan: stop dit, schaal dit, maak dit — gebaseerd op data</div>
+      {% if uploads %}
+      <a href="/client/{{ client.id }}/action-plan" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 3px 10px rgba(16,185,129,.25);">
+        <i class="bi bi-lightning-fill"></i>Genereer plan
+      </a>
+      {% else %}
+      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst data nodig</div>
+      {% endif %}
+    </div>
+
+    <!-- Concurrentie-analyse -->
+    <div class="action-card">
+      <div class="action-card-icon" style="background:rgba(139,92,246,.1);">
+        <i class="bi bi-people-fill" style="color:#7c3aed;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Concurrentie</div>
+      <div class="action-card-desc">Bekijk wat concurrenten adverteren in de Meta Ad Library</div>
+      <a href="/client/{{ client.id }}/competitor-analysis" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);box-shadow:0 3px 10px rgba(139,92,246,.25);">
+        <i class="bi bi-search"></i>Analyseer markt
+      </a>
+    </div>
+
+  </div>
+
+  <!-- ── Transcript upload ── -->
+  <div class="transcript-drop mb-4" id="transcript-section">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div class="section-title" style="margin-bottom:0;">
+        <i class="bi bi-mic-fill" style="color:#6366f1;"></i>Verkoopgesprek uploaden
+      </div>
+      <button class="action-btn-secondary" style="width:auto;padding:.3rem .8rem;font-size:.72rem;"
+              onclick="document.getElementById('transcriptForm').classList.toggle('d-none')">
+        <i class="bi bi-chevron-down"></i> Uitklappen
+      </button>
+    </div>
+    <p style="font-size:.78rem; color:#64748b; margin-bottom:.75rem;">
+      Plak een verkoopgesprek of intake transcript — AI extraheert klantuitspraken, bezwaren en kant-en-klare hook-openingen.
+    </p>
+    <div id="transcriptForm" class="d-none">
+      <form action="/client/{{ client.id }}/upload-transcript" method="POST" enctype="multipart/form-data">
+        <div class="mb-2">
+          <label class="form-label">Transcript tekst (plakken)</label>
+          <textarea name="transcript_text" class="form-control" rows="6"
+                    placeholder="Plak hier het volledige transcript van het gesprek..."></textarea>
+        </div>
+        <div class="mb-3" style="font-size:.75rem; color:#94a3b8; text-align:center;">— of —</div>
+        <div class="mb-3">
+          <label class="form-label">Upload als .txt bestand</label>
+          <input type="file" name="transcript_file" class="form-control" accept=".txt,.md">
+        </div>
+        <button type="submit" class="btn-save">
+          <i class="bi bi-magic me-1"></i>Analyseer transcript
+        </button>
+      </form>
+
+      {% if transcripts %}
+      <hr style="border-color:rgba(0,0,0,.08); margin:1rem 0;">
+      <div style="font-size:.78rem; font-weight:700; color:#64748b; margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.06em;">
+        Eerder geüploade transcripts
+      </div>
+      {% for t in transcripts %}
+      <div style="background:rgba(255,255,255,.5); border-radius:8px; padding:.6rem .85rem; margin-bottom:.5rem; font-size:.8rem;">
+        <div style="font-weight:600; color:#0f172a; margin-bottom:.2rem;">
+          {{ t.created_at.strftime('%d %b %Y %H:%M') if t.created_at else '—' }}
+        </div>
+        {% if t.extracted_hooks %}
+        <div style="color:#6366f1;"><strong>Hooks:</strong> {{ t.extracted_hooks[:150] }}{% if t.extracted_hooks|length > 150 %}…{% endif %}</div>
+        {% endif %}
+        {% if t.extracted_objections %}
+        <div style="color:#64748b;"><strong>Bezwaren:</strong> {{ t.extracted_objections[:120] }}{% if t.extracted_objections|length > 120 %}…{% endif %}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
   </div>
 
   <div class="row g-4">

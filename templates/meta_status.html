@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meta Verbinding — {{ client.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --glass: rgba(255,255,255,.72); --glass-border: rgba(255,255,255,.55);
+      --blur: blur(28px) saturate(200%); --accent: #ff5c2b; --accent2: #ff8c5a;
+      --radius-lg: 20px; --radius-md: 14px;
+      --shadow-glass: 0 8px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.9);
+      --shadow-card: 0 4px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+    body {
+      background-color: #e8eaf6;
+      background-image:
+        radial-gradient(ellipse 70% 55% at 15% 8%, rgba(99,102,241,.22) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 85% 18%, rgba(255,92,43,.16) 0%, transparent 50%),
+        linear-gradient(160deg, #e8eaf6 0%, #dde1f5 100%);
+      min-height: 100vh; color: #0f172a;
+    }
+    .sln-nav {
+      background: rgba(6,13,26,.84); backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a); border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px; color: #fff;
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; }
+    .btn-nav {
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.14); padding: .35rem .9rem;
+      border-radius: 8px; font-size: .78rem; font-weight: 500; text-decoration: none;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,.14); color: #fff; }
+    .hero {
+      background: linear-gradient(135deg, rgba(6,13,26,.88), rgba(26,42,76,.85));
+      backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 2rem 0 1.75rem;
+    }
+    .card-sln {
+      background: var(--glass); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card); overflow: hidden;
+    }
+    .card-header-sln {
+      background: linear-gradient(135deg, rgba(6,13,26,.75), rgba(26,42,76,.7));
+      color: #fff; padding: .7rem 1.1rem; font-weight: 700; font-size: .83rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px;
+    }
+    .status-dot.connected { background: #10B981; box-shadow: 0 0 8px rgba(16,185,129,.5); }
+    .status-dot.disconnected { background: #EF4444; }
+    .btn-accent {
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a); color: #fff; border: none;
+      padding: .5rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: .82rem;
+      text-decoration: none; box-shadow: 0 4px 14px rgba(255,92,43,.3);
+      transition: all .18s; display: inline-block;
+    }
+    .btn-accent:hover { transform: translateY(-1px); color: #fff; }
+    .btn-outline-sln {
+      background: rgba(255,255,255,.6); border: 1px solid rgba(0,0,0,.12);
+      color: #0f172a; padding: .45rem 1rem; border-radius: 8px;
+      font-size: .8rem; font-weight: 600; text-decoration: none; transition: all .15s;
+    }
+    .btn-outline-sln:hover { background: rgba(255,255,255,.9); color: #0f172a; }
+    .info-row { display: flex; justify-content: space-between; padding: .6rem 0;
+      border-bottom: 1px solid rgba(0,0,0,.06); font-size: .85rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #64748b; font-weight: 500; }
+    .info-value { font-weight: 600; }
+  </style>
+</head>
+<body>
+<nav class="sln-nav">
+  <a href="/" class="sln-logo">
+    <div class="sln-logo-icon">SLN</div>
+    <div><div class="sln-logo-text">SLN Meta Ads</div></div>
+  </a>
+  <div class="d-flex gap-2">
+    <a href="/client/{{ client.id }}" class="btn-nav"><i class="bi bi-arrow-left"></i> Terug naar klant</a>
+    <a href="/clients" class="btn-nav">Klanten</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="container">
+    <div class="text-white-50 mb-1" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.08em;">
+      Meta Verbinding
+    </div>
+    <h1 style="font-size:1.75rem; font-weight:800; color:#fff; margin:0;">{{ client.name }}</h1>
+    <p style="color:rgba(255,255,255,.5); font-size:.85rem; margin:.3rem 0 0;">
+      {% if connection %}
+        <span class="status-dot connected"></span> Verbonden met Meta Ads
+      {% else %}
+        <span class="status-dot disconnected"></span> Nog niet gekoppeld
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="container py-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' if cat == 'danger' else 'warning' }} mb-3">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card-sln">
+        <div class="card-header-sln">
+          <i class="bi bi-meta"></i> Verbindingsstatus
+        </div>
+        <div class="p-4">
+          {% if connection %}
+            <div class="info-row">
+              <span class="info-label">Status</span>
+              <span class="info-value" style="color:#10B981;"><i class="bi bi-check-circle-fill"></i> Verbonden</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Ad Account ID</span>
+              <span class="info-value">{{ connection.ad_account_id or '—' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Token vervalt</span>
+              <span class="info-value">
+                {% if connection.token_expires_at %}
+                  {{ connection.token_expires_at.strftime('%d %b %Y') if connection.token_expires_at else '—' }}
+                {% else %}—{% endif %}
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Laatste sync</span>
+              <span class="info-value">
+                {% if connection.last_sync_at %}
+                  {{ connection.last_sync_at.strftime('%d %b %Y %H:%M') }}
+                {% else %}Nog niet gesynchroniseerd{% endif %}
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Verbonden op</span>
+              <span class="info-value">
+                {% if connection.created_at %}
+                  {{ connection.created_at.strftime('%d %b %Y') }}
+                {% else %}—{% endif %}
+              </span>
+            </div>
+
+            <div class="mt-4">
+              <form method="POST" action="/client/{{ client.id }}/sync-meta" class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                  <label class="form-label" style="font-size:.78rem; font-weight:600; color:#64748b;">Van</label>
+                  <input type="date" name="date_from" class="form-control form-control-sm" style="border-radius:8px; font-size:.82rem;" />
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:.78rem; font-weight:600; color:#64748b;">Tot</label>
+                  <input type="date" name="date_to" class="form-control form-control-sm" style="border-radius:8px; font-size:.82rem;" />
+                </div>
+                <button type="submit" class="btn-accent">
+                  <i class="bi bi-arrow-repeat"></i> Synchroniseer nu
+                </button>
+              </form>
+              <p class="mt-2 mb-0" style="font-size:.75rem; color:#94a3b8;">Leeg laten = afgelopen 30 dagen</p>
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <div style="font-size:2.5rem; color:#cbd5e1; margin-bottom:.75rem;"><i class="bi bi-plug"></i></div>
+              <p style="color:#64748b; font-size:.9rem; margin-bottom:1.25rem;">
+                Koppel Meta Ads om automatisch data op te halen zonder CSV-export.
+              </p>
+              <a href="/client/{{ client.id }}/connect-meta" class="btn-accent">
+                <i class="bi bi-meta me-1"></i> Koppel Meta Ads Account
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card-sln">
+        <div class="card-header-sln">
+          <i class="bi bi-lightning-fill"></i> Snelle acties
+        </div>
+        <div class="p-4 d-flex flex-column gap-3">
+          <a href="/client/{{ client.id }}/action-plan" class="btn-accent text-center">
+            <i class="bi bi-calendar-check me-1"></i> Genereer weekplan
+          </a>
+          <a href="/client/{{ client.id }}/competitor-analysis" class="btn-outline-sln text-center">
+            <i class="bi bi-people me-1"></i> Concurrentie-analyse
+          </a>
+          <a href="/client/{{ client.id }}" class="btn-outline-sln text-center">
+            <i class="bi bi-bar-chart me-1"></i> Bekijk analytics
+          </a>
+          {% if not connection %}
+            <a href="/client/{{ client.id }}/connect-meta" class="btn-accent text-center">
+              <i class="bi bi-meta me-1"></i> Koppel Meta Ads
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

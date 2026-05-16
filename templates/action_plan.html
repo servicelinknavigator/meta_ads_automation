@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekplan — {{ client.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --glass: rgba(255,255,255,.72); --glass-border: rgba(255,255,255,.55);
+      --blur: blur(28px) saturate(200%); --accent: #ff5c2b; --accent2: #ff8c5a;
+      --radius-md: 14px;
+      --shadow-card: 0 4px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+    body {
+      background-color: #e8eaf6;
+      background-image:
+        radial-gradient(ellipse 70% 55% at 15% 8%, rgba(99,102,241,.22) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 85% 18%, rgba(255,92,43,.16) 0%, transparent 50%),
+        linear-gradient(160deg, #e8eaf6 0%, #dde1f5 100%);
+      min-height: 100vh; color: #0f172a;
+    }
+    .sln-nav {
+      background: rgba(6,13,26,.84); backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon {
+      width: 34px; height: 34px; background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px; color: #fff;
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; }
+    .btn-nav {
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.14); padding: .35rem .9rem;
+      border-radius: 8px; font-size: .78rem; font-weight: 500; text-decoration: none;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,.14); color: #fff; }
+    .hero {
+      background: linear-gradient(135deg, rgba(6,13,26,.88), rgba(26,42,76,.85));
+      backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 2rem 0 1.75rem;
+    }
+    .card-sln {
+      background: var(--glass); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card); overflow: hidden;
+    }
+    .card-header-sln {
+      background: linear-gradient(135deg, rgba(6,13,26,.75), rgba(26,42,76,.7));
+      color: #fff; padding: .7rem 1.1rem; font-weight: 700; font-size: .83rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-accent {
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a); color: #fff; border: none;
+      padding: .5rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: .82rem;
+      text-decoration: none; box-shadow: 0 4px 14px rgba(255,92,43,.3);
+      transition: all .18s; display: inline-block;
+    }
+    .btn-accent:hover { transform: translateY(-1px); color: #fff; }
+    .plan-body {
+      padding: 1.5rem 1.75rem;
+      font-size: .88rem; line-height: 1.75; color: #1e293b;
+    }
+    .plan-body h2 {
+      font-size: 1rem; font-weight: 800; margin: 1.5rem 0 .5rem;
+      color: #0f172a; display: flex; align-items: center; gap: 8px;
+    }
+    .plan-body h2:first-child { margin-top: 0; }
+    .plan-body ul { padding-left: 1.2rem; margin: .4rem 0 .6rem; }
+    .plan-body li { margin-bottom: .3rem; }
+    .plan-body p { margin-bottom: .6rem; }
+    .section-stop    { border-left: 3px solid #EF4444; padding-left: .9rem; margin-bottom: 1rem; }
+    .section-scale   { border-left: 3px solid #10B981; padding-left: .9rem; margin-bottom: 1rem; }
+    .section-produce { border-left: 3px solid #ff5c2b; padding-left: .9rem; margin-bottom: 1rem; }
+    .section-test    { border-left: 3px solid #6366f1; padding-left: .9rem; margin-bottom: 1rem; }
+    .section-effect  { border-left: 3px solid #F59E0B; padding-left: .9rem; margin-bottom: 1rem; }
+    .empty-state {
+      text-align: center; padding: 3rem 1rem; color: #94a3b8;
+    }
+    .empty-state i { font-size: 2.5rem; display: block; margin-bottom: .75rem; }
+  </style>
+</head>
+<body>
+<nav class="sln-nav">
+  <a href="/" class="sln-logo">
+    <div class="sln-logo-icon">SLN</div>
+    <div><div class="sln-logo-text">SLN Meta Ads</div></div>
+  </a>
+  <div class="d-flex gap-2">
+    <a href="/client/{{ client.id }}" class="btn-nav"><i class="bi bi-arrow-left"></i> Terug</a>
+    <a href="/clients" class="btn-nav">Klanten</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="container">
+    <div class="text-white-50 mb-1" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.08em;">
+      Weekplan
+    </div>
+    <h1 style="font-size:1.75rem; font-weight:800; color:#fff; margin:0;">{{ client.name }}</h1>
+    <p style="color:rgba(255,255,255,.5); font-size:.85rem; margin:.3rem 0 0;">
+      <i class="bi bi-calendar-check"></i> Gegenereerd op basis van actuele campagnedata
+    </p>
+  </div>
+</div>
+
+<div class="container py-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' if cat == 'danger' else 'warning' }} mb-3">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="card-sln">
+        <div class="card-header-sln">
+          <i class="bi bi-lightning-fill"></i> Concreet weekplan
+          <span class="ms-auto">
+            <a href="/client/{{ client.id }}/action-plan" class="btn-nav" style="font-size:.72rem; padding:.2rem .65rem;">
+              <i class="bi bi-arrow-repeat"></i> Herlaad
+            </a>
+          </span>
+        </div>
+
+        {% if plan_text and not plan_text.startswith('[AI') and not plan_text.startswith('Geen') and not plan_text.startswith('Actieplan') %}
+          <div class="plan-body">
+            {% set sections = plan_text.split('## ') %}
+            {% for section in sections %}
+              {% if section.strip() %}
+                {% set lines = section.strip().split('\n') %}
+                {% set heading = lines[0].strip() %}
+                {% set body = lines[1:] | join('\n') %}
+
+                {% if 'Stop' in heading %}
+                  <div class="section-stop">
+                    <h2><i class="bi bi-x-circle-fill" style="color:#EF4444;"></i> {{ heading }}</h2>
+                    <div>{{ body | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}</div>
+                  </div>
+                {% elif 'Schaal' in heading %}
+                  <div class="section-scale">
+                    <h2><i class="bi bi-graph-up-arrow" style="color:#10B981;"></i> {{ heading }}</h2>
+                    <div>{{ body | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}</div>
+                  </div>
+                {% elif 'Produceer' in heading %}
+                  <div class="section-produce">
+                    <h2><i class="bi bi-camera-video-fill" style="color:#ff5c2b;"></i> {{ heading }}</h2>
+                    <div>{{ body | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}</div>
+                  </div>
+                {% elif 'Test' in heading %}
+                  <div class="section-test">
+                    <h2><i class="bi bi-beaker-fill" style="color:#6366f1;"></i> {{ heading }}</h2>
+                    <div>{{ body | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}</div>
+                  </div>
+                {% elif 'effect' in heading.lower() or 'Verwacht' in heading %}
+                  <div class="section-effect">
+                    <h2><i class="bi bi-bullseye" style="color:#F59E0B;"></i> {{ heading }}</h2>
+                    <div>{{ body | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}</div>
+                  </div>
+                {% else %}
+                  <div style="margin-bottom:1rem;">
+                    <h2>{{ heading }}</h2>
+                    <div>{{ body | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}</div>
+                  </div>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p style="font-size:.9rem; margin-bottom:1rem;">
+              {% if plan_text %}
+                {{ plan_text }}
+              {% else %}
+                Upload eerst een CSV of synchroniseer Meta Ads voor een weekplan.
+              {% endif %}
+            </p>
+            <a href="/client/{{ client.id }}/meta-status" class="btn-accent">
+              <i class="bi bi-meta me-1"></i> Koppel Meta Ads
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-auto">
+      <a href="/client/{{ client.id }}/competitor-analysis" class="btn-accent">
+        <i class="bi bi-people me-1"></i> Concurrentie-analyse
+      </a>
+    </div>
+    <div class="col-auto">
+      <a href="/client/{{ client.id }}/meta-status" style="background:rgba(255,255,255,.7); color:#0f172a; border:1px solid rgba(0,0,0,.12); padding:.5rem 1.2rem; border-radius:8px; font-size:.82rem; font-weight:600; text-decoration:none; display:inline-block;">
+        <i class="bi bi-meta me-1"></i> Meta verbinding
+      </a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
