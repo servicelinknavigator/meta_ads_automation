@@ -2059,7 +2059,8 @@ def nieuwe_advertentie_get(client_id):
         flash("Klant niet gevonden.", "danger")
         return redirect(url_for("clients"))
     session["client_id"] = client_id
-    return render_template("nieuwe_advertentie.html", client=client, result=None, tab="video")
+    test_mode = request.args.get("test") == "1"
+    return render_template("nieuwe_advertentie.html", client=client, result=None, tab="video", test_mode=test_mode)
 
 
 @app.route("/client/<int:client_id>/nieuwe-advertentie/video", methods=["POST"])
@@ -2180,6 +2181,7 @@ Geef terug als JSON:
             }
         copy_data["naam"] = ad_naam
 
+    test_mode = request.form.get("test_mode") == "1"
     result = {
         "tab":             "video",
         "ad_naam":         ad_naam,
@@ -2197,7 +2199,7 @@ Geef terug als JSON:
         "cta":             copy_data.get("cta", ""),
         "ai_error":        copy_data.get("_error"),
     }
-    return render_template("nieuwe_advertentie.html", client=client, result=result, tab="video")
+    return render_template("nieuwe_advertentie.html", client=client, result=result, tab="video", test_mode=test_mode)
 
 
 @app.route("/client/<int:client_id>/nieuwe-advertentie/static", methods=["POST"])
@@ -2330,6 +2332,7 @@ Geef terug als JSON:
             }
         copy_data["naam"] = ad_naam
 
+    test_mode = request.form.get("test_mode") == "1"
     result = {
         "tab":           "static",
         "ad_naam":       ad_naam,
@@ -2347,17 +2350,13 @@ Geef terug als JSON:
         "cta":           copy_data.get("cta", ""),
         "ai_error":      copy_data.get("_error"),
     }
-    return render_template("nieuwe_advertentie.html", client=client, result=result, tab="static")
+    return render_template("nieuwe_advertentie.html", client=client, result=result, tab="static", test_mode=test_mode)
 
 
 @app.route("/client/<int:client_id>/nieuwe-advertentie/opslaan", methods=["POST"])
 @login_required
 def nieuwe_advertentie_opslaan(client_id):
     """Sla gegenereerde advertentie op in de database."""
-    if not db.is_available():
-        flash("Database niet beschikbaar.", "danger")
-        return redirect(url_for("client_profile", client_id=client_id))
-
     ad_naam      = request.form.get("ad_naam", "").strip()
     hook_type    = request.form.get("hook_type", "").strip()
     format_type  = request.form.get("format_type", "").strip()
@@ -2370,9 +2369,19 @@ def nieuwe_advertentie_opslaan(client_id):
     headline_2   = request.form.get("headline_2", "").strip()
     headline_3   = request.form.get("headline_3", "").strip()
     cta          = request.form.get("cta", "").strip()
+    test_mode    = request.form.get("test_mode") == "1"
 
     if not ad_naam:
         flash("Geen advertentienaam — opslaan geannuleerd.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    # TEST MODUS — sla niets op, stuur terug met melding
+    if test_mode:
+        flash(f"[TEST] Advertentie '{ad_naam}' zou hier worden opgeslagen — geen DB-schrijf uitgevoerd.", "warning")
+        return redirect(url_for("nieuwe_advertentie_get", client_id=client_id, test=1))
+
+    if not db.is_available():
+        flash("Database niet beschikbaar.", "danger")
         return redirect(url_for("client_profile", client_id=client_id))
 
     try:

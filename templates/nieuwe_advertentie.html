@@ -87,9 +87,19 @@
     {% endfor %}
   {% endwith %}
 
+  {% if test_mode %}
+  <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b;border-radius:12px;padding:.8rem 1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.7rem;">
+    <i class="bi bi-cone-striped" style="font-size:1.3rem;color:#d97706;"></i>
+    <div>
+      <div style="font-weight:800;color:#92400e;font-size:.9rem;">TEST MODUS — niets wordt opgeslagen</div>
+      <div style="font-size:.76rem;color:#b45309;">De volledige flow werkt normaal. Klik op "Opslaan" om te zien wat er zou gebeuren — de database wordt niet aangeraakt.</div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="mb-3">
     <h4 style="font-weight:800;color:#0f172a;margin-bottom:.2rem;">+ Nieuwe advertentie</h4>
-    <div style="color:#64748b;font-size:.84rem;">{{ client.name }}</div>
+    <div style="color:#64748b;font-size:.84rem;">{{ client.name }}{% if test_mode %} &nbsp;·&nbsp; <span style="color:#d97706;font-weight:700;">TEST</span>{% endif %}</div>
   </div>
 
   <!-- Tabs -->
@@ -109,6 +119,7 @@
       <div class="card-header-sln"><i class="bi bi-upload"></i> SRT bestand uploaden</div>
       <div class="p-4">
         <form method="POST" action="{{ url_for('nieuwe_advertentie_video', client_id=client.id) }}" enctype="multipart/form-data">
+          <input type="hidden" name="test_mode" value="{{ '1' if test_mode else '0' }}">
           <div class="mb-3">
             <div class="field-label">SRT bestand</div>
             <input type="file" name="srt_file" accept=".srt" required class="form-control" style="background:rgba(255,255,255,.8);border-radius:10px;">
@@ -128,6 +139,7 @@
       <div class="card-header-sln"><i class="bi bi-image"></i> Afbeelding uploaden</div>
       <div class="p-4">
         <form method="POST" action="{{ url_for('nieuwe_advertentie_static', client_id=client.id) }}" enctype="multipart/form-data">
+          <input type="hidden" name="test_mode" value="{{ '1' if test_mode else '0' }}">
           <div class="mb-3">
             <div class="field-label">Afbeelding (.jpg, .png, .webp — max 5MB)</div>
             <input type="file" name="img_file" accept=".jpg,.jpeg,.png,.webp" required class="form-control" style="background:rgba(255,255,255,.8);border-radius:10px;">
@@ -153,6 +165,7 @@
       <input type="hidden" name="format_type"   value="{{ result.tab }}">
       <input type="hidden" name="script"        value="{{ result.script }}">
       <input type="hidden" name="afbeelding_pad" value="{{ result.afbeelding_pad or '' }}">
+      <input type="hidden" name="test_mode"     value="{{ '1' if test_mode else '0' }}">
 
       <!-- Naam -->
       <div class="result-section">
@@ -212,8 +225,14 @@
 
       <!-- Opslaan -->
       <div class="d-flex gap-2 mt-3">
+        {% if test_mode %}
+        <button type="submit" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;padding:.6rem 1.5rem;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;">
+          <i class="bi bi-cone-striped me-1"></i> Test opslaan (geen DB-schrijf)
+        </button>
+        {% else %}
         <button type="submit" class="btn-primary-sln"><i class="bi bi-check-circle me-1"></i> Opslaan in systeem</button>
-        <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" class="btn-nav" style="padding:.55rem 1rem;">Nieuwe advertentie</a>
+        {% endif %}
+        <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id, test=1 if test_mode else 0) }}" class="btn-nav" style="padding:.55rem 1rem;">Nieuwe advertentie</a>
       </div>
     </form>
   </div>
