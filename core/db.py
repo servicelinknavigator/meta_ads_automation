@@ -30,7 +30,7 @@ def _get_pool():
         url += f"{sep}sslmode=require"
     try:
         from psycopg2 import pool as pg_pool
-        _pool = pg_pool.SimpleConnectionPool(1, 5, url)
+        _pool = pg_pool.ThreadedConnectionPool(2, 20, url)
         _pool_error = ""
         logger.info("DB pool created OK")
         return _pool
