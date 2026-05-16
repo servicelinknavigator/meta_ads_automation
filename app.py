@@ -2296,6 +2296,20 @@ def meta_debug(client_id):
     date_to  = date.today().isoformat()
     date_from = (date.today() - timedelta(days=30)).isoformat()
 
+    def _scrub(obj):
+        """Recursively remove access_token values from the response before display."""
+        if isinstance(obj, dict):
+            return {
+                k: ("[REDACTED]" if k == "access_token" else _scrub(v))
+                for k, v in obj.items()
+            }
+        if isinstance(obj, list):
+            return [_scrub(i) for i in obj]
+        if isinstance(obj, str) and "access_token=" in obj:
+            import re as _re
+            return _re.sub(r"access_token=[^&\"]+", "access_token=[REDACTED]", obj)
+        return obj
+
     def _call(label, url, params):
         try:
             r = _requests.get(url, params={**params, "access_token": token}, timeout=20)
@@ -2303,7 +2317,7 @@ def meta_debug(client_id):
                 "status_code": r.status_code,
                 "url":         url,
                 "params":      {k: v for k, v in params.items() if k != "access_token"},
-                "response":    r.json(),
+                "response":    _scrub(r.json()),
             }
         except Exception as e:
             results[label] = {"error": str(e), "url": url}
