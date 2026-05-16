@@ -160,10 +160,11 @@ def _compute_thresholds(form=None, client=None) -> dict:
         w = max(1, int(client["cpl_benchmark"]))
         m = max(w + 1, int(client["cpl_benchmark"] * 1.5))
         return {"winner": w, "mid": m, "preset": "auto", "from_benchmark": True}
-    return {"winner": 30, "mid": 50, "preset": "auto"}
+    return {"winner": 25, "mid": 50, "preset": "auto"}
 
 
-_LOW_SPEND_THRESHOLD = 30.0  # ads onder dit bedrag → "Te weinig data"
+_LOW_SPEND_THRESHOLD    = 25.0   # ads onder dit bedrag → uitgesloten van analyse
+_EARLY_SIGNAL_THRESHOLD = 50.0   # €25-50 → "Vroeg signaal", geen winner/loser
 
 
 def _process_df(rows: list, campaign_type_override: str = "",
@@ -239,7 +240,8 @@ def _process_df(rows: list, campaign_type_override: str = "",
     }
 
     # Ads met te weinig spend krijgen een label maar geen urgentie-melding
-    low_data_ads = {a.ad_name for a in all_ads if 0 < a.spend < _LOW_SPEND_THRESHOLD}
+    low_data_ads      = {a.ad_name for a in all_ads if 0 < a.spend < _LOW_SPEND_THRESHOLD}
+    early_signal_ads  = {a.ad_name for a in all_ads if _LOW_SPEND_THRESHOLD <= a.spend < _EARLY_SIGNAL_THRESHOLD}
 
     _ACTIVE_STATUSES = {"active", "actief", "learning", "lerende fase", "in leer", "learning limited"}
 
@@ -373,7 +375,8 @@ def _process_df(rows: list, campaign_type_override: str = "",
         "urgent_actions": urgent_actions,
         "unknown_ads":    unknown_ads,
         "tag_suggestions": tag_suggestions,
-        "low_data_ads":   list(low_data_ads),
+        "low_data_ads":      list(low_data_ads),
+        "early_signal_ads":  list(early_signal_ads),
         "ad_delivery_map": ad_delivery_map,
     }
 
@@ -511,20 +514,27 @@ def _load_rows_from_session() -> list | None:
 
 
 def _classify_ads(all_ads, summary):
+    """Returns (winners, losers, early_signals).
+    Only ads with spend >= €50 get winner/loser classification.
+    Ads with €25-€50 spend get the 'Vroeg signaal' label instead.
+    """
     is_leads = summary.campaign_type != "purchases"
+    reliable = [a for a in all_ads if a.spend >= _EARLY_SIGNAL_THRESHOLD]
+    early    = [a for a in all_ads if _LOW_SPEND_THRESHOLD <= a.spend < _EARLY_SIGNAL_THRESHOLD]
+
     if is_leads:
         avg = summary.avg_cost_per_result
-        winners = [a for a in all_ads if a.results > 0 and a.cost_per_result > 0 and a.cost_per_result < avg * 0.85]
-        losers  = [a for a in all_ads if a.results == 0 and a.spend > 50]
+        winners = [a for a in reliable if a.results > 0 and a.cost_per_result > 0 and a.cost_per_result < avg * 0.85]
+        losers  = [a for a in reliable if a.results == 0 and a.spend >= _EARLY_SIGNAL_THRESHOLD]
         if not winners:
-            winners = sorted([a for a in all_ads if a.results > 0], key=lambda x: x.cost_per_result)[:3]
+            winners = sorted([a for a in reliable if a.results > 0], key=lambda x: x.cost_per_result)[:3]
     else:
         avg = summary.avg_roas
-        winners = [a for a in all_ads if a.roas > avg * 1.2 and a.roas > 0]
-        losers  = [a for a in all_ads if a.roas < avg * 0.5 and a.spend > 50]
+        winners = [a for a in reliable if a.roas > avg * 1.2 and a.roas > 0]
+        losers  = [a for a in reliable if a.roas < avg * 0.5 and a.spend >= _EARLY_SIGNAL_THRESHOLD]
         if not winners:
-            winners = sorted([a for a in all_ads if a.roas > 0], key=lambda x: x.roas, reverse=True)[:3]
-    return winners[:4], losers[:3]
+            winners = sorted([a for a in reliable if a.roas > 0], key=lambda x: x.roas, reverse=True)[:3]
+    return winners[:4], losers[:3], early[:6]
 
 
 def _extract_patterns(winner_results: list) -> dict:
@@ -816,7 +826,7 @@ def client_merge_uploads(client_id):
         return redirect(url_for("client_profile", client_id=client_id))
 
     session.permanent = True
-    thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
+    thresholds = session.get("thresholds", {"winner": 25, "mid": 50, "preset": "auto"})
     session["thresholds"] = thresholds
     session["data_source"] = f"merged:{','.join(str(i) for i in upload_ids)}"
 
@@ -955,7 +965,7 @@ def client_load_upload(client_id, upload_id):
         return redirect(url_for("client_profile", client_id=client_id))
     # Keep the original upload_id in session so hooks/creative link to the right upload
     session["upload_id"] = upload_id
-    thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
+    thresholds = session.get("thresholds", {"winner": 25, "mid": 50, "preset": "auto"})
     client = db.get_client(client_id)
     return render_template("index.html", result=result, demo=False,
                            thresholds=thresholds, active_client=client,
@@ -1001,7 +1011,7 @@ def demo():
     if "error" in result:
         flash(result["error"], "danger")
         return redirect(url_for("index"))
-    thresholds = {"winner": 30, "mid": 50, "preset": "auto"}
+    thresholds = {"winner": 25, "mid": 50, "preset": "auto"}
     session.permanent = True
     session["data_source"] = "demo"
     session["thresholds"] = thresholds
@@ -1211,7 +1221,7 @@ def creative():
     campaigns = build_campaigns(rows)
     summary   = build_summary(rows, campaigns)
     all_ads   = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
-    winners, losers = _classify_ads(all_ads, summary)
+    winners, losers, early_signals = _classify_ads(all_ads, summary)
 
     winner_results = []
     for ad in winners:
@@ -1239,7 +1249,7 @@ def creative():
             loser_results.append({"ad": ad, "decoded": decoded})
 
     patterns   = _extract_patterns(winner_results)
-    thresholds = session.get("thresholds", {"winner": 30, "mid": 50, "preset": "auto"})
+    thresholds = session.get("thresholds", {"winner": 25, "mid": 50, "preset": "auto"})
     active_client = None
     if session.get("client_id") and db.is_available():
         try:
@@ -1251,6 +1261,7 @@ def creative():
         summary=summary,
         winners=winner_results,
         losers=loser_results,
+        early_signals=early_signals,
         patterns=patterns,
         thresholds=thresholds,
         is_demo=session.get("data_source") == "demo",
@@ -1334,7 +1345,7 @@ def hooks():
         except Exception as e:
             logger.warning("Shoot brief save failed: %s", e)
 
-    thresholds = session.get("thresholds", {"winner": 30, "mid": 50})
+    thresholds = session.get("thresholds", {"winner": 25, "mid": 50})
 
     return render_template(
         "hooks.html",
@@ -1981,6 +1992,552 @@ def _check_new_ads_after_upload(client_id: int | None, rows: list[dict]) -> None
         session[f"pending_new_ads_{client_id}"] = new_ads
     else:
         session.pop(f"pending_new_ads_{client_id}", None)
+
+
+# ── SRT / naam helpers ────────────────────────────────────────────────────────
+
+def _parse_srt(srt_text: str) -> str:
+    """Strip SRT timestamps and sequence numbers — return plain spoken text."""
+    import re as _re
+    lines = srt_text.splitlines()
+    out = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if line.isdigit():
+            continue
+        if _re.match(r"^\d{2}:\d{2}:\d{2}[,\.]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,\.]\d{3}$", line):
+            continue
+        out.append(line)
+    return " ".join(out).strip()
+
+
+def _next_version(client_id: int, hook_type: str, format_type: str) -> int:
+    """Haal het hoogste versienummer op voor hook+format en geef n+1 terug."""
+    try:
+        creatives = db.get_ad_creatives(client_id)
+        import re as _re
+        pattern = _re.compile(
+            rf"^{_re.escape(format_type)}-{_re.escape(hook_type)}-v(\d+)",
+            _re.IGNORECASE,
+        )
+        highest = 0
+        for naam in creatives:
+            m = pattern.match(naam)
+            if m:
+                highest = max(highest, int(m.group(1)))
+        return highest + 1
+    except Exception:
+        return 1
+
+
+def _slug_words(text: str, n: int = 3) -> str:
+    """Neem de eerste n 'echte' woorden uit een tekst en maak er een slug van."""
+    import re as _re
+    words = _re.findall(r"[a-zA-Z0-9À-ɏ]+", text)
+    return "-".join(w.lower() for w in words[:n])
+
+
+def _get_winning_copies(client_id: int, max_n: int = 5) -> list[str]:
+    """Laad de winnende ad_copy_1 velden gesorteerd op laagste CPL (heuristic: eerste paar)."""
+    try:
+        creatives = db.get_ad_creatives(client_id)
+        copies = [v["ad_copy_1"] for v in creatives.values() if v.get("ad_copy_1")]
+        return copies[:max_n]
+    except Exception:
+        return []
+
+
+# ── Nieuwe advertentie flow ────────────────────────────────────────────────────
+
+@app.route("/client/<int:client_id>/nieuwe-advertentie", methods=["GET"])
+@login_required
+def nieuwe_advertentie_get(client_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    session["client_id"] = client_id
+    return render_template("nieuwe_advertentie.html", client=client, result=None, tab="video")
+
+
+@app.route("/client/<int:client_id>/nieuwe-advertentie/video", methods=["POST"])
+@login_required
+def nieuwe_advertentie_video(client_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    srt_file = request.files.get("srt_file")
+    if not srt_file or not srt_file.filename.lower().endswith(".srt"):
+        flash("Upload een geldig .srt bestand.", "danger")
+        return render_template("nieuwe_advertentie.html", client=client, result=None, tab="video")
+
+    try:
+        srt_text = srt_file.read().decode("utf-8", errors="ignore")
+    except Exception as e:
+        flash(f"Bestand kon niet worden gelezen: {e}", "danger")
+        return render_template("nieuwe_advertentie.html", client=client, result=None, tab="video")
+
+    spoken_text = _parse_srt(srt_text)
+    if not spoken_text:
+        flash("Geen gesproken tekst gevonden in het SRT bestand.", "danger")
+        return render_template("nieuwe_advertentie.html", client=client, result=None, tab="video")
+
+    from core.ai_client import call_json, call_text, has_api
+    result = {}
+
+    # Stap 2 — Hook detectie
+    hook_data = {"hook_type": "proof", "hook_explanation": "", "core_promise": "", "pain_point": ""}
+    if has_api():
+        hook_prompt = f"""Dit is de gesproken tekst van een Meta advertentie video.
+Analyseer de openingszin en bepaal:
+1. Hook type (kies uit: recognition, frustration, curiosity, proof, promise, confrontation, urgency, problem_solve, social_proof, educational)
+2. Hook uitleg: waarom is dit dit hook type?
+3. Kernbelofte in 1 zin
+4. Aangesproken pijnpunt
+
+Gesproken tekst:
+{spoken_text[:1500]}
+
+Geef terug als JSON: hook_type, hook_explanation, core_promise, pain_point"""
+        hook_data = call_json(hook_prompt, max_tokens=600)
+        if "_error" in hook_data or not hook_data.get("hook_type"):
+            hook_data = {"hook_type": "proof", "hook_explanation": "Automatisch bepaald.", "core_promise": spoken_text[:80], "pain_point": ""}
+
+    hook_type    = hook_data.get("hook_type", "proof").lower().replace(" ", "_")
+    core_promise = hook_data.get("core_promise", "")
+
+    # Stap 3 — Versienummer
+    versie = _next_version(client_id, hook_type, "reels")
+
+    # Stap 4 — Naam genereren
+    slug = _slug_words(core_promise, 3) or "advertentie"
+    ad_naam = f"reels-{hook_type}-v{versie}-{slug}"
+
+    # Stap 5 — Copy genereren
+    winning_copies = _get_winning_copies(client_id)
+    client_context = client.get("client_context") or ""
+    cross_client   = []
+    try:
+        industry = client.get("industry", "")
+        if industry and db.is_available():
+            cross_client = db.get_industry_cross_client_data(industry, exclude_client_id=client_id)
+    except Exception:
+        pass
+
+    copy_data = {
+        "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
+        "headline_1": "", "headline_2": "", "headline_3": "",
+        "cta": "Plan een gratis gesprek", "naam": ad_naam,
+    }
+    if has_api():
+        cross_lines = "\n".join(
+            f"  {r['hook_type']} / {r.get('format_type','?')}: CPL €{r['cpl']} ({r['results']} resultaten)"
+            for r in cross_client[:5] if r.get("cpl")
+        ) if cross_client else "geen data"
+        prev_copies = "\n".join(f"  - {c}" for c in winning_copies) if winning_copies else "geen beschikbaar"
+        copy_prompt = f"""Je bent een performance copywriter voor Meta Ads.
+Schrijf vanuit klantperspectief (ik, niet jij).
+Geen marketingclichés. Conversationele toon. Geen em-dashes.
+
+Video tekst:
+{spoken_text[:2000]}
+
+Hook type: {hook_type}
+Kernbelofte: {core_promise}
+Aangesproken pijnpunt: {hook_data.get('pain_point', '')}
+
+Klantcontext / ICP:
+{client_context[:600] if client_context else 'niet opgegeven'}
+
+Winnende copy voorbeelden (schrijfstijl als referentie):
+{prev_copies}
+
+Cross-client branchedata (zelfde branche):
+{cross_lines}
+
+Geef terug als JSON:
+{{
+  "ad_copy_1": "body tekst variant 1 (bewezen aanpak, op basis van winnende copy stijl)",
+  "ad_copy_2": "body tekst variant 2 (andere invalshoek)",
+  "ad_copy_3": "body tekst kortste variant, max 20 woorden",
+  "headline_1": "max 8 woorden, punchig",
+  "headline_2": "alternatieve headline",
+  "headline_3": "vraagvorm headline",
+  "cta": "call-to-action tekst",
+  "naam": "{ad_naam}"
+}}"""
+        copy_data = call_json(copy_prompt, max_tokens=1200)
+        if "_error" in copy_data or not copy_data.get("ad_copy_1"):
+            copy_data = {
+                "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
+                "headline_1": "", "headline_2": "", "headline_3": "",
+                "cta": "Plan een gratis gesprek", "naam": ad_naam,
+                "_error": copy_data.get("_error", "AI niet beschikbaar"),
+            }
+        copy_data["naam"] = ad_naam
+
+    result = {
+        "tab":             "video",
+        "ad_naam":         ad_naam,
+        "hook_type":       hook_type,
+        "hook_explanation": hook_data.get("hook_explanation", ""),
+        "core_promise":    core_promise,
+        "pain_point":      hook_data.get("pain_point", ""),
+        "script":          spoken_text,
+        "ad_copy_1":       copy_data.get("ad_copy_1", ""),
+        "ad_copy_2":       copy_data.get("ad_copy_2", ""),
+        "ad_copy_3":       copy_data.get("ad_copy_3", ""),
+        "headline_1":      copy_data.get("headline_1", ""),
+        "headline_2":      copy_data.get("headline_2", ""),
+        "headline_3":      copy_data.get("headline_3", ""),
+        "cta":             copy_data.get("cta", ""),
+        "ai_error":        copy_data.get("_error"),
+    }
+    return render_template("nieuwe_advertentie.html", client=client, result=result, tab="video")
+
+
+@app.route("/client/<int:client_id>/nieuwe-advertentie/static", methods=["POST"])
+@login_required
+def nieuwe_advertentie_static(client_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    img_file = request.files.get("img_file")
+    allowed_ext = {".jpg", ".jpeg", ".png", ".webp"}
+    if not img_file or not any(img_file.filename.lower().endswith(ext) for ext in allowed_ext):
+        flash("Upload een .jpg, .png of .webp afbeelding (max 5MB).", "danger")
+        return render_template("nieuwe_advertentie.html", client=client, result=None, tab="static")
+
+    img_data  = img_file.read()
+    if len(img_data) > 5 * 1024 * 1024:
+        flash("Afbeelding is groter dan 5MB.", "danger")
+        return render_template("nieuwe_advertentie.html", client=client, result=None, tab="static")
+
+    ext = img_file.filename.rsplit(".", 1)[-1].lower()
+    media_type_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
+    media_type = media_type_map.get(ext, "image/jpeg")
+
+    from core.ai_client import call_json_with_image, call_json, has_api
+
+    # Sla afbeelding op
+    import uuid as _uuid
+    img_filename = f"{client_id}_{_uuid.uuid4().hex[:8]}.{ext}"
+    img_path = UPLOAD_FOLDER / img_filename
+    try:
+        img_path.write_bytes(img_data)
+        afbeelding_pad = str(img_path)
+    except Exception:
+        afbeelding_pad = ""
+
+    # Stap 1 — Vision analyse
+    hook_type    = "proof"
+    visual_summary = ""
+    pain_point   = ""
+    client_context = client.get("client_context") or ""
+    hook_data_raw = {}
+    if has_api():
+        try:
+            hook_perf_lines = ""
+            if db.is_available():
+                from core.hook_analyzer import aggregate_hook_performance
+                pass  # hook perf vereist ads uit CSV — gebruik client context
+            vision_prompt = f"""Analyseer deze Meta advertentie afbeelding.
+Bepaal: hook_type, visuele boodschap, aangesproken pijnpunt.
+
+Klantcontext / ICP:
+{client_context[:500] if client_context else 'niet opgegeven'}
+
+Geef terug als JSON: hook_type (kies uit: recognition, frustration, curiosity, proof, promise, confrontation, urgency, problem_solve, social_proof, educational), visual_summary, pain_point"""
+            hook_data_raw = call_json_with_image(vision_prompt, img_data, media_type=media_type, max_tokens=600)
+            if not hook_data_raw.get("_error"):
+                hook_type     = hook_data_raw.get("hook_type", "proof").lower().replace(" ", "_")
+                visual_summary = hook_data_raw.get("visual_summary", "")
+                pain_point    = hook_data_raw.get("pain_point", "")
+        except Exception as e:
+            logger.warning("Vision analyse mislukt: %s", e)
+
+    # Stap 2 — Versienummer
+    versie = _next_version(client_id, hook_type, "static")
+
+    # Stap 3 — Naam genereren
+    slug    = _slug_words(visual_summary, 3) or "advertentie"
+    ad_naam = f"static-{hook_type}-v{versie}-{slug}"
+
+    # Stap 4 — Copy genereren
+    winning_copies = _get_winning_copies(client_id)
+    cross_client   = []
+    try:
+        industry = client.get("industry", "")
+        if industry and db.is_available():
+            cross_client = db.get_industry_cross_client_data(industry, exclude_client_id=client_id)
+    except Exception:
+        pass
+
+    copy_data = {
+        "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
+        "headline_1": "", "headline_2": "", "headline_3": "",
+        "cta": "Plan een gratis gesprek", "naam": ad_naam,
+    }
+    if has_api():
+        cross_lines = "\n".join(
+            f"  {r['hook_type']} / {r.get('format_type','?')}: CPL €{r['cpl']} ({r['results']} resultaten)"
+            for r in cross_client[:5] if r.get("cpl")
+        ) if cross_client else "geen data"
+        prev_copies = "\n".join(f"  - {c}" for c in winning_copies) if winning_copies else "geen beschikbaar"
+        copy_prompt = f"""Je bent een performance copywriter voor Meta Ads.
+Schrijf vanuit klantperspectief (ik, niet jij).
+Geen marketingclichés. Conversationele toon. Geen em-dashes.
+
+Visuele samenvatting afbeelding:
+{visual_summary[:1000]}
+
+Hook type: {hook_type}
+Aangesproken pijnpunt: {pain_point}
+
+Klantcontext / ICP:
+{client_context[:600] if client_context else 'niet opgegeven'}
+
+Winnende copy voorbeelden (schrijfstijl als referentie):
+{prev_copies}
+
+Cross-client branchedata (zelfde branche):
+{cross_lines}
+
+Geef terug als JSON:
+{{
+  "ad_copy_1": "body tekst variant 1",
+  "ad_copy_2": "body tekst variant 2 (andere invalshoek)",
+  "ad_copy_3": "kortste variant, max 20 woorden",
+  "headline_1": "max 8 woorden, punchig",
+  "headline_2": "alternatieve headline",
+  "headline_3": "vraagvorm headline",
+  "cta": "call-to-action tekst",
+  "naam": "{ad_naam}"
+}}"""
+        copy_data = call_json(copy_prompt, max_tokens=1200)
+        if "_error" in copy_data or not copy_data.get("ad_copy_1"):
+            copy_data = {
+                "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
+                "headline_1": "", "headline_2": "", "headline_3": "",
+                "cta": "Plan een gratis gesprek", "naam": ad_naam,
+                "_error": copy_data.get("_error", "AI niet beschikbaar"),
+            }
+        copy_data["naam"] = ad_naam
+
+    result = {
+        "tab":           "static",
+        "ad_naam":       ad_naam,
+        "hook_type":     hook_type,
+        "visual_summary": visual_summary,
+        "pain_point":    pain_point,
+        "script":        visual_summary,
+        "afbeelding_pad": afbeelding_pad,
+        "ad_copy_1":     copy_data.get("ad_copy_1", ""),
+        "ad_copy_2":     copy_data.get("ad_copy_2", ""),
+        "ad_copy_3":     copy_data.get("ad_copy_3", ""),
+        "headline_1":    copy_data.get("headline_1", ""),
+        "headline_2":    copy_data.get("headline_2", ""),
+        "headline_3":    copy_data.get("headline_3", ""),
+        "cta":           copy_data.get("cta", ""),
+        "ai_error":      copy_data.get("_error"),
+    }
+    return render_template("nieuwe_advertentie.html", client=client, result=result, tab="static")
+
+
+@app.route("/client/<int:client_id>/nieuwe-advertentie/opslaan", methods=["POST"])
+@login_required
+def nieuwe_advertentie_opslaan(client_id):
+    """Sla gegenereerde advertentie op in de database."""
+    if not db.is_available():
+        flash("Database niet beschikbaar.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    ad_naam      = request.form.get("ad_naam", "").strip()
+    hook_type    = request.form.get("hook_type", "").strip()
+    format_type  = request.form.get("format_type", "").strip()
+    script       = request.form.get("script", "").strip()
+    afbeelding   = request.form.get("afbeelding_pad", "").strip()
+    ad_copy_1    = request.form.get("ad_copy_1", "").strip()
+    ad_copy_2    = request.form.get("ad_copy_2", "").strip()
+    ad_copy_3    = request.form.get("ad_copy_3", "").strip()
+    headline_1   = request.form.get("headline_1", "").strip()
+    headline_2   = request.form.get("headline_2", "").strip()
+    headline_3   = request.form.get("headline_3", "").strip()
+    cta          = request.form.get("cta", "").strip()
+
+    if not ad_naam:
+        flash("Geen advertentienaam — opslaan geannuleerd.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    try:
+        db.upsert_ad_creative(
+            client_id=client_id,
+            ad_naam=ad_naam,
+            script=script,
+            headline=headline_1,
+            headline_2=headline_2,
+            headline_3=headline_3,
+            ad_copy_1=ad_copy_1,
+            ad_copy_2=ad_copy_2,
+            ad_copy_3=ad_copy_3,
+            afbeelding_pad=afbeelding,
+            hook_type=hook_type,
+            format_type=format_type,
+        )
+        # Sla hook_type ook op in ad_name_mappings
+        if hook_type:
+            try:
+                db.save_ad_name_mappings(client_id, [{"ad_name": ad_naam, "hook_type": hook_type, "format_type": format_type}])
+            except Exception:
+                pass
+        flash(f"Advertentie '{ad_naam}' opgeslagen.", "success")
+    except Exception as e:
+        flash(f"Opslaan mislukt: {e}", "danger")
+
+    return redirect(url_for("advertentie_geschiedenis", client_id=client_id))
+
+
+# ── Advertentiegeschiedenis ────────────────────────────────────────────────────
+
+@app.route("/client/<int:client_id>/advertentie-geschiedenis")
+@login_required
+def advertentie_geschiedenis(client_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    session["client_id"] = client_id
+
+    creatives = db.get_ad_creatives_list(client_id) if db.is_available() else []
+
+    # Haal performance data op uit de meest recente upload voor CPL/classificatie
+    ad_performance: dict[str, dict] = {}
+    try:
+        uploads = db.get_uploads(client_id)
+        if uploads:
+            csv_content = db.get_upload_csv_content(uploads[0]["id"])
+            if csv_content:
+                from core.csv_parser import parse_csv_string
+                from core.analysis import build_campaigns, build_summary, get_all_ads
+                rows = filter_zero_spend(parse_csv_string(csv_content))
+                if rows:
+                    camps = build_campaigns(rows)
+                    summ  = build_summary(rows, camps)
+                    all_ads = get_all_ads(camps)
+                    winners, losers, early = _classify_ads(all_ads, summ)
+                    winner_names  = {a.ad_name for a in winners}
+                    loser_names   = {a.ad_name for a in losers}
+                    early_names   = {a.ad_name for a in early}
+                    for ad in all_ads:
+                        cpl = ad.cost_per_result if ad.results > 0 else None
+                        if ad.ad_name in winner_names:
+                            label = "winner"
+                        elif ad.ad_name in loser_names:
+                            label = "loser"
+                        elif ad.ad_name in early_names:
+                            label = "vroeg_signaal"
+                        else:
+                            label = "middenmoter"
+                        ad_performance[ad.ad_name] = {
+                            "cpl": round(cpl, 2) if cpl else None,
+                            "spend": round(ad.spend, 2),
+                            "results": ad.results,
+                            "label": label,
+                        }
+    except Exception:
+        pass
+
+    # Voeg meldingen toe aan elke creative
+    for cr in creatives:
+        naam  = cr.get("ad_naam", "")
+        perf  = ad_performance.get(naam, {})
+        has_script   = bool(cr.get("script"))
+        has_copy     = bool(cr.get("ad_copy_1"))
+        has_headline = bool(cr.get("headline"))
+        if not has_script and not has_copy and not has_headline:
+            cr["melding"] = "Nog geen content — voeg toe via Nieuwe advertentie"
+            cr["melding_type"] = "leeg"
+        elif has_script and not has_copy and not has_headline:
+            cr["melding"] = "Script aanwezig — copy en headlines ontbreken nog"
+            cr["melding_type"] = "deels"
+        elif has_script and has_copy and not has_headline:
+            cr["melding"] = "Headlines ontbreken nog"
+            cr["melding_type"] = "bijna"
+        else:
+            cr["melding"] = ""
+            cr["melding_type"] = "compleet"
+        cr["cpl"]    = perf.get("cpl")
+        cr["spend"]  = perf.get("spend")
+        cr["results"] = perf.get("results")
+        cr["label"]  = perf.get("label")
+
+    return render_template("advertentie_geschiedenis.html",
+                           client=client, creatives=creatives)
+
+
+# ── Static brief ──────────────────────────────────────────────────────────────
+
+@app.route("/client/<int:client_id>/static-brief")
+@login_required
+def static_brief(client_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+    session["client_id"] = client_id
+
+    hook_perf     = []
+    untested_hooks = []
+    static_recs   = []
+
+    try:
+        uploads = db.get_uploads(client_id)
+        if uploads:
+            csv_content = db.get_upload_csv_content(uploads[0]["id"])
+            if csv_content:
+                from core.csv_parser import parse_csv_string
+                from core.analysis import build_campaigns, build_summary, get_all_ads
+                from core.hook_analyzer import aggregate_hook_performance, get_untested_hooks
+                rows = filter_zero_spend(parse_csv_string(csv_content))
+                if rows:
+                    camps = build_campaigns(rows)
+                    summ  = build_summary(rows, camps)
+                    all_ads = get_all_ads(camps)
+                    name_overrides = _load_name_overrides()
+                    hook_perf = aggregate_hook_performance(all_ads, overrides=name_overrides)
+                    # Welke hooks zijn NIET als static getest?
+                    creatives = db.get_ad_creatives(client_id)
+                    tested_static_hooks = {
+                        v.get("hook_type") for v in creatives.values()
+                        if v.get("hook_type") and v.get("format_type") == "static"
+                    }
+                    untested_hooks = [
+                        r for r in hook_perf
+                        if r["hook_type"] not in tested_static_hooks and r["hook_type"] != "unknown"
+                    ]
+                    # Aanbevolen statics: hoogst presterende hooks eerst
+                    for row in hook_perf[:6]:
+                        if row.get("results") and row["results"] > 0 and row["hook_type"] != "unknown":
+                            static_recs.append({
+                                "hook_type":    row["hook_type"],
+                                "cpl":          row.get("cpl"),
+                                "results":      row.get("results"),
+                                "already_static": row["hook_type"] in tested_static_hooks,
+                            })
+    except Exception:
+        pass
+
+    return render_template("static_brief.html",
+                           client=client,
+                           hook_perf=hook_perf,
+                           untested_hooks=untested_hooks,
+                           static_recs=static_recs)
 
 
 # ── Meta API integration ──────────────────────────────────────────────────────
