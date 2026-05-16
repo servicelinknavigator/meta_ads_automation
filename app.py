@@ -2013,25 +2013,22 @@ def _parse_srt(srt_text: str) -> str:
     return " ".join(out).strip()
 
 
-def _smart_version(client_id: int, format_type: str, hook_type: str, slug: str) -> int:
+def _smart_version(client_id: int, format_type: str, hook_type: str) -> int:
     """
-    Bepaal versienummer door slug-woorden (3 kernwoorden) te vergelijken met
-    bestaande ad-namen.  Minimaal 2 van de 3 slug-woorden moeten matchen.
-    Geeft hoogste overeenkomende versie + 1 terug, of 1 als er geen match is.
+    Versienummer op basis van format + hook_type in bestaande ad_creatives.
+    Herkent beide schrijfwijzen (met/zonder spaties rondom koppeltekens).
+    Normaliseer → lowercase, spaties rond '-' verwijderd, dan prefix match.
     """
     import re as _re
     try:
         creatives = db.get_ad_creatives(client_id)
-        candidate_words = set(slug.split("-")) - {""}
+        prefix = f"{format_type.lower()}-{hook_type.lower()}-v"
         highest = 0
         for naam in creatives:
-            m = _re.search(r"-v(\d+)-(.*)", naam, _re.IGNORECASE)
-            if not m:
-                continue
-            version_num = int(m.group(1))
-            existing_slug_words = set(m.group(2).split("-")) - {""}
-            if len(candidate_words & existing_slug_words) >= 2:
-                highest = max(highest, version_num)
+            normalized = _re.sub(r"\s*-\s*", "-", naam.lower())
+            m = _re.match(rf"^{_re.escape(prefix)}(\d+)", normalized)
+            if m:
+                highest = max(highest, int(m.group(1)))
         return highest + 1
     except Exception:
         return 1
@@ -2149,7 +2146,7 @@ Geef terug als JSON: hook_type, hook_explanation, core_promise, pain_point"""
 
     # Stap 4 — Naam genereren met slimme versiedetectie op basis van kernbelofte
     slug    = _slug_words(core_promise, 3) or _slug_words(spoken_text, 3) or "advertentie"
-    versie  = _smart_version(client_id, "reels", hook_type, slug)
+    versie  = _smart_version(client_id, "reels", hook_type)
     ad_naam = f"reels-{hook_type}-v{versie}-{slug}"
 
     # Stap 5 — Copy genereren
@@ -2278,7 +2275,7 @@ def nieuwe_advertentie_static(client_id):
 
     # Stap 2 — Naam genereren op basis van letterlijke afbeeldingstekst (stopwoorden gefilterd)
     slug    = _slug_words(visual_summary, 3) or "advertentie"
-    versie  = _smart_version(client_id, "static", hook_type, slug)
+    versie  = _smart_version(client_id, "static", hook_type)
     ad_naam = f"static-{hook_type}-v{versie}-{slug}"
 
     # Stap 4 — Copy genereren
