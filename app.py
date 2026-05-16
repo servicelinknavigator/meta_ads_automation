@@ -2272,6 +2272,70 @@ def sync_meta(client_id):
     return redirect(url_for("meta_status", client_id=client_id))
 
 
+@app.route("/client/<int:client_id>/meta-debug")
+@login_required
+def meta_debug(client_id):
+    """
+    Debug route: show raw Meta API responses for the stored token.
+    Hits /me/adaccounts and the hardcoded test account's /ads endpoint.
+    Never used in production flows — diagnostic only.
+    """
+    import json as _json
+    import requests as _requests
+
+    results = {}
+
+    connection = db.get_meta_connection(client_id) if db.is_available() else None
+    if not connection:
+        return "<pre>Geen Meta verbinding gevonden voor deze klant.</pre>", 404
+
+    token = _decrypt_token(connection["access_token"])
+    base  = "https://graph.facebook.com/v19.0"
+
+    def _call(label, url, params):
+        try:
+            r = _requests.get(url, params={**params, "access_token": token}, timeout=20)
+            results[label] = {
+                "status_code": r.status_code,
+                "url":         url,
+                "params":      {k: v for k, v in params.items()},
+                "response":    r.json(),
+            }
+        except Exception as e:
+            results[label] = {"error": str(e), "url": url}
+
+    _call(
+        "GET /me/adaccounts",
+        f"{base}/me/adaccounts",
+        {"fields": "id,name,account_status,currency,timezone_name"},
+    )
+    _call(
+        "GET /act_498627026217281/ads",
+        f"{base}/act_498627026217281/ads",
+        {"fields": "id,name,status", "limit": 5},
+    )
+
+    pretty = _json.dumps(results, indent=2, ensure_ascii=False, default=str)
+    html = (
+        f"<!DOCTYPE html><html><head>"
+        f"<meta charset='UTF-8'>"
+        f"<title>Meta debug — client {client_id}</title>"
+        f"<style>"
+        f"body{{background:#0f172a;color:#e2e8f0;font-family:monospace;padding:2rem;}}"
+        f"h1{{color:#ff5c2b;font-size:1.1rem;margin-bottom:1.5rem;}}"
+        f"pre{{background:#1e293b;padding:1.5rem;border-radius:12px;"
+        f"overflow-x:auto;font-size:.82rem;line-height:1.6;white-space:pre-wrap;}}"
+        f".warn{{color:#fbbf24;font-size:.78rem;margin-bottom:1rem;}}"
+        f"</style></head><body>"
+        f"<h1>Meta API debug — client {client_id}</h1>"
+        f"<p class='warn'>⚠ Deze pagina toont het access token niet, "
+        f"maar de responses bevatten account-IDs. Deel deze output niet publiekelijk.</p>"
+        f"<pre>{pretty}</pre>"
+        f"</body></html>"
+    )
+    return html, 200
+
+
 @app.route("/sync-all")
 def sync_all():
     """
