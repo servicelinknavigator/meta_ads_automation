@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nieuwe advertentie — {{ client.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent: #ff5c2b; --accent2: #ff8c5a;
+      --glass: rgba(255,255,255,.72); --glass-border: rgba(255,255,255,.55);
+      --blur: blur(28px) saturate(200%);
+      --radius-lg: 20px; --radius-md: 14px;
+      --shadow-card: 0 4px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+    body { background-color: #e8eaf6; min-height: 100vh; color: #0f172a; }
+    body { background-image:
+      radial-gradient(ellipse 70% 55% at 15% 8%, rgba(99,102,241,.22) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 45% at 85% 18%, rgba(255,92,43,.16) 0%, transparent 50%),
+      linear-gradient(160deg, #e8eaf6 0%, #dde1f5 100%); }
+
+    .sln-nav {
+      background: rgba(6,13,26,.84); backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.07); padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg,#ff5c2b,#ff8c5a); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; color:#fff; }
+    .sln-logo-text { color:#fff; font-weight:700; font-size:15px; }
+    .btn-nav { background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); border:1px solid rgba(255,255,255,.14); padding:.35rem .9rem; border-radius:8px; font-size:.78rem; font-weight:500; text-decoration:none; transition:all .15s; }
+    .btn-nav:hover { background:rgba(255,255,255,.14); color:#fff; }
+
+    .card-sln { background: var(--glass); backdrop-filter: var(--blur); border: 1px solid var(--glass-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+    .card-header-sln { background: linear-gradient(135deg,rgba(6,13,26,.75),rgba(26,42,76,.7)); color:#fff; padding:.7rem 1.1rem; font-weight:700; font-size:.83rem; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,.08); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+
+    .tab-btn { background:rgba(255,255,255,.35); border:1px solid rgba(255,255,255,.5); color:#374151; padding:.5rem 1.4rem; border-radius:10px; font-size:.82rem; font-weight:600; cursor:pointer; transition:all .15s; text-decoration:none; }
+    .tab-btn.active, .tab-btn:hover { background:linear-gradient(135deg,#ff5c2b,#ff8c5a); color:#fff; border-color:transparent; box-shadow:0 4px 14px rgba(255,92,43,.3); }
+
+    .field-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#64748b; margin-bottom:.3rem; }
+    .copy-area { width:100%; border:1px solid rgba(0,0,0,.1); border-radius:10px; padding:.7rem .9rem; font-size:.84rem; background:rgba(255,255,255,.8); resize:vertical; min-height:80px; }
+    .copy-area:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,92,43,.12); }
+    .copy-row { display:flex; gap:.5rem; align-items:flex-start; }
+    .btn-copy { background:rgba(255,255,255,.7); border:1px solid rgba(0,0,0,.1); border-radius:8px; padding:.4rem .7rem; font-size:.75rem; font-weight:600; color:#374151; cursor:pointer; transition:all .15s; flex-shrink:0; }
+    .btn-copy:hover { background:#fff; color:var(--accent); }
+    .btn-copy.copied { background:#ecfdf5; color:#059669; border-color:#059669; }
+
+    .naam-badge { background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(255,92,43,.08)); border:1px solid rgba(99,102,241,.2); border-radius:10px; padding:.6rem 1rem; font-family:monospace; font-size:.9rem; font-weight:700; color:#1e3a8a; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+    .hook-pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.72rem; font-weight:600; }
+    .hook-proof    { background:#eff6ff; color:#1d4ed8; }
+    .hook-promise  { background:#f0fdf4; color:#15803d; }
+    .hook-frustration { background:#fef2f2; color:#dc2626; }
+    .hook-curiosity { background:#fffbeb; color:#d97706; }
+    .hook-recognition { background:#f5f3ff; color:#7c3aed; }
+    .hook-default  { background:#f1f5f9; color:#475569; }
+
+    .result-section { background:rgba(255,255,255,.6); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.7); border-radius:var(--radius-md); padding:1.2rem; margin-bottom:1rem; }
+    .result-section h6 { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#64748b; margin-bottom:.8rem; }
+    .btn-primary-sln { background:linear-gradient(135deg,#ff5c2b,#ff8c5a); color:#fff; border:none; padding:.6rem 1.5rem; border-radius:10px; font-size:.85rem; font-weight:700; cursor:pointer; transition:all .15s; }
+    .btn-primary-sln:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,92,43,.4); }
+    .alert-ai-error { background:#fef2f2; border:1px solid rgba(220,38,38,.2); border-radius:10px; padding:.8rem 1rem; color:#dc2626; font-size:.82rem; margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+
+<nav class="sln-nav">
+  <a href="{{ url_for('clients') }}" class="sln-logo">
+    <div class="sln-logo-icon">SLN</div>
+    <div><div class="sln-logo-text">Meta Ads</div></div>
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('client_profile', client_id=client.id) }}" class="btn-nav">← {{ client.name }}</a>
+    <a href="{{ url_for('advertentie_geschiedenis', client_id=client.id) }}" class="btn-nav">Geschiedenis</a>
+  </div>
+</nav>
+
+<div class="container-xxl py-4" style="max-width:860px;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'danger' if cat == 'danger' else 'success' if cat == 'success' else 'info' }} alert-dismissible fade show mb-3" role="alert">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="mb-3">
+    <h4 style="font-weight:800;color:#0f172a;margin-bottom:.2rem;">+ Nieuwe advertentie</h4>
+    <div style="color:#64748b;font-size:.84rem;">{{ client.name }}</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="d-flex gap-2 mb-4">
+    <a href="#" class="tab-btn {% if tab == 'video' %}active{% endif %}" onclick="switchTab('video');return false;">
+      <i class="bi bi-camera-video me-1"></i> Video (SRT)
+    </a>
+    <a href="#" class="tab-btn {% if tab == 'static' %}active{% endif %}" onclick="switchTab('static');return false;">
+      <i class="bi bi-image me-1"></i> Static (afbeelding)
+    </a>
+  </div>
+
+  <!-- Tab: Video -->
+  <div id="tab-video" {% if tab != 'video' %}style="display:none"{% endif %}>
+    {% if not result or result.tab != 'video' %}
+    <div class="card-sln">
+      <div class="card-header-sln"><i class="bi bi-upload"></i> SRT bestand uploaden</div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('nieuwe_advertentie_video', client_id=client.id) }}" enctype="multipart/form-data">
+          <div class="mb-3">
+            <div class="field-label">SRT bestand</div>
+            <input type="file" name="srt_file" accept=".srt" required class="form-control" style="background:rgba(255,255,255,.8);border-radius:10px;">
+            <div style="font-size:.75rem;color:#94a3b8;margin-top:.3rem;">Upload het .srt ondertitelbestand van de video</div>
+          </div>
+          <button type="submit" class="btn-primary-sln"><i class="bi bi-magic me-1"></i> Analyseer en genereer</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tab: Static -->
+  <div id="tab-static" {% if tab != 'static' %}style="display:none"{% endif %}>
+    {% if not result or result.tab != 'static' %}
+    <div class="card-sln">
+      <div class="card-header-sln"><i class="bi bi-image"></i> Afbeelding uploaden</div>
+      <div class="p-4">
+        <form method="POST" action="{{ url_for('nieuwe_advertentie_static', client_id=client.id) }}" enctype="multipart/form-data">
+          <div class="mb-3">
+            <div class="field-label">Afbeelding (.jpg, .png, .webp — max 5MB)</div>
+            <input type="file" name="img_file" accept=".jpg,.jpeg,.png,.webp" required class="form-control" style="background:rgba(255,255,255,.8);border-radius:10px;">
+          </div>
+          <button type="submit" class="btn-primary-sln"><i class="bi bi-magic me-1"></i> Analyseer en genereer</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Resultaat -->
+  {% if result %}
+  <div class="mt-4">
+
+    {% if result.ai_error %}
+    <div class="alert-ai-error"><i class="bi bi-exclamation-triangle me-1"></i> AI-fout: {{ result.ai_error }} — velden zijn leeg maar u kunt zelf invullen.</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('nieuwe_advertentie_opslaan', client_id=client.id) }}">
+      <input type="hidden" name="ad_naam"       value="{{ result.ad_naam }}">
+      <input type="hidden" name="hook_type"     value="{{ result.hook_type }}">
+      <input type="hidden" name="format_type"   value="{{ result.tab }}">
+      <input type="hidden" name="script"        value="{{ result.script }}">
+      <input type="hidden" name="afbeelding_pad" value="{{ result.afbeelding_pad or '' }}">
+
+      <!-- Naam -->
+      <div class="result-section">
+        <h6><i class="bi bi-tag me-1"></i> Gegenereerde naam</h6>
+        <div class="naam-badge">
+          <span>{{ result.ad_naam }}</span>
+          <button type="button" class="btn-copy" onclick="copyText('{{ result.ad_naam }}', this)"><i class="bi bi-clipboard me-1"></i>Kopieer</button>
+        </div>
+        {% if result.hook_type %}
+        <div class="mt-2">
+          <span class="hook-pill hook-{{ result.hook_type }} hook-default">{{ result.hook_type }}</span>
+          {% if result.hook_explanation %}
+          <span style="font-size:.78rem;color:#64748b;margin-left:.5rem;">{{ result.hook_explanation }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Copy -->
+      <div class="result-section">
+        <h6><i class="bi bi-chat-text me-1"></i> Body copy</h6>
+        {% for i in range(1, 4) %}
+        {% set copy_val = result['ad_copy_' ~ i] %}
+        <div class="mb-3">
+          <div class="field-label">Variant {{ i }}{% if i == 3 %} (kort){% endif %}</div>
+          <div class="copy-row">
+            <textarea name="ad_copy_{{ i }}" class="copy-area">{{ copy_val }}</textarea>
+            <button type="button" class="btn-copy" onclick="copyField('ad_copy_{{ i }}', this)"><i class="bi bi-clipboard"></i></button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Headlines -->
+      <div class="result-section">
+        <h6><i class="bi bi-type-bold me-1"></i> Headlines</h6>
+        {% for i in range(1, 4) %}
+        {% set hl_val = result['headline_' ~ i] %}
+        <div class="mb-3">
+          <div class="field-label">Headline {{ i }}{% if i == 3 %} (vraagvorm){% endif %}</div>
+          <div class="copy-row">
+            <textarea name="headline_{{ i }}" class="copy-area" style="min-height:50px;">{{ hl_val }}</textarea>
+            <button type="button" class="btn-copy" onclick="copyField('headline_{{ i }}', this)"><i class="bi bi-clipboard"></i></button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- CTA -->
+      <div class="result-section">
+        <h6><i class="bi bi-cursor me-1"></i> CTA</h6>
+        <div class="copy-row">
+          <textarea name="cta" class="copy-area" style="min-height:50px;">{{ result.cta }}</textarea>
+          <button type="button" class="btn-copy" onclick="copyField('cta', this)"><i class="bi bi-clipboard"></i></button>
+        </div>
+      </div>
+
+      <!-- Opslaan -->
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn-primary-sln"><i class="bi bi-check-circle me-1"></i> Opslaan in systeem</button>
+        <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" class="btn-nav" style="padding:.55rem 1rem;">Nieuwe advertentie</a>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function switchTab(tab) {
+  document.getElementById('tab-video').style.display = tab === 'video' ? '' : 'none';
+  document.getElementById('tab-static').style.display = tab === 'static' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.closest('.tab-btn').classList.add('active');
+}
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<i class="bi bi-check me-1"></i>Gekopieerd';
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Kopieer'; }, 2000);
+  });
+}
+function copyField(name, btn) {
+  const el = document.querySelector('[name="' + name + '"]');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<i class="bi bi-check"></i>';
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

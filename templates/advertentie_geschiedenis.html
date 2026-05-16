@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advertentiegeschiedenis — {{ client.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent: #ff5c2b; --accent2: #ff8c5a;
+      --glass: rgba(255,255,255,.72); --glass-border: rgba(255,255,255,.55);
+      --blur: blur(28px) saturate(200%);
+      --radius-md: 14px;
+      --shadow-card: 0 4px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+    body { background-color: #e8eaf6; min-height: 100vh; color: #0f172a; }
+    body { background-image:
+      radial-gradient(ellipse 70% 55% at 15% 8%, rgba(99,102,241,.22) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 45% at 85% 18%, rgba(255,92,43,.16) 0%, transparent 50%),
+      linear-gradient(160deg, #e8eaf6 0%, #dde1f5 100%); }
+    .sln-nav { background: rgba(6,13,26,.84); backdrop-filter: blur(28px) saturate(180%); border-bottom: 1px solid rgba(255,255,255,.07); padding: 0 2rem; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg,#ff5c2b,#ff8c5a); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; color:#fff; }
+    .sln-logo-text { color:#fff; font-weight:700; font-size:15px; }
+    .btn-nav { background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); border:1px solid rgba(255,255,255,.14); padding:.35rem .9rem; border-radius:8px; font-size:.78rem; font-weight:500; text-decoration:none; transition:all .15s; }
+    .btn-nav:hover { background:rgba(255,255,255,.14); color:#fff; }
+    .btn-nav-accent { background: linear-gradient(135deg,#ff5c2b,#ff8c5a); color:#fff; border:none; padding:.35rem .9rem; border-radius:8px; font-size:.78rem; font-weight:700; text-decoration:none; }
+
+    .card-sln { background: var(--glass); backdrop-filter: var(--blur); border: 1px solid var(--glass-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); overflow: hidden; }
+    .card-header-sln { background: linear-gradient(135deg,rgba(6,13,26,.75),rgba(26,42,76,.7)); color:#fff; padding:.7rem 1.1rem; font-weight:700; font-size:.83rem; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,.08); }
+
+    .ad-row { background:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.7); border-radius:12px; padding:1rem 1.2rem; margin-bottom:.75rem; transition: box-shadow .15s; }
+    .ad-row:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+    .ad-naam { font-family: monospace; font-size:.88rem; font-weight:700; color:#1e3a8a; word-break:break-all; }
+    .ad-meta { font-size:.75rem; color:#64748b; margin-top:.2rem; }
+
+    .label-winner    { background:#ecfdf5; color:#059669; border:1px solid rgba(5,150,105,.2); padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:700; }
+    .label-loser     { background:#fef2f2; color:#dc2626; border:1px solid rgba(220,38,38,.2); padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:700; }
+    .label-vroeg     { background:#fffbeb; color:#d97706; border:1px solid rgba(217,119,6,.2); padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:700; }
+    .label-mid       { background:#f1f5f9; color:#475569; border:1px solid rgba(71,85,105,.15); padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:700; }
+    .label-no-data   { background:#f8fafc; color:#94a3b8; border:1px solid rgba(148,163,184,.2); padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:700; }
+
+    .hook-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.7rem; font-weight:600; background:#eff6ff; color:#1d4ed8; }
+
+    .melding-leeg  { background:#fef2f2; border-left:3px solid #dc2626; padding:.4rem .7rem; border-radius:0 8px 8px 0; font-size:.75rem; color:#dc2626; margin-top:.5rem; }
+    .melding-deels { background:#fffbeb; border-left:3px solid #d97706; padding:.4rem .7rem; border-radius:0 8px 8px 0; font-size:.75rem; color:#d97706; margin-top:.5rem; }
+    .melding-bijna { background:#eff6ff; border-left:3px solid #2563eb; padding:.4rem .7rem; border-radius:0 8px 8px 0; font-size:.75rem; color:#2563eb; margin-top:.5rem; }
+
+    .kpi-mini { font-size:.75rem; font-weight:700; color:#0f172a; }
+    .kpi-mini-lbl { font-size:.65rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; }
+
+    .empty-state { text-align:center; padding:3rem 1rem; color:#94a3b8; }
+    .empty-state i { font-size:2.5rem; margin-bottom:.75rem; display:block; }
+  </style>
+</head>
+<body>
+
+<nav class="sln-nav">
+  <a href="{{ url_for('clients') }}" class="sln-logo">
+    <div class="sln-logo-icon">SLN</div>
+    <div><div class="sln-logo-text">Meta Ads</div></div>
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('client_profile', client_id=client.id) }}" class="btn-nav">← {{ client.name }}</a>
+    <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" class="btn-nav-accent">+ Nieuwe advertentie</a>
+  </div>
+</nav>
+
+<div class="container-xxl py-4" style="max-width:960px;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'danger' if cat == 'danger' else 'success' if cat == 'success' else 'info' }} alert-dismissible fade show mb-3">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <h4 style="font-weight:800;color:#0f172a;margin-bottom:.2rem;">Advertentiegeschiedenis</h4>
+      <div style="color:#64748b;font-size:.84rem;">{{ client.name }} &nbsp;·&nbsp; {{ creatives|length }} advertentie(s) opgeslagen</div>
+    </div>
+  </div>
+
+  {% if creatives %}
+  <div class="card-sln">
+    <div class="card-header-sln">
+      <i class="bi bi-collection"></i> Alle advertenties
+      <span style="margin-left:auto;font-size:.72rem;font-weight:400;opacity:.6;">nieuwste bovenaan</span>
+    </div>
+    <div class="p-3">
+      {% for cr in creatives %}
+      <div class="ad-row">
+        <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+          <div style="flex:1;min-width:0;">
+            <div class="ad-naam">{{ cr.ad_naam }}</div>
+            <div class="ad-meta d-flex flex-wrap gap-2 mt-1 align-items-center">
+              {% if cr.hook_type %}
+                <span class="hook-pill">{{ cr.hook_type }}</span>
+              {% endif %}
+              {% if cr.format_type %}
+                <span style="font-size:.7rem;color:#64748b;background:rgba(0,0,0,.05);padding:2px 8px;border-radius:20px;">{{ cr.format_type }}</span>
+              {% endif %}
+              {% if cr.created_at %}
+                <span>{{ cr.created_at.strftime('%d %b %Y') if cr.created_at else '' }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- KPI + label -->
+          <div class="d-flex align-items-center gap-3 flex-shrink-0">
+            {% if cr.cpl is not none %}
+            <div class="text-end">
+              <div class="kpi-mini">€{{ cr.cpl }}</div>
+              <div class="kpi-mini-lbl">CPL</div>
+            </div>
+            {% endif %}
+            {% if cr.spend %}
+            <div class="text-end">
+              <div class="kpi-mini">€{{ cr.spend }}</div>
+              <div class="kpi-mini-lbl">Spend</div>
+            </div>
+            {% endif %}
+            {% if cr.label == 'winner' %}
+              <span class="label-winner"><i class="bi bi-trophy-fill me-1"></i>Winner</span>
+            {% elif cr.label == 'loser' %}
+              <span class="label-loser"><i class="bi bi-x-circle me-1"></i>Loser</span>
+            {% elif cr.label == 'vroeg_signaal' %}
+              <span class="label-vroeg"><i class="bi bi-hourglass-split me-1"></i>Vroeg signaal</span>
+            {% elif cr.label == 'middenmoter' %}
+              <span class="label-mid">Middenmoter</span>
+            {% else %}
+              <span class="label-no-data">Geen data</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Melding -->
+        {% if cr.melding %}
+          <div class="melding-{{ cr.melding_type }}"><i class="bi bi-info-circle me-1"></i>{{ cr.melding }}</div>
+        {% endif %}
+
+        <!-- Content aanwezig indicatoren -->
+        <div class="d-flex gap-2 mt-2 flex-wrap">
+          {% if cr.script %}
+            <span style="font-size:.68rem;background:#ecfdf5;color:#059669;padding:2px 7px;border-radius:6px;"><i class="bi bi-check me-1"></i>Script</span>
+          {% endif %}
+          {% if cr.ad_copy_1 %}
+            <span style="font-size:.68rem;background:#ecfdf5;color:#059669;padding:2px 7px;border-radius:6px;"><i class="bi bi-check me-1"></i>Copy</span>
+          {% endif %}
+          {% if cr.headline %}
+            <span style="font-size:.68rem;background:#ecfdf5;color:#059669;padding:2px 7px;border-radius:6px;"><i class="bi bi-check me-1"></i>Headline</span>
+          {% endif %}
+          {% if cr.afbeelding_pad %}
+            <span style="font-size:.68rem;background:#eff6ff;color:#2563eb;padding:2px 7px;border-radius:6px;"><i class="bi bi-image me-1"></i>Afbeelding</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% else %}
+  <div class="card-sln">
+    <div class="empty-state">
+      <i class="bi bi-collection"></i>
+      <div style="font-weight:700;color:#374151;margin-bottom:.5rem;">Nog geen advertenties opgeslagen</div>
+      <div style="font-size:.82rem;margin-bottom:1rem;">Gebruik "+ Nieuwe advertentie" om je eerste advertentie aan te maken.</div>
+      <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" style="background:linear-gradient(135deg,#ff5c2b,#ff8c5a);color:#fff;border:none;padding:.55rem 1.4rem;border-radius:10px;font-size:.84rem;font-weight:700;text-decoration:none;">+ Nieuwe advertentie</a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
