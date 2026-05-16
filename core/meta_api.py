@@ -15,7 +15,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 _BASE = "https://graph.facebook.com/v19.0"
-_SCOPES = "ads_read,ads_management,read_insights"
+_SCOPES = "ads_read,ads_management,business_management"
 
 _INSIGHTS_FIELDS = (
     "spend,impressions,clicks,ctr,cpm,cpc,frequency,"
