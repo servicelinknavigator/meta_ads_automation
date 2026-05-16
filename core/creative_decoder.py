@@ -129,7 +129,7 @@ def _fallback_loser(ad: Ad, summary: AnalysisSummary) -> dict:
         "kill_reasoning": (
             "Geen resultaten bij voldoende budget — stop en herstructureer met nieuw concept."
             if ad.results == 0 and ad.spend > 50
-            else "Budget te laag voor conclusie — geef €30-50 meer en meet opnieuw."
+            else "Budget te laag voor conclusie — breng eerst boven €50 voor betrouwbare data."
         ),
         "test_hypothesis": hyp,
         "_fallback": True,
