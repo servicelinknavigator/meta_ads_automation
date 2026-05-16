@@ -2364,7 +2364,7 @@ def meta_debug(client_id):
         f"{base}/{acct_id}/insights",
         {
             "level":      "ad",
-            "fields":     "ad_id,ad_name,spend,impressions,clicks",
+            "fields":     "ad_id,ad_name,spend,impressions,clicks,actions,cost_per_action_type",
             "time_range": _json.dumps({"since": date_from, "until": date_to}),
             "limit":      5,
         },

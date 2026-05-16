@@ -241,25 +241,30 @@ def _extract_metric(insights: dict, key: str, default: float = 0.0) -> float:
 
 def _extract_results(insights: dict) -> int:
     """
-    Pull 'results' from Meta's actions array.
-    Prefers lead/purchase actions; falls back to total link clicks.
+    Pull conversion 'results' from Meta's actions array.
+    Only counts real conversion actions — never engagement or reach actions.
+    Returns 0 if no recognised conversion action is present.
     """
     actions = insights.get("actions", []) or []
-    priority = ["lead", "offsite_conversion.fb_pixel_purchase",
-                "offsite_conversion.fb_pixel_lead", "link_click"]
+    # Ordered from most-specific to least-specific conversion type.
+    # link_click is intentionally excluded — it is a traffic metric, not a result.
+    priority = [
+        "offsite_conversion.fb_pixel_purchase",
+        "offsite_conversion.fb_pixel_lead",
+        "onsite_conversion.lead_grouped",
+        "lead",
+        "contact",
+        "schedule",
+        "omni_complete_registration",
+        "omni_purchase",
+    ]
+    action_map = {a.get("action_type"): a for a in actions}
     for p in priority:
-        for a in actions:
-            if a.get("action_type") == p:
-                try:
-                    return int(float(a.get("value", 0)))
-                except (ValueError, TypeError):
-                    pass
-    # fallback: first available action
-    if actions:
-        try:
-            return int(float(actions[0].get("value", 0)))
-        except (ValueError, TypeError):
-            pass
+        if p in action_map:
+            try:
+                return int(float(action_map[p].get("value", 0)))
+            except (ValueError, TypeError):
+                pass
     return 0
 
 
