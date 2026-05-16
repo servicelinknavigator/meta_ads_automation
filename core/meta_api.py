@@ -242,12 +242,16 @@ def _extract_metric(insights: dict, key: str, default: float = 0.0) -> float:
 def _extract_results(insights: dict) -> int:
     """
     Pull conversion 'results' from Meta's actions array.
-    Only counts real conversion actions — never engagement or reach actions.
-    Returns 0 if no recognised conversion action is present.
+    Checks known conversion types first, then custom pixel conversions
+    (offsite_conversion.custom.*). Never counts engagement/reach actions.
     """
     actions = insights.get("actions", []) or []
-    # Ordered from most-specific to least-specific conversion type.
-    # link_click is intentionally excluded — it is a traffic metric, not a result.
+    if not actions:
+        return 0
+
+    action_map = {a.get("action_type"): a for a in actions}
+
+    # 1. Known standard conversion types (most specific first)
     priority = [
         "offsite_conversion.fb_pixel_purchase",
         "offsite_conversion.fb_pixel_lead",
@@ -258,13 +262,25 @@ def _extract_results(insights: dict) -> int:
         "omni_complete_registration",
         "omni_purchase",
     ]
-    action_map = {a.get("action_type"): a for a in actions}
     for p in priority:
         if p in action_map:
             try:
                 return int(float(action_map[p].get("value", 0)))
             except (ValueError, TypeError):
                 pass
+
+    # 2. Custom pixel conversions (e.g. "Lead fit20 Roermond" → offsite_conversion.custom.XXXXX)
+    # These are always real conversions created by the advertiser in Meta Business Manager.
+    custom_total = 0
+    for action_type, a in action_map.items():
+        if action_type.startswith("offsite_conversion.custom."):
+            try:
+                custom_total += int(float(a.get("value", 0)))
+            except (ValueError, TypeError):
+                pass
+    if custom_total > 0:
+        return custom_total
+
     return 0
 
 
