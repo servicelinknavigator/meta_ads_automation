@@ -175,6 +175,38 @@ def init_schema() -> None:
         cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS headline_2 VARCHAR(500)")
         cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS headline_3 VARCHAR(500)")
 
+        # Meta connection storage
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS meta_connections (
+            id               SERIAL PRIMARY KEY,
+            client_id        INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+            ad_account_id    TEXT,
+            access_token     TEXT,
+            token_expires_at TIMESTAMP,
+            last_sync_at     TIMESTAMP,
+            created_at       TIMESTAMP DEFAULT NOW()
+        )
+        """)
+        cur.execute("ALTER TABLE meta_connections ENABLE ROW LEVEL SECURITY")
+
+        # Sales transcript storage
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS transcripts (
+            id                   SERIAL PRIMARY KEY,
+            client_id            INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+            transcript_text      TEXT,
+            extracted_hooks      TEXT,
+            extracted_objections TEXT,
+            extracted_phrases    TEXT,
+            created_at           TIMESTAMP DEFAULT NOW()
+        )
+        """)
+        cur.execute("ALTER TABLE transcripts ENABLE ROW LEVEL SECURITY")
+
+        # ICP columns on clients
+        cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS icp_learned TEXT")
+        cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS icp_updated_at TIMESTAMP")
+
         cur.close()
     logger.info("DB schema OK")
 
@@ -691,3 +723,158 @@ def get_insights_history(client_id: int, limit: int = 5) -> list[dict]:
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
         cur.close()
     return rows
+
+
+# ── Meta connections ──────────────────────────────────────────────────────────
+
+def save_meta_connection(client_id: int, ad_account_id: str,
+                          token: str, expires_at) -> int:
+    """Upsert the Meta connection for a client (one connection per client)."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO meta_connections (client_id, ad_account_id, access_token, token_expires_at)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+        """, (client_id, ad_account_id, token, expires_at))
+        # If a row already exists, update it
+        cur.execute("""
+            UPDATE meta_connections
+            SET ad_account_id = %s, access_token = %s, token_expires_at = %s
+            WHERE client_id = %s
+        """, (ad_account_id, token, expires_at, client_id))
+        cur.execute("SELECT id FROM meta_connections WHERE client_id = %s", (client_id,))
+        row = cur.fetchone()
+        cur.close()
+    return row[0] if row else 0
+
+
+def get_meta_connection(client_id: int) -> dict | None:
+    """Return the stored Meta connection for a client, or None."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, client_id, ad_account_id, access_token,
+                   token_expires_at, last_sync_at, created_at
+            FROM meta_connections WHERE client_id = %s
+        """, (client_id,))
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            return None
+        cols = [d[0] for d in cur.description]
+        cur.close()
+    return dict(zip(cols, row))
+
+
+def update_last_sync(client_id: int) -> None:
+    """Stamp the current time as last_sync_at for the client's Meta connection."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE meta_connections SET last_sync_at = NOW() WHERE client_id = %s
+        """, (client_id,))
+        cur.close()
+
+
+def get_all_meta_connections() -> list[dict]:
+    """Return all active Meta connections (used by /sync-all cron endpoint)."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT mc.client_id, mc.ad_account_id, mc.access_token,
+                   mc.token_expires_at, mc.last_sync_at, c.name AS client_name,
+                   c.campaign_type
+            FROM meta_connections mc
+            JOIN clients c ON c.id = mc.client_id
+            WHERE mc.access_token IS NOT NULL AND mc.access_token != ''
+        """)
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close()
+    return rows
+
+
+# ── Transcripts ───────────────────────────────────────────────────────────────
+
+def save_transcript(client_id: int, transcript_text: str,
+                    extracted_hooks: str = "", extracted_objections: str = "",
+                    extracted_phrases: str = "") -> int:
+    """Store a sales transcript and its AI-extracted insights."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO transcripts
+                (client_id, transcript_text, extracted_hooks,
+                 extracted_objections, extracted_phrases)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
+        """, (client_id, transcript_text, extracted_hooks,
+              extracted_objections, extracted_phrases))
+        tid = cur.fetchone()[0]
+        cur.close()
+    return tid
+
+
+def get_transcripts(client_id: int, limit: int = 10) -> list[dict]:
+    """Return stored transcripts for a client, newest first."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, created_at, extracted_hooks, extracted_objections,
+                   extracted_phrases,
+                   LEFT(transcript_text, 200) AS transcript_preview
+            FROM transcripts WHERE client_id = %s
+            ORDER BY created_at DESC LIMIT %s
+        """, (client_id, limit))
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close()
+    return rows
+
+
+def get_transcript_context(client_id: int) -> str:
+    """
+    Build a concise transcript context string for injection into AI prompts.
+    Uses the three most recent transcripts.
+    """
+    rows = get_transcripts(client_id, limit=3)
+    if not rows:
+        return ""
+    parts = []
+    for r in rows:
+        if r.get("extracted_phrases"):
+            parts.append(f"Klantuitspraken: {r['extracted_phrases']}")
+        if r.get("extracted_objections"):
+            parts.append(f"Bezwaren: {r['extracted_objections']}")
+        if r.get("extracted_hooks"):
+            parts.append(f"Hook-openingen: {r['extracted_hooks']}")
+    return "\n".join(parts)
+
+
+# ── ICP (learned) ─────────────────────────────────────────────────────────────
+
+def update_icp_learned(client_id: int, icp_text: str) -> None:
+    """Persist the AI-generated ICP summary for a client."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE clients SET icp_learned = %s, icp_updated_at = NOW()
+            WHERE id = %s
+        """, (icp_text, client_id))
+        cur.close()
+
+
+def get_full_client_context(client_id: int) -> str:
+    """
+    Combine manual client_context + AI-learned icp_learned into one string
+    for use in AI prompts.
+    """
+    client = get_client(client_id)
+    if not client:
+        return ""
+    parts = []
+    if client.get("client_context"):
+        parts.append(f"[Handmatige context]\n{client['client_context']}")
+    if client.get("icp_learned"):
+        parts.append(f"[Geleerd uit data]\n{client['icp_learned']}")
+    return "\n\n".join(parts)
