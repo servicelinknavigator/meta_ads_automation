@@ -157,8 +157,13 @@ def call_text_with_image(
                 ],
             }],
         )
-        return msg.content[0].text.strip()
+        result = msg.content[0].text.strip()
+        import logging as _log
+        _log.getLogger(__name__).info("call_text_with_image OK | len=%d | result=%r", len(image_data), result[:80])
+        return result
     except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).error("call_text_with_image FAILED | len=%d | error=%s", len(image_data), e)
         return ""
 
 
