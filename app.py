@@ -2163,21 +2163,70 @@ def meta_callback():
 
     from datetime import datetime, timedelta
     expires_in = int(token_data.get("expires_in", 5184000))  # default 60 days
-    expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+    expires_at = (datetime.utcnow() + timedelta(seconds=expires_in)).isoformat()
 
-    # Fetch ad accounts so user can pick one (store first for now)
+    # Fetch all ad accounts so the user can choose which one to link
     try:
         from core.meta_api import get_ad_accounts
         accounts = get_ad_accounts(raw_token)
-        ad_account_id = accounts[0]["id"] if accounts else ""
     except Exception:
-        ad_account_id = ""
+        accounts = []
 
-    if db.is_available():
-        db.save_meta_connection(client_id, ad_account_id, encrypted, expires_at)
+    if not accounts:
+        flash("Geen ad accounts gevonden voor dit Meta account. Controleer de app-rechten.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
 
-    flash("Meta Ads account succesvol gekoppeld!", "success")
-    return redirect(url_for("meta_status", client_id=client_id))
+    # Stash token + accounts in session — saved to DB only after account selection
+    session["meta_oauth_token_enc"]  = encrypted
+    session["meta_oauth_client_id"]  = client_id
+    session["meta_oauth_expires_at"] = expires_at
+    session["meta_oauth_accounts"]   = accounts
+
+    return redirect(url_for("meta_select_account"))
+
+
+@app.route("/meta/select-account", methods=["GET", "POST"])
+@login_required
+def meta_select_account():
+    """Account selection step: show all ad accounts and let the user pick one."""
+    client_id  = session.get("meta_oauth_client_id")
+    accounts   = session.get("meta_oauth_accounts", [])
+    encrypted  = session.get("meta_oauth_token_enc", "")
+    expires_at = session.get("meta_oauth_expires_at", "")
+
+    if not client_id or not accounts or not encrypted:
+        flash("OAuth sessie verlopen. Start de koppeling opnieuw.", "warning")
+        return redirect(url_for("clients"))
+
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    if request.method == "POST":
+        chosen_id = request.form.get("ad_account_id", "").strip()
+        if not chosen_id:
+            flash("Kies een ad account.", "warning")
+            return render_template("meta_select_account.html",
+                                   client=client, accounts=accounts)
+
+        from datetime import datetime
+        try:
+            expires_dt = datetime.fromisoformat(expires_at) if expires_at else None
+        except ValueError:
+            expires_dt = None
+
+        if db.is_available():
+            db.save_meta_connection(client_id, chosen_id, encrypted, expires_dt)
+
+        for key in ("meta_oauth_token_enc", "meta_oauth_client_id",
+                    "meta_oauth_expires_at", "meta_oauth_accounts"):
+            session.pop(key, None)
+
+        flash("Meta Ads account succesvol gekoppeld!", "success")
+        return redirect(url_for("meta_status", client_id=client_id))
+
+    return render_template("meta_select_account.html", client=client, accounts=accounts)
 
 
 @app.route("/client/<int:client_id>/meta-status")

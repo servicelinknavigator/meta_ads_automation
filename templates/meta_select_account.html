@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kies ad account — {{ client.name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --glass: rgba(255,255,255,.72); --glass-border: rgba(255,255,255,.55);
+      --blur: blur(28px) saturate(200%); --accent: #ff5c2b; --accent2: #ff8c5a;
+      --radius-lg: 20px; --radius-md: 14px; --radius-sm: 10px;
+      --shadow-card: 0 4px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+      --shadow-glass: 0 8px 32px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+    body {
+      background-color: #e8eaf6;
+      background-image:
+        radial-gradient(ellipse 70% 55% at 15% 8%,  rgba(99,102,241,.22) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 85% 18%, rgba(255,92,43,.16)  0%, transparent 50%),
+        radial-gradient(ellipse 60% 50% at 50% 92%, rgba(16,185,129,.10) 0%, transparent 55%),
+        linear-gradient(160deg, #e8eaf6 0%, #dde1f5 100%);
+      min-height: 100vh; color: #0f172a;
+    }
+    .sln-nav {
+      background: rgba(6,13,26,.84); backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .sln-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a); border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px; color: #fff;
+    }
+    .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; }
+    .btn-nav {
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.14); padding: .35rem .9rem;
+      border-radius: 8px; font-size: .78rem; font-weight: 500; text-decoration: none;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,.14); color: #fff; }
+    .hero {
+      background: linear-gradient(135deg, rgba(6,13,26,.88), rgba(26,42,76,.85));
+      backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 2rem 0 1.75rem;
+    }
+    .card-sln {
+      background: var(--glass); backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card); overflow: hidden;
+    }
+    .card-header-sln {
+      background: linear-gradient(135deg, rgba(6,13,26,.75), rgba(26,42,76,.7));
+      color: #fff; padding: .7rem 1.1rem; font-weight: 700; font-size: .83rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Account cards */
+    .account-card {
+      position: relative;
+      background: rgba(255,255,255,.6); backdrop-filter: var(--blur);
+      border: 2px solid rgba(255,255,255,.7);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.1rem;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+      user-select: none;
+    }
+    .account-card:hover {
+      border-color: rgba(255,92,43,.4);
+      box-shadow: 0 4px 16px rgba(255,92,43,.12);
+      transform: translateY(-1px);
+    }
+    .account-card.selected {
+      border-color: #ff5c2b;
+      background: rgba(255,92,43,.06);
+      box-shadow: 0 0 0 3px rgba(255,92,43,.15), 0 4px 16px rgba(255,92,43,.12);
+    }
+    .account-card input[type="radio"] {
+      position: absolute; opacity: 0; width: 0; height: 0;
+    }
+    .account-radio-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(0,0,0,.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: border-color .15s, background .15s;
+    }
+    .account-card.selected .account-radio-dot {
+      border-color: #ff5c2b; background: #ff5c2b;
+    }
+    .account-radio-dot::after {
+      content: ''; width: 8px; height: 8px; border-radius: 50%; background: #fff;
+      opacity: 0; transition: opacity .15s;
+    }
+    .account-card.selected .account-radio-dot::after { opacity: 1; }
+    .account-name { font-size: .9rem; font-weight: 700; color: #0f172a; }
+    .account-id   { font-size: .75rem; color: #64748b; font-family: monospace; }
+    .account-meta { font-size: .75rem; color: #94a3b8; margin-top: 3px; }
+    .account-status-badge {
+      font-size: .65rem; font-weight: 700; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 10px; letter-spacing: .04em;
+    }
+    .status-active   { background: rgba(16,185,129,.15); color: #059669; }
+    .status-inactive { background: rgba(148,163,184,.15); color: #64748b; }
+    .status-disabled { background: rgba(239,68,68,.12);  color: #dc2626; }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #ff5c2b, #ff8c5a); color: #fff; border: none;
+      padding: .6rem 1.4rem; border-radius: 9px; font-weight: 700; font-size: .85rem;
+      box-shadow: 0 4px 14px rgba(255,92,43,.3); transition: all .18s;
+      width: 100%; cursor: pointer;
+    }
+    .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,92,43,.4); }
+    .btn-accent:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .step-indicator {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .72rem; color: rgba(255,255,255,.5);
+    }
+    .step-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .65rem; font-weight: 800;
+    }
+    .step-done    { background: rgba(16,185,129,.3); color: #6ee7b7; }
+    .step-current { background: rgba(255,92,43,.4); color: #fff; }
+    .step-pending { background: rgba(255,255,255,.08); color: rgba(255,255,255,.3); }
+    .step-line    { width: 24px; height: 1px; background: rgba(255,255,255,.15); }
+    .alert { border-radius: var(--radius-sm); font-size: .83rem; }
+    .alert-warning { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.25); color: #92400e; }
+    .alert-danger  { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.25);  color: #991b1b; }
+  </style>
+</head>
+<body>
+<nav class="sln-nav">
+  <a href="/" class="sln-logo">
+    <div class="sln-logo-icon">SLN</div>
+    <div><div class="sln-logo-text">SLN Meta Ads</div></div>
+  </a>
+  <div class="d-flex align-items-center gap-3">
+    <!-- Step indicator -->
+    <div class="step-indicator">
+      <div class="step-dot step-done"><i class="bi bi-check"></i></div>
+      <div style="font-size:.65rem; color:rgba(255,255,255,.35);">Autorisatie</div>
+      <div class="step-line"></div>
+      <div class="step-dot step-current">2</div>
+      <div style="font-size:.65rem; color:rgba(255,255,255,.6);">Account kiezen</div>
+      <div class="step-line"></div>
+      <div class="step-dot step-pending">3</div>
+      <div style="font-size:.65rem; color:rgba(255,255,255,.35);">Klaar</div>
+    </div>
+    <a href="/client/{{ client.id }}" class="btn-nav"><i class="bi bi-x-lg"></i> Annuleren</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="container">
+    <div class="text-white-50 mb-1" style="font-size:.75rem; text-transform:uppercase; letter-spacing:.08em;">
+      Meta koppeling — stap 2 van 3
+    </div>
+    <h1 style="font-size:1.75rem; font-weight:800; color:#fff; margin:0;">Kies een ad account</h1>
+    <p style="color:rgba(255,255,255,.5); font-size:.85rem; margin:.3rem 0 0;">
+      voor <strong style="color:rgba(255,255,255,.8);">{{ client.name }}</strong>
+    </p>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width: 680px;">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} mb-3">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card-sln">
+    <div class="card-header-sln">
+      <i class="bi bi-building"></i>
+      {{ accounts | length }} ad account{{ 's' if accounts | length != 1 }} gevonden
+    </div>
+    <div class="p-4">
+      <p style="font-size:.83rem; color:#64748b; margin-bottom:1.25rem;">
+        Selecteer het ad account dat je wilt koppelen aan <strong>{{ client.name }}</strong>.
+        Je kunt dit later wijzigen via de Meta verbindingsinstellingen.
+      </p>
+
+      <form method="POST" action="/meta/select-account" id="accountForm">
+        <div class="d-flex flex-column gap-3 mb-4" id="accountList">
+          {% for account in accounts %}
+            {% set acct_status = account.get('account_status', 1) | int %}
+            {% set status_label = 'Actief' if acct_status == 1 else ('Uitgeschakeld' if acct_status == 2 else 'Inactief') %}
+            {% set status_class = 'status-active' if acct_status == 1 else ('status-disabled' if acct_status == 2 else 'status-inactive') %}
+
+            <label class="account-card" for="acct_{{ account.id }}"
+                   onclick="selectAccount(this)">
+              <input type="radio" name="ad_account_id" id="acct_{{ account.id }}"
+                     value="{{ account.id }}" {% if loop.first %}checked{% endif %}>
+              <div class="d-flex align-items-start gap-3">
+                <div class="account-radio-dot mt-1 {% if loop.first %}{% endif %}"></div>
+                <div style="flex:1; min-width:0;">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="account-name">{{ account.get('name', account.id) }}</span>
+                    <span class="account-status-badge {{ status_class }}">{{ status_label }}</span>
+                  </div>
+                  <div class="account-id">{{ account.id }}</div>
+                  <div class="account-meta d-flex gap-3 flex-wrap mt-1">
+                    {% if account.get('currency') %}
+                      <span><i class="bi bi-currency-exchange"></i> {{ account.currency }}</span>
+                    {% endif %}
+                    {% if account.get('timezone_name') %}
+                      <span><i class="bi bi-clock"></i> {{ account.timezone_name }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </label>
+          {% endfor %}
+        </div>
+
+        {% if accounts | length == 0 %}
+          <div style="text-align:center; padding:2rem; color:#94a3b8;">
+            <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:.75rem;"></i>
+            Geen ad accounts gevonden. Controleer of je Meta account beheerdersrechten heeft.
+          </div>
+        {% endif %}
+
+        <button type="submit" class="btn-accent" id="submitBtn"
+                {% if not accounts %}disabled{% endif %}>
+          <i class="bi bi-plug-fill me-1"></i>Koppel geselecteerd account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <p style="font-size:.75rem; color:#94a3b8; text-align:center; margin-top:1rem;">
+    <i class="bi bi-shield-lock me-1"></i>
+    Het access token wordt versleuteld opgeslagen. Je kunt de koppeling op elk moment verwijderen.
+  </p>
+</div>
+
+<script>
+  // Mark the first card as selected on load
+  document.addEventListener('DOMContentLoaded', function () {
+    const first = document.querySelector('.account-card');
+    if (first) first.classList.add('selected');
+  });
+
+  function selectAccount(card) {
+    document.querySelectorAll('.account-card').forEach(c => {
+      c.classList.remove('selected');
+      c.querySelector('.account-radio-dot').style.borderColor = '';
+    });
+    card.classList.add('selected');
+  }
+</script>
+</body>
+</html>
