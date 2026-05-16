@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sln-meta-analyzer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_REDIRECT_URI
+        sync: false
+      - key: META_AD_LIBRARY_TOKEN
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+
+crons:
+  - name: daily-meta-sync
+    schedule: "0 6 * * *"
+    command: >
+      curl -s -X GET
+      https://sln-meta-analyzer.onrender.com/sync-all
+      -H "X-Cron-Secret: $CRON_SECRET"
