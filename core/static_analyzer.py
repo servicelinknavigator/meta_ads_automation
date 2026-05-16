@@ -177,14 +177,15 @@ def detect_hook_from_image(image_data: bytes, media_type: str) -> dict:
     if not has_api():
         return {"hook_type": "proof", "visual_summary": "", "pain_point": "", "_fallback": True}
 
-    prompt = """Analyseer deze Meta advertentie afbeelding zeer specifiek.
-Lees alle tekst die zichtbaar is op de afbeelding.
-Bepaal:
-1. hook_type: op basis van de dominante boodschap (promise, proof, urgency, frustration, recognition, curiosity, confrontation, problem_solve, social_proof, educational)
-2. visual_summary: beschrijf in 5-8 woorden wat er letterlijk op staat — gebruik de exacte woorden van de afbeelding, geen generieke omschrijving
-3. pain_point: welk pijnpunt wordt aangesproken
+    prompt = """Lees alle tekst die letterlijk zichtbaar is op deze afbeelding.
+Geef de 5-8 meest betekenisvolle woorden terug die letterlijk op de afbeelding staan.
+Geen interpretatie, geen omschrijving — alleen de exacte woorden van de afbeelding.
+Als er geen tekst op staat, beschrijf dan het centrale visuele element in 3-5 woorden.
 
-Geef terug als JSON: hook_type, visual_summary, pain_point"""
+Geef terug als JSON:
+- hook_type: (promise/proof/urgency/recognition/frustration/curiosity/confrontation/problem_solve/social_proof/educational)
+- visual_summary: de letterlijke tekst van de afbeelding in 5-8 woorden
+- pain_point: welk pijnpunt wordt aangesproken"""
 
     result = call_json_with_image(prompt, image_data, media_type, max_tokens=400)
     if "_error" in result or not result.get("hook_type"):
