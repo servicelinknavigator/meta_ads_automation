@@ -2145,9 +2145,15 @@ Geef terug als JSON: hook_type, hook_explanation, core_promise, pain_point"""
     script_formatted = _format_script(spoken_text)
 
     # Stap 4 — Naam genereren met slimme versiedetectie op basis van kernbelofte
+    import re as _re_dbg
+    _cp_words_raw = _re_dbg.findall(r"[a-zA-Z0-9À-ɏ]+", core_promise)
+    _cp_filtered  = [w for w in _cp_words_raw if w.lower() not in _STOPWOORDEN]
+    logger.info("DEBUG naam (video) | hook_type=%r | core_promise=%r | raw_words=%r | filtered=%r",
+                hook_type, core_promise, _cp_words_raw[:8], _cp_filtered[:5])
     slug    = _slug_words(core_promise, 3) or _slug_words(spoken_text, 3) or "advertentie"
     versie  = _smart_version(client_id, "reels", hook_type)
     ad_naam = f"reels-{hook_type}-v{versie}-{slug}"
+    logger.info("DEBUG naam (video) | slug=%r | ad_naam=%r", slug, ad_naam)
 
     # Stap 5 — Copy genereren
     winning_copies = _get_winning_copies(client_id)
@@ -2274,9 +2280,15 @@ def nieuwe_advertentie_static(client_id):
         logger.warning("Vision analyse mislukt: %s", e)
 
     # Stap 2 — Naam genereren op basis van letterlijke afbeeldingstekst (stopwoorden gefilterd)
+    import re as _re_dbg
+    _vs_words_raw = _re_dbg.findall(r"[a-zA-Z0-9À-ɏ]+", visual_summary) if visual_summary else []
+    _vs_filtered  = [w for w in _vs_words_raw if w.lower() not in _STOPWOORDEN]
+    logger.info("DEBUG naam (static) | hook_type=%r | visual_summary=%r | raw_words=%r | filtered=%r",
+                hook_type, visual_summary, _vs_words_raw[:8], _vs_filtered[:5])
     slug    = _slug_words(visual_summary, 3) or "advertentie"
     versie  = _smart_version(client_id, "static", hook_type)
     ad_naam = f"static-{hook_type}-v{versie}-{slug}"
+    logger.info("DEBUG naam (static) | slug=%r | ad_naam=%r", slug, ad_naam)
 
     # Stap 4 — Copy genereren
     winning_copies = _get_winning_copies(client_id)
