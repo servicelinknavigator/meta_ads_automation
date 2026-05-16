@@ -705,6 +705,34 @@
       </a>
     </div>
 
+    <!-- Nieuwe advertentie -->
+    <div class="action-card" style="border-top:2px solid rgba(255,92,43,.2);">
+      <div class="action-card-icon" style="background:rgba(255,92,43,.12);">
+        <i class="bi bi-plus-circle-fill" style="color:#ff5c2b;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Nieuwe advertentie</div>
+      <div class="action-card-desc">Upload SRT of afbeelding — AI genereert naam, hook analyse en copy</div>
+      <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" class="action-btn-primary">
+        <i class="bi bi-plus-lg"></i>+ Nieuwe advertentie
+      </a>
+      <a href="{{ url_for('advertentie_geschiedenis', client_id=client.id) }}" class="action-btn-secondary">
+        <i class="bi bi-collection"></i>Advertentiegeschiedenis
+      </a>
+    </div>
+
+    <!-- Static brief -->
+    <div class="action-card" style="border-top:2px solid rgba(139,92,246,.2);">
+      <div class="action-card-icon" style="background:rgba(139,92,246,.12);">
+        <i class="bi bi-image-fill" style="color:#7c3aed;font-size:1.1rem;"></i>
+      </div>
+      <div class="action-card-title">Static brief</div>
+      <div class="action-card-desc">Productie-instructies voor ChatGPT/Manus op basis van hook-prestaties</div>
+      <a href="{{ url_for('static_brief', client_id=client.id) }}" class="action-btn-primary"
+         style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 3px 10px rgba(139,92,246,.25);">
+        <i class="bi bi-image"></i>Bekijk static brief
+      </a>
+    </div>
+
   </div>
 
   <!-- ── Transcript upload ── -->
