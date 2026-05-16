@@ -704,10 +704,21 @@ def client_profile(client_id):
     except Exception:
         pass
 
+    meta_connection = None
+    transcripts = []
+    try:
+        if db.is_available():
+            meta_connection = db.get_meta_connection(client_id)
+            transcripts     = db.get_transcripts(client_id, limit=5)
+    except Exception:
+        pass
+
     return render_template("client_profile.html",
                            client=client, uploads=uploads,
                            shoot_briefs=shoot_briefs, hook_perf=hook_perf,
-                           pending_count=pending_count)
+                           pending_count=pending_count,
+                           meta_connection=meta_connection,
+                           transcripts=transcripts)
 
 
 @app.route("/clients/<int:client_id>/edit", methods=["POST"])
@@ -1970,6 +1981,363 @@ def _check_new_ads_after_upload(client_id: int | None, rows: list[dict]) -> None
         session[f"pending_new_ads_{client_id}"] = new_ads
     else:
         session.pop(f"pending_new_ads_{client_id}", None)
+
+
+# ── Meta API integration ──────────────────────────────────────────────────────
+
+try:
+    from core.meta_api import (
+        get_auth_url, exchange_code_for_token, get_ads,
+        normalize_meta_data, refresh_token as _refresh_meta_token,
+    )
+    from core.ad_library import get_competitor_hooks, analyze_competitor_hooks
+    from core.icp_updater import update_icp
+    from core.action_planner import generate_action_plan
+    from core.transcript_analyzer import analyze_and_save as analyze_transcript
+    _META_AVAILABLE = True
+except ImportError as _meta_import_err:
+    logger.warning("Meta modules not available: %s", _meta_import_err)
+    _META_AVAILABLE = False
+
+
+def _encrypt_token(token: str) -> str:
+    """Encrypt an access token using Fernet symmetric encryption."""
+    key = os.getenv("TOKEN_ENCRYPTION_KEY", "")
+    if not key:
+        return token  # fall back to plaintext if no key configured
+    try:
+        from cryptography.fernet import Fernet
+        f = Fernet(key.encode() if isinstance(key, str) else key)
+        return f.encrypt(token.encode()).decode()
+    except Exception as e:
+        logger.warning("Token encryption failed, storing plaintext: %s", e)
+        return token
+
+
+def _decrypt_token(token: str) -> str:
+    """Decrypt a Fernet-encrypted access token."""
+    key = os.getenv("TOKEN_ENCRYPTION_KEY", "")
+    if not key:
+        return token
+    try:
+        from cryptography.fernet import Fernet
+        f = Fernet(key.encode() if isinstance(key, str) else key)
+        return f.decrypt(token.encode()).decode()
+    except Exception:
+        return token  # token was stored plaintext (no key at write time)
+
+
+def _run_meta_sync(client_id: int, connection: dict,
+                   date_from: str | None = None, date_to: str | None = None) -> dict:
+    """
+    Core sync logic shared by manual sync and cron sync.
+    Returns a result dict with 'ok', 'upload_id', 'num_ads', 'error'.
+    """
+    from datetime import date, timedelta
+    today = date.today()
+    if not date_from:
+        date_from = (today - timedelta(days=30)).isoformat()
+    if not date_to:
+        date_to = today.isoformat()
+
+    try:
+        token    = _decrypt_token(connection["access_token"])
+        acct_id  = connection["ad_account_id"]
+        client   = db.get_client(client_id)
+
+        raw_ads  = get_ads(token, acct_id, date_from, date_to)
+        if not raw_ads:
+            return {"ok": False, "error": "Meta API returned no ads for this period."}
+
+        norm     = normalize_meta_data(raw_ads)
+
+        total_spend   = sum(float(r.get("spend", 0) or 0) for r in norm)
+        total_results = sum(int(r.get("results", 0) or 0) for r in norm)
+        num_ads       = len(norm)
+        avg_cpl  = round(total_spend / total_results, 2) if total_results > 0 else 0
+        avg_roas = round(sum(float(r.get("roas", 0) or 0) for r in norm) / num_ads, 2) if num_ads else 0
+        avg_ctr  = round(sum(float(r.get("ctr", 0) or 0) for r in norm) / num_ads, 2) if num_ads else 0
+        avg_freq = round(sum(float(r.get("frequency", 0) or 0) for r in norm) / num_ads, 2) if num_ads else 0
+
+        import csv as _csv_mod
+        import io as _io
+        buf = _io.StringIO()
+        if norm:
+            writer = _csv_mod.DictWriter(buf, fieldnames=list(norm[0].keys()))
+            writer.writeheader()
+            writer.writerows(norm)
+        csv_content = buf.getvalue()
+
+        upload_id = db.save_upload(
+            client_id    = client_id,
+            filename     = f"meta_sync_{date_from}_{date_to}.csv",
+            date_from    = date_from,
+            date_to      = date_to,
+            total_spend  = total_spend,
+            total_results= total_results,
+            avg_cpl      = avg_cpl,
+            avg_roas     = avg_roas,
+            avg_ctr      = avg_ctr,
+            avg_frequency= avg_freq,
+            num_ads      = num_ads,
+            campaign_type= client.get("campaign_type", "leads"),
+            csv_content  = csv_content,
+        )
+
+        # Auto-tag + hook snapshots
+        from core.axes_mapper import map_axes
+        from core.hook_analyzer import aggregate_hook_performance
+        saved_mappings = db.get_ad_name_mappings(client_id)
+        tagged = map_axes(norm, saved_mappings)
+        hook_perf = aggregate_hook_performance(tagged)
+        if hook_perf:
+            db.save_hook_snapshots(client_id, upload_id, hook_perf)
+
+        # Auto-update ICP
+        try:
+            update_icp(client_id, norm)
+        except Exception as e:
+            logger.warning("ICP update skipped: %s", e)
+
+        db.update_last_sync(client_id)
+
+        return {"ok": True, "upload_id": upload_id, "num_ads": num_ads}
+    except Exception as e:
+        logger.error("_run_meta_sync failed for client %s: %s", client_id, e)
+        return {"ok": False, "error": str(e)}
+
+
+@app.route("/client/<int:client_id>/connect-meta")
+@login_required
+def connect_meta(client_id):
+    """Start the Meta OAuth flow for a client."""
+    if not _META_AVAILABLE:
+        flash("Meta API module niet geladen.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    if not os.getenv("META_APP_ID"):
+        flash("META_APP_ID omgevingsvariabele is niet ingesteld.", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    auth_url = get_auth_url(state=str(client_id))
+    return redirect(auth_url)
+
+
+@app.route("/meta/callback")
+@login_required
+def meta_callback():
+    """Receive the OAuth code from Meta, exchange for token, save to DB."""
+    code       = request.args.get("code", "")
+    state      = request.args.get("state", "")
+    error      = request.args.get("error", "")
+
+    if error:
+        flash(f"Meta OAuth geweigerd: {request.args.get('error_description', error)}", "danger")
+        return redirect(url_for("clients"))
+
+    if not code:
+        flash("Geen OAuth code ontvangen van Meta.", "danger")
+        return redirect(url_for("clients"))
+
+    try:
+        client_id = int(state) if state.isdigit() else None
+    except (ValueError, AttributeError):
+        client_id = None
+
+    if not client_id:
+        flash("Ongeldige state parameter in OAuth callback.", "danger")
+        return redirect(url_for("clients"))
+
+    token_data = exchange_code_for_token(code)
+    if "error" in token_data or "access_token" not in token_data:
+        flash(f"Token uitwisseling mislukt: {token_data.get('error', 'onbekend')}", "danger")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    raw_token = token_data["access_token"]
+    encrypted = _encrypt_token(raw_token)
+
+    from datetime import datetime, timedelta
+    expires_in = int(token_data.get("expires_in", 5184000))  # default 60 days
+    expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+
+    # Fetch ad accounts so user can pick one (store first for now)
+    try:
+        from core.meta_api import get_ad_accounts
+        accounts = get_ad_accounts(raw_token)
+        ad_account_id = accounts[0]["id"] if accounts else ""
+    except Exception:
+        ad_account_id = ""
+
+    if db.is_available():
+        db.save_meta_connection(client_id, ad_account_id, encrypted, expires_at)
+
+    flash("Meta Ads account succesvol gekoppeld!", "success")
+    return redirect(url_for("meta_status", client_id=client_id))
+
+
+@app.route("/client/<int:client_id>/meta-status")
+@login_required
+def meta_status(client_id):
+    """Show Meta connection status and last sync time for a client."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    connection = db.get_meta_connection(client_id) if db.is_available() else None
+    return render_template("meta_status.html", client=client, connection=connection)
+
+
+@app.route("/client/<int:client_id>/sync-meta", methods=["POST"])
+@login_required
+def sync_meta(client_id):
+    """Manually trigger a Meta data sync for a client."""
+    if not _META_AVAILABLE:
+        flash("Meta API module niet geladen.", "danger")
+        return redirect(url_for("meta_status", client_id=client_id))
+
+    if not db.is_available():
+        flash("Database niet beschikbaar.", "danger")
+        return redirect(url_for("meta_status", client_id=client_id))
+
+    connection = db.get_meta_connection(client_id)
+    if not connection:
+        flash("Geen Meta verbinding gevonden. Koppel eerst je account.", "warning")
+        return redirect(url_for("meta_status", client_id=client_id))
+
+    date_from = request.form.get("date_from", "")
+    date_to   = request.form.get("date_to", "")
+
+    result = _run_meta_sync(client_id, connection, date_from or None, date_to or None)
+
+    if result["ok"]:
+        flash(f"Synchronisatie geslaagd: {result['num_ads']} advertenties opgehaald.", "success")
+    else:
+        flash(f"Synchronisatie mislukt: {result.get('error', 'onbekende fout')}", "danger")
+
+    return redirect(url_for("meta_status", client_id=client_id))
+
+
+@app.route("/sync-all")
+def sync_all():
+    """
+    Cron endpoint: sync all connected Meta accounts.
+    Protected by X-Cron-Secret header matching CRON_SECRET env var.
+    """
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if cron_secret and request.headers.get("X-Cron-Secret", "") != cron_secret:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not _META_AVAILABLE or not db.is_available():
+        return jsonify({"error": "Meta module or DB not available"}), 503
+
+    connections = db.get_all_meta_connections()
+    results = []
+
+    for conn in connections:
+        client_id = conn["client_id"]
+        res = _run_meta_sync(client_id, conn)
+        results.append({
+            "client_id":   client_id,
+            "client_name": conn.get("client_name", ""),
+            **res,
+        })
+        logger.info("Cron sync client %s: %s", client_id, res)
+
+    ok_count  = sum(1 for r in results if r.get("ok"))
+    err_count = len(results) - ok_count
+    return jsonify({"synced": ok_count, "errors": err_count, "details": results})
+
+
+@app.route("/client/<int:client_id>/action-plan")
+@login_required
+def action_plan(client_id):
+    """Generate and display the weekly action plan for a client."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    plan_text = ""
+    if db.is_available():
+        plan_text = generate_action_plan(client_id)
+
+    return render_template("action_plan.html", client=client, plan_text=plan_text)
+
+
+@app.route("/client/<int:client_id>/competitor-analysis")
+@login_required
+def competitor_analysis(client_id):
+    """Show competitor hook analysis from the Meta Ad Library."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    industry = client.get("industry", "") or ""
+    keywords = [kw.strip() for kw in industry.split(",") if kw.strip()]
+    if not keywords:
+        keywords = [industry] if industry else []
+
+    competitor_ads   = []
+    analysis_text    = ""
+    library_disabled = not bool(os.getenv("META_AD_LIBRARY_TOKEN"))
+
+    if _META_AVAILABLE and keywords and not library_disabled:
+        competitor_ads = get_competitor_hooks(keywords)
+        if competitor_ads:
+            hook_perf    = db.get_all_hook_performance(client_id) if db.is_available() else []
+            client_hooks = [h["hook_type"] for h in hook_perf if h.get("hook_type")]
+            analysis_text = analyze_competitor_hooks(
+                competitor_ads, client_hooks, client.get("name", "")
+            )
+
+    return render_template(
+        "competitor_analysis.html",
+        client         = client,
+        competitor_ads = competitor_ads,
+        analysis_text  = analysis_text,
+        library_disabled = library_disabled,
+    )
+
+
+@app.route("/client/<int:client_id>/upload-transcript", methods=["POST"])
+@login_required
+def upload_transcript(client_id):
+    """Accept a plain-text transcript upload, analyse it, and save to DB."""
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "danger")
+        return redirect(url_for("clients"))
+
+    transcript_text = request.form.get("transcript_text", "").strip()
+    if not transcript_text and "transcript_file" in request.files:
+        f = request.files["transcript_file"]
+        if f and f.filename:
+            try:
+                transcript_text = f.read().decode("utf-8", errors="replace").strip()
+            except Exception as e:
+                flash(f"Bestand kon niet worden gelezen: {e}", "danger")
+                return redirect(url_for("client_profile", client_id=client_id))
+
+    if not transcript_text:
+        flash("Geen transcript ontvangen.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+
+    result = analyze_transcript(client_id, transcript_text)
+
+    if "error" in result:
+        flash(f"Analyse mislukt: {result['error']}", "danger")
+    else:
+        n = len(result.get("exact_phrases", []))
+        flash(f"Transcript geanalyseerd: {n} hook-openingen gevonden.", "success")
+
+    return redirect(url_for("client_profile", client_id=client_id))
 
 
 if __name__ == "__main__":
