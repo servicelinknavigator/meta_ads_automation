@@ -166,33 +166,45 @@ def get_adsets(token: str, ad_account_id: str,
 def get_ads(token: str, ad_account_id: str,
             date_from: str, date_to: str) -> list[dict]:
     """
-    Fetch individual ads with name, metrics, and creative_id.
-    Returns raw Meta API response rows.
+    Fetch ad-level performance data via the /insights endpoint (level=ad).
+    This is the reliable approach — avoids nested field expansion issues.
+    Returns rows that already include ad_name, campaign_name, adset_name + all metrics.
     """
+    import json as _json
+
+    _INSIGHT_FIELDS = (
+        "ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,"
+        "spend,impressions,clicks,reach,frequency,ctr,cpm,cpc,"
+        "actions,cost_per_action_type,purchase_roas"
+    )
+
     try:
         resp = requests.get(
-            f"{_BASE}/{ad_account_id}/ads",
+            f"{_BASE}/{ad_account_id}/insights",
             params={
                 "access_token": token,
-                "fields": f"id,name,status,campaign_id,campaign{{name}},"
-                          f"adset_id,adset{{name}},creative{{id}},"
-                          f"insights{{fields={_INSIGHTS_FIELDS},"
-                          f"time_range={{since:'{date_from}',until:'{date_to}'}}}}",
-                "limit": 500,
+                "level":        "ad",
+                "fields":       _INSIGHT_FIELDS,
+                "time_range":   _json.dumps({"since": date_from, "until": date_to}),
+                "limit":        500,
             },
             timeout=30,
         )
         resp.raise_for_status()
-        raw = resp.json().get("data", [])
+        data = resp.json()
+        raw  = data.get("data", [])
 
-        # Handle pagination
-        paging = resp.json().get("paging", {})
+        # Paginate through all results
+        paging = data.get("paging", {})
         while paging.get("next"):
             page = requests.get(paging["next"], timeout=30)
             page.raise_for_status()
-            raw.extend(page.json().get("data", []))
-            paging = page.json().get("paging", {})
+            page_data = page.json()
+            raw.extend(page_data.get("data", []))
+            paging = page_data.get("paging", {})
 
+        logger.info("get_ads: %d rows for %s (%s → %s)",
+                    len(raw), ad_account_id, date_from, date_to)
         return raw
     except Exception as e:
         logger.error("get_ads failed: %s", e)
@@ -264,8 +276,8 @@ def _extract_roas(insights: dict) -> float:
 
 def normalize_meta_data(raw_ads: list[dict]) -> list[dict]:
     """
-    Convert Meta API ad rows → internal CSV-parser format so all existing
-    analysis functions work without modification.
+    Convert /insights (level=ad) rows → internal CSV-parser format.
+    The insights endpoint already returns flat fields — no nested unwrapping needed.
 
     Output fields match parse_csv() output:
       ad_id, ad_name, campaign_id, campaign_name, adset_id, adset_name,
@@ -274,54 +286,43 @@ def normalize_meta_data(raw_ads: list[dict]) -> list[dict]:
     """
     normalized: list[dict] = []
 
-    for ad in raw_ads:
-        insights_wrapper = ad.get("insights", {})
-        if isinstance(insights_wrapper, dict):
-            ins_list = insights_wrapper.get("data", [{}])
-        else:
-            ins_list = [{}]
-
-        ins = ins_list[0] if ins_list else {}
-
-        spend       = _extract_metric(ins, "spend")
-        impressions = _extract_metric(ins, "impressions")
-        clicks      = _extract_metric(ins, "clicks")
-        reach       = _extract_metric(ins, "reach")
-        frequency   = _extract_metric(ins, "frequency")
-        ctr         = _extract_metric(ins, "ctr")
-        cpm         = _extract_metric(ins, "cpm")
-        cpc         = _extract_metric(ins, "cpc")
-        results     = _extract_results(ins)
-        roas        = _extract_roas(ins)
+    for row in raw_ads:
+        # /insights rows are flat — metrics live directly on the row
+        spend       = _extract_metric(row, "spend")
+        impressions = _extract_metric(row, "impressions")
+        clicks      = _extract_metric(row, "clicks")
+        reach       = _extract_metric(row, "reach")
+        frequency   = _extract_metric(row, "frequency")
+        ctr         = _extract_metric(row, "ctr")
+        cpm         = _extract_metric(row, "cpm")
+        cpc         = _extract_metric(row, "cpc")
+        results     = _extract_results(row)
+        roas        = _extract_roas(row)
 
         cost_per_result = round(spend / results, 2) if results > 0 else 0.0
 
-        campaign     = ad.get("campaign", {}) or {}
-        adset        = ad.get("adset", {}) or {}
-        creative_obj = ad.get("creative", {}) or {}
-
         normalized.append({
-            "ad_id":          ad.get("id", ""),
-            "ad_name":        ad.get("name", ""),
-            "campaign_id":    ad.get("campaign_id", campaign.get("id", "")),
-            "campaign_name":  campaign.get("name", ""),
-            "adset_id":       ad.get("adset_id", adset.get("id", "")),
-            "adset_name":     adset.get("name", ""),
-            "spend":          round(spend, 2),
-            "impressions":    int(impressions),
-            "clicks":         int(clicks),
-            "link_clicks":    int(clicks),  # Meta doesn't always split these
-            "results":        results,
-            "frequency":      round(frequency, 2),
-            "roas":           round(roas, 2),
-            "ctr":            round(ctr, 2),
-            "cpc":            round(cpc, 2),
-            "cpm":            round(cpm, 2),
+            "ad_id":           row.get("ad_id", ""),
+            "ad_name":         row.get("ad_name", ""),
+            "campaign_id":     row.get("campaign_id", ""),
+            "campaign_name":   row.get("campaign_name", ""),
+            "adset_id":        row.get("adset_id", ""),
+            "adset_name":      row.get("adset_name", ""),
+            "spend":           round(spend, 2),
+            "impressions":     int(impressions),
+            "clicks":          int(clicks),
+            "link_clicks":     int(clicks),
+            "results":         results,
+            "frequency":       round(frequency, 2),
+            "roas":            round(roas, 2),
+            "ctr":             round(ctr, 2),
+            "cpc":             round(cpc, 2),
+            "cpm":             round(cpm, 2),
             "cost_per_result": cost_per_result,
-            "reach":          int(reach),
-            "day":            "",
-            "creative_id":    creative_obj.get("id", ""),
-            "status":         ad.get("status", ""),
+            "reach":           int(reach),
+            "day":             row.get("date_start", ""),
+            "creative_id":     "",
+            "status":          "",
         })
 
     return normalized

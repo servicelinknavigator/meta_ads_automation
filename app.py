@@ -2277,11 +2277,12 @@ def sync_meta(client_id):
 def meta_debug(client_id):
     """
     Debug route: show raw Meta API responses for the stored token.
-    Hits /me/adaccounts and the hardcoded test account's /ads endpoint.
+    Tests /me/adaccounts, /ads (simple), and /insights (what sync uses).
     Never used in production flows — diagnostic only.
     """
     import json as _json
     import requests as _requests
+    from datetime import date, timedelta
 
     results = {}
 
@@ -2289,8 +2290,11 @@ def meta_debug(client_id):
     if not connection:
         return "<pre>Geen Meta verbinding gevonden voor deze klant.</pre>", 404
 
-    token = _decrypt_token(connection["access_token"])
-    base  = "https://graph.facebook.com/v19.0"
+    token    = _decrypt_token(connection["access_token"])
+    acct_id  = connection.get("ad_account_id", "act_498627026217281")
+    base     = "https://graph.facebook.com/v19.0"
+    date_to  = date.today().isoformat()
+    date_from = (date.today() - timedelta(days=30)).isoformat()
 
     def _call(label, url, params):
         try:
@@ -2298,21 +2302,43 @@ def meta_debug(client_id):
             results[label] = {
                 "status_code": r.status_code,
                 "url":         url,
-                "params":      {k: v for k, v in params.items()},
+                "params":      {k: v for k, v in params.items() if k != "access_token"},
                 "response":    r.json(),
             }
         except Exception as e:
             results[label] = {"error": str(e), "url": url}
 
+    # 1. Welke accounts zijn toegankelijk?
     _call(
-        "GET /me/adaccounts",
+        "1. GET /me/adaccounts",
         f"{base}/me/adaccounts",
         {"fields": "id,name,account_status,currency,timezone_name"},
     )
+
+    # 2. Simpele ads lijst (zonder insights) — test basisrechten
     _call(
-        "GET /act_498627026217281/ads",
-        f"{base}/act_498627026217281/ads",
+        "2. GET /ads (basis, geen insights)",
+        f"{base}/{acct_id}/ads",
         {"fields": "id,name,status", "limit": 5},
+    )
+
+    # 3. Insights endpoint op ad-niveau — dit is wat de sync gebruikt
+    _call(
+        "3. GET /insights (level=ad, wat sync gebruikt)",
+        f"{base}/{acct_id}/insights",
+        {
+            "level":      "ad",
+            "fields":     "ad_id,ad_name,spend,impressions,clicks",
+            "time_range": _json.dumps({"since": date_from, "until": date_to}),
+            "limit":      5,
+        },
+    )
+
+    # 4. Token info
+    _call(
+        "4. GET /me (token check)",
+        f"{base}/me",
+        {"fields": "id,name"},
     )
 
     pretty = _json.dumps(results, indent=2, ensure_ascii=False, default=str)
@@ -2321,15 +2347,24 @@ def meta_debug(client_id):
         f"<meta charset='UTF-8'>"
         f"<title>Meta debug — client {client_id}</title>"
         f"<style>"
-        f"body{{background:#0f172a;color:#e2e8f0;font-family:monospace;padding:2rem;}}"
-        f"h1{{color:#ff5c2b;font-size:1.1rem;margin-bottom:1.5rem;}}"
+        f"body{{background:#0f172a;color:#e2e8f0;font-family:monospace;padding:2rem;max-width:1100px;margin:0 auto;}}"
+        f"h1{{color:#ff5c2b;font-size:1.1rem;margin-bottom:.5rem;}}"
+        f"p{{font-size:.8rem;color:#94a3b8;margin-bottom:1.5rem;}}"
+        f"h2{{color:#94a3b8;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;"
+        f"margin:1.5rem 0 .5rem;}}"
         f"pre{{background:#1e293b;padding:1.5rem;border-radius:12px;"
-        f"overflow-x:auto;font-size:.82rem;line-height:1.6;white-space:pre-wrap;}}"
-        f".warn{{color:#fbbf24;font-size:.78rem;margin-bottom:1rem;}}"
+        f"overflow-x:auto;font-size:.8rem;line-height:1.6;white-space:pre-wrap;"
+        f"border:1px solid rgba(255,255,255,.06);}}"
+        f".warn{{color:#fbbf24;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);"
+        f"padding:.6rem 1rem;border-radius:8px;font-size:.78rem;margin-bottom:1.25rem;}}"
+        f".meta{{color:#64748b;font-size:.72rem;margin-bottom:1rem;}}"
         f"</style></head><body>"
         f"<h1>Meta API debug — client {client_id}</h1>"
-        f"<p class='warn'>⚠ Deze pagina toont het access token niet, "
-        f"maar de responses bevatten account-IDs. Deel deze output niet publiekelijk.</p>"
+        f"<p class='warn'>⚠ Access token is niet zichtbaar, maar responses bevatten account-IDs. "
+        f"Deel deze output niet publiekelijk.</p>"
+        f"<p class='meta'>Account: <strong style='color:#e2e8f0'>{acct_id}</strong> &nbsp;|&nbsp; "
+        f"Periode: {date_from} → {date_to}</p>"
+        f"<h2>Volledige response</h2>"
         f"<pre>{pretty}</pre>"
         f"</body></html>"
     )
