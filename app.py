@@ -2271,11 +2271,15 @@ def nieuwe_advertentie_static(client_id):
     visual_summary = ""
     pain_point     = ""
     client_context = client.get("client_context") or ""
+    hook_data_raw  = {}
     try:
         hook_data_raw  = detect_hook_from_image(img_data, media_type)
+        logger.info("DEBUG static | raw detect_hook response: %r", hook_data_raw)
         hook_type      = hook_data_raw.get("hook_type", "proof").lower().replace(" ", "_")
-        visual_summary = hook_data_raw.get("visual_summary", "")
+        visual_summary = (hook_data_raw.get("visual_summary") or
+                          hook_data_raw.get("visual_samenvatting") or "")
         pain_point     = hook_data_raw.get("pain_point", "")
+        logger.info("DEBUG static | hook_type=%r visual_summary=%r", hook_type, visual_summary)
     except Exception as e:
         logger.warning("Vision analyse mislukt: %s", e)
 
@@ -2283,9 +2287,12 @@ def nieuwe_advertentie_static(client_id):
     import re as _re_dbg
     _vs_words_raw = _re_dbg.findall(r"[a-zA-Z0-9À-ɏ]+", visual_summary) if visual_summary else []
     _vs_filtered  = [w for w in _vs_words_raw if w.lower() not in _STOPWOORDEN]
-    logger.info("DEBUG naam (static) | hook_type=%r | visual_summary=%r | raw_words=%r | filtered=%r",
-                hook_type, visual_summary, _vs_words_raw[:8], _vs_filtered[:5])
-    slug    = _slug_words(visual_summary, 3) or "advertentie"
+    logger.info("DEBUG naam (static) | raw_words=%r | filtered=%r", _vs_words_raw[:8], _vs_filtered[:5])
+    slug = _slug_words(visual_summary, 3)
+    if not slug or "advertentie" in slug:
+        # Fallback: visual_summary leeg of alleen stopwoorden — gebruik hook_type als slug
+        slug = hook_type.replace("_", "-")
+        logger.warning("DEBUG naam (static) | slug fallback → hook_type: %r", slug)
     versie  = _smart_version(client_id, "static", hook_type)
     ad_naam = f"static-{hook_type}-v{versie}-{slug}"
     logger.info("DEBUG naam (static) | slug=%r | ad_naam=%r", slug, ad_naam)
