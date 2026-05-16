@@ -134,6 +134,34 @@ def call_json_with_image(
         return {"_error": str(e)}
 
 
+def call_text_with_image(
+    prompt: str,
+    image_data: bytes,
+    media_type: str = "image/jpeg",
+    max_tokens: int = 100,
+) -> str:
+    """Plain-text vision call — returns raw text, no JSON parsing."""
+    try:
+        import base64
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        b64 = base64.standard_b64encode(image_data).decode("utf-8")
+        msg = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                    {"type": "text", "text": prompt},
+                ],
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception as e:
+        return ""
+
+
 def call_text(prompt: str, system: str = _SLN_SYSTEM_TEXT, max_tokens: int = 1200) -> str:
     try:
         model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")

@@ -4,7 +4,7 @@ Returns 2 copy variants + headline based on the image, account performance data,
 and the client's existing copy patterns (word count, style, hook distribution).
 """
 from __future__ import annotations
-from core.ai_client import call_json_with_image, has_api, _SLN_SYSTEM_JSON
+from core.ai_client import call_json_with_image, call_text_with_image, has_api, _SLN_SYSTEM_JSON
 
 _SYSTEM = (
     _SLN_SYSTEM_JSON + " "
@@ -190,6 +190,24 @@ Geef terug als JSON:
     result = call_json_with_image(prompt, image_data, media_type, max_tokens=400)
     if "_error" in result or not result.get("hook_type"):
         return {"hook_type": "proof", "visual_summary": "", "pain_point": "", "_fallback": True}
+
+    hook_type      = result.get("hook_type", "").lower().replace(" ", "_")
+    visual_summary = result.get("visual_summary", "").strip()
+
+    # Fallback: als visual_summary leeg is of gelijk aan hook_type → tweede aanroep
+    if not visual_summary or visual_summary.lower().replace(" ", "_") == hook_type:
+        raw_text = call_text_with_image(
+            "Lees alleen de tekst die letterlijk op deze afbeelding staat.\n"
+            "Geef maximaal 6 woorden terug — alleen de woorden van de afbeelding, niets anders.\n"
+            "Geen JSON, geen uitleg, alleen de woorden.",
+            image_data,
+            media_type,
+            max_tokens=60,
+        )
+        if raw_text:
+            visual_summary = raw_text
+
+    result["visual_summary"] = visual_summary
     return result
 
 
