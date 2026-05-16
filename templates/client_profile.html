@@ -889,13 +889,11 @@
                 <a href="/clients/{{ client.id }}/load/{{ u.id }}" class="btn-load" onclick="event.stopPropagation();">
                   <i class="bi bi-play-fill me-1"></i>Laad
                 </a>
-                <form method="POST" action="/clients/{{ client.id }}/uploads/{{ u.id }}/delete"
-                      style="display:inline;" onclick="event.stopPropagation();"
-                      onsubmit="return confirm('Upload verwijderen? Dit kan niet ongedaan worden gemaakt.')">
-                  <button type="submit" style="background:none;border:none;color:#94a3b8;padding:3px 6px;cursor:pointer;font-size:.85rem;" title="Verwijderen">
-                    <i class="bi bi-trash3"></i>
-                  </button>
-                </form>
+                <button type="button"
+                        onclick="event.stopPropagation(); deleteUpload('/clients/{{ client.id }}/uploads/{{ u.id }}/delete')"
+                        style="background:none;border:none;color:#94a3b8;padding:3px 6px;cursor:pointer;font-size:.85rem;" title="Verwijderen">
+                  <i class="bi bi-trash3"></i>
+                </button>
               </td>
             </tr>
             {% endfor %}
@@ -1238,6 +1236,15 @@ function toggleBrief(i) {
 function loadUpload(id) {
   window.location.href = '/clients/{{ client.id }}/load/' + id;
 }
+function deleteUpload(url) {
+  if (!confirm('Upload verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+  var f = document.createElement('form');
+  f.method = 'POST';
+  f.action = url;
+  document.body.appendChild(f);
+  f.submit();
+}
+
 function updateMergeBar() {
   const bar = document.getElementById('mergeBar');
   if (!bar) return;
