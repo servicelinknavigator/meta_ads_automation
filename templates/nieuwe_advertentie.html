@@ -184,6 +184,17 @@
         {% endif %}
       </div>
 
+      <!-- Script (alleen bij video) -->
+      {% if result.script_formatted %}
+      <div class="result-section">
+        <h6><i class="bi bi-file-text me-1"></i> Script (gesproken tekst)</h6>
+        <div class="copy-row">
+          <textarea id="script-formatted" class="copy-area" style="min-height:140px;font-size:.8rem;line-height:1.6;" readonly>{{ result.script_formatted }}</textarea>
+          <button type="button" class="btn-copy" onclick="copyField('script-formatted', this)"><i class="bi bi-clipboard"></i></button>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Copy -->
       <div class="result-section">
         <h6><i class="bi bi-chat-text me-1"></i> Body copy</h6>

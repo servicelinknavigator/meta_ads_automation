@@ -2037,11 +2037,39 @@ def _smart_version(client_id: int, format_type: str, hook_type: str, slug: str) 
         return 1
 
 
+_STOPWOORDEN = {
+    "in", "de", "het", "een", "en", "op", "voor", "van", "dat", "is",
+    "je", "ze", "dit", "maar", "dan", "ook", "er", "al", "zo", "nog",
+    "wel", "niet", "met", "bij", "als", "om", "uit", "naar", "door",
+    "over", "per", "tot", "aan", "wil", "jij", "hier", "eens", "die",
+    "was", "zijn", "heb", "kan", "ik", "we", "te", "hij", "zij",
+}
+
+
 def _slug_words(text: str, n: int = 3) -> str:
-    """Neem de eerste n 'echte' woorden uit een tekst en maak er een slug van."""
+    """Pak de n meest betekenisvolle woorden (stopwoorden gefilterd) als slug."""
     import re as _re
     words = _re.findall(r"[a-zA-Z0-9À-ɏ]+", text)
-    return "-".join(w.lower() for w in words[:n])
+    meaningful = [w for w in words if w.lower() not in _STOPWOORDEN]
+    return "-".join(w.lower() for w in meaningful[:n])
+
+
+def _format_script(text: str) -> str:
+    """Zet SRT-platte tekst om naar leesbare alinea's (Pure Python, geen AI)."""
+    import re as _re
+    sentences = _re.split(r"(?<=[.!?])\s+", text.strip())
+    sentences = [s.strip() for s in sentences if s.strip()]
+    if not sentences:
+        return text
+    paragraphs, chunk = [], []
+    for s in sentences:
+        chunk.append(s)
+        if len(chunk) >= 3 or (len(chunk) >= 2 and len(s) < 50):
+            paragraphs.append(" ".join(chunk))
+            chunk = []
+    if chunk:
+        paragraphs.append(" ".join(chunk))
+    return "\n\n".join(paragraphs)
 
 
 def _get_winning_copies(client_id: int, max_n: int = 5) -> list[str]:
@@ -2116,91 +2144,85 @@ Geef terug als JSON: hook_type, hook_explanation, core_promise, pain_point"""
     hook_type    = hook_data.get("hook_type", "proof").lower().replace(" ", "_")
     core_promise = hook_data.get("core_promise", "")
 
-    # Stap 3 — Naam genereren met slimme versiedetectie
-    slug    = _slug_words(core_promise, 3) or "advertentie"
+    # Stap 3 — Leesbaar script (pure Python, geen AI)
+    script_formatted = _format_script(spoken_text)
+
+    # Stap 4 — Naam genereren met slimme versiedetectie op basis van kernbelofte
+    slug    = _slug_words(core_promise, 3) or _slug_words(spoken_text, 3) or "advertentie"
     versie  = _smart_version(client_id, "reels", hook_type, slug)
     ad_naam = f"reels-{hook_type}-v{versie}-{slug}"
 
     # Stap 5 — Copy genereren
     winning_copies = _get_winning_copies(client_id)
     client_context = client.get("client_context") or ""
-    cross_client   = []
-    try:
-        industry = client.get("industry", "")
-        if industry and db.is_available():
-            cross_client = db.get_industry_cross_client_data(industry, exclude_client_id=client_id)
-    except Exception:
-        pass
 
     copy_data = {
         "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
         "headline_1": "", "headline_2": "", "headline_3": "",
-        "cta": "Plan een gratis gesprek", "naam": ad_naam,
+        "cta": "Plan een gratis kennismaking", "naam": ad_naam,
     }
     if has_api():
-        cross_lines = "\n".join(
-            f"  {r['hook_type']} / {r.get('format_type','?')}: CPL €{r['cpl']} ({r['results']} resultaten)"
-            for r in cross_client[:5] if r.get("cpl")
-        ) if cross_client else "geen data"
         prev_copies = "\n".join(f"  - {c}" for c in winning_copies) if winning_copies else "geen beschikbaar"
-        copy_prompt = f"""Je bent een performance copywriter voor Meta Ads.
-Schrijf vanuit klantperspectief (ik, niet jij).
-Geen marketingclichés. Conversationele toon. Geen em-dashes.
+        copy_prompt = f"""Je bent een directe performance copywriter voor Meta Ads in Nederland.
+Je taak: schrijf body copy die direct converteert.
 
-Video tekst:
+Regels:
+- Schrijf zoals mensen praten — niet zoals marketeers schrijven
+- Gebruik de exacte woorden en zinnen uit het script/visual — niet parafraseren
+- Geen clichés: niet "ontdek", "uniek", "effectief", "bewezen methode"
+- Geen em-dashes
+- Vanuit ik-perspectief of directe aanspraak (jij/je)
+- Maximaal 3 zinnen per variant — elke zin telt
+- Variant 3 is altijd maximaal 15 woorden — één punch
+- De CTA is altijd laagdrempelig: passend bij het aanbod van deze klant — nooit "Koop nu" of "Schrijf je in"
+
+Stijlreferentie — schrijf in dezelfde toon als dit script:
 {spoken_text[:2000]}
 
-Hook type: {hook_type}
-Kernbelofte: {core_promise}
-Aangesproken pijnpunt: {hook_data.get('pain_point', '')}
-
-Klantcontext / ICP:
-{client_context[:600] if client_context else 'niet opgegeven'}
-
-Winnende copy voorbeelden (schrijfstijl als referentie):
+Historisch beste copy van deze klant (gebruik dit als stijlreferentie, niet kopiëren):
 {prev_copies}
 
-Cross-client branchedata (zelfde branche):
-{cross_lines}
+Klantcontext:
+{client_context[:600] if client_context else 'niet opgegeven'}
 
 Geef terug als JSON:
 {{
-  "ad_copy_1": "body tekst variant 1 (bewezen aanpak, op basis van winnende copy stijl)",
-  "ad_copy_2": "body tekst variant 2 (andere invalshoek)",
-  "ad_copy_3": "body tekst kortste variant, max 20 woorden",
-  "headline_1": "max 8 woorden, punchig",
-  "headline_2": "alternatieve headline",
-  "headline_3": "vraagvorm headline",
-  "cta": "call-to-action tekst",
-  "naam": "{ad_naam}"
+  "ad_copy_1": "maximaal 3 zinnen, bewezen aanpak gebaseerd op winnende stijl",
+  "ad_copy_2": "maximaal 3 zinnen, andere emotionele invalshoek",
+  "ad_copy_3": "maximaal 15 woorden, één directe punch",
+  "headline_1": "maximaal 6 woorden, statement",
+  "headline_2": "maximaal 6 woorden, andere invalshoek",
+  "headline_3": "maximaal 8 woorden, vraagvorm",
+  "cta": "laagdrempelige CTA passend bij het aanbod van deze klant"
 }}"""
         copy_data = call_json(copy_prompt, max_tokens=1200)
         if "_error" in copy_data or not copy_data.get("ad_copy_1"):
             copy_data = {
                 "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
                 "headline_1": "", "headline_2": "", "headline_3": "",
-                "cta": "Plan een gratis gesprek", "naam": ad_naam,
+                "cta": "Plan een gratis kennismaking", "naam": ad_naam,
                 "_error": copy_data.get("_error", "AI niet beschikbaar"),
             }
         copy_data["naam"] = ad_naam
 
     test_mode = request.form.get("test_mode") == "1"
     result = {
-        "tab":             "video",
-        "ad_naam":         ad_naam,
-        "hook_type":       hook_type,
+        "tab":              "video",
+        "ad_naam":          ad_naam,
+        "hook_type":        hook_type,
         "hook_explanation": hook_data.get("hook_explanation", ""),
-        "core_promise":    core_promise,
-        "pain_point":      hook_data.get("pain_point", ""),
-        "script":          spoken_text,
-        "ad_copy_1":       copy_data.get("ad_copy_1", ""),
-        "ad_copy_2":       copy_data.get("ad_copy_2", ""),
-        "ad_copy_3":       copy_data.get("ad_copy_3", ""),
-        "headline_1":      copy_data.get("headline_1", ""),
-        "headline_2":      copy_data.get("headline_2", ""),
-        "headline_3":      copy_data.get("headline_3", ""),
-        "cta":             copy_data.get("cta", ""),
-        "ai_error":        copy_data.get("_error"),
+        "core_promise":     core_promise,
+        "pain_point":       hook_data.get("pain_point", ""),
+        "script":           spoken_text,
+        "script_formatted": script_formatted,
+        "ad_copy_1":        copy_data.get("ad_copy_1", ""),
+        "ad_copy_2":        copy_data.get("ad_copy_2", ""),
+        "ad_copy_3":        copy_data.get("ad_copy_3", ""),
+        "headline_1":       copy_data.get("headline_1", ""),
+        "headline_2":       copy_data.get("headline_2", ""),
+        "headline_3":       copy_data.get("headline_3", ""),
+        "cta":              copy_data.get("cta", ""),
+        "ai_error":         copy_data.get("_error"),
     }
     return render_template("nieuwe_advertentie.html", client=client, result=result, tab="video", test_mode=test_mode)
 
@@ -2254,68 +2276,59 @@ def nieuwe_advertentie_static(client_id):
     except Exception as e:
         logger.warning("Vision analyse mislukt: %s", e)
 
-    # Stap 2 — Naam genereren met slimme versiedetectie
+    # Stap 2 — Naam genereren op basis van letterlijke afbeeldingstekst (stopwoorden gefilterd)
     slug    = _slug_words(visual_summary, 3) or "advertentie"
     versie  = _smart_version(client_id, "static", hook_type, slug)
     ad_naam = f"static-{hook_type}-v{versie}-{slug}"
 
     # Stap 4 — Copy genereren
     winning_copies = _get_winning_copies(client_id)
-    cross_client   = []
-    try:
-        industry = client.get("industry", "")
-        if industry and db.is_available():
-            cross_client = db.get_industry_cross_client_data(industry, exclude_client_id=client_id)
-    except Exception:
-        pass
 
     copy_data = {
         "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
         "headline_1": "", "headline_2": "", "headline_3": "",
-        "cta": "Plan een gratis gesprek", "naam": ad_naam,
+        "cta": "Plan een gratis kennismaking", "naam": ad_naam,
     }
     if has_api():
-        cross_lines = "\n".join(
-            f"  {r['hook_type']} / {r.get('format_type','?')}: CPL €{r['cpl']} ({r['results']} resultaten)"
-            for r in cross_client[:5] if r.get("cpl")
-        ) if cross_client else "geen data"
         prev_copies = "\n".join(f"  - {c}" for c in winning_copies) if winning_copies else "geen beschikbaar"
-        copy_prompt = f"""Je bent een performance copywriter voor Meta Ads.
-Schrijf vanuit klantperspectief (ik, niet jij).
-Geen marketingclichés. Conversationele toon. Geen em-dashes.
+        copy_prompt = f"""Je bent een directe performance copywriter voor Meta Ads in Nederland.
+Je taak: schrijf body copy die direct converteert.
 
-Visuele samenvatting afbeelding:
+Regels:
+- Schrijf zoals mensen praten — niet zoals marketeers schrijven
+- Gebruik de exacte woorden en zinnen uit het script/visual — niet parafraseren
+- Geen clichés: niet "ontdek", "uniek", "effectief", "bewezen methode"
+- Geen em-dashes
+- Vanuit ik-perspectief of directe aanspraak (jij/je)
+- Maximaal 3 zinnen per variant — elke zin telt
+- Variant 3 is altijd maximaal 15 woorden — één punch
+- De CTA is altijd laagdrempelig: passend bij het aanbod van deze klant — nooit "Koop nu" of "Schrijf je in"
+
+Wat er op de afbeelding staat / visuele boodschap:
 {visual_summary[:1000]}
 
-Hook type: {hook_type}
-Aangesproken pijnpunt: {pain_point}
-
-Klantcontext / ICP:
-{client_context[:600] if client_context else 'niet opgegeven'}
-
-Winnende copy voorbeelden (schrijfstijl als referentie):
+Historisch beste copy van deze klant (gebruik dit als stijlreferentie, niet kopiëren):
 {prev_copies}
 
-Cross-client branchedata (zelfde branche):
-{cross_lines}
+Klantcontext:
+{client_context[:600] if client_context else 'niet opgegeven'}
 
 Geef terug als JSON:
 {{
-  "ad_copy_1": "body tekst variant 1",
-  "ad_copy_2": "body tekst variant 2 (andere invalshoek)",
-  "ad_copy_3": "kortste variant, max 20 woorden",
-  "headline_1": "max 8 woorden, punchig",
-  "headline_2": "alternatieve headline",
-  "headline_3": "vraagvorm headline",
-  "cta": "call-to-action tekst",
-  "naam": "{ad_naam}"
+  "ad_copy_1": "maximaal 3 zinnen, bewezen aanpak gebaseerd op winnende stijl",
+  "ad_copy_2": "maximaal 3 zinnen, andere emotionele invalshoek",
+  "ad_copy_3": "maximaal 15 woorden, één directe punch",
+  "headline_1": "maximaal 6 woorden, statement",
+  "headline_2": "maximaal 6 woorden, andere invalshoek",
+  "headline_3": "maximaal 8 woorden, vraagvorm",
+  "cta": "laagdrempelige CTA passend bij het aanbod van deze klant"
 }}"""
         copy_data = call_json(copy_prompt, max_tokens=1200)
         if "_error" in copy_data or not copy_data.get("ad_copy_1"):
             copy_data = {
                 "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
                 "headline_1": "", "headline_2": "", "headline_3": "",
-                "cta": "Plan een gratis gesprek", "naam": ad_naam,
+                "cta": "Plan een gratis kennismaking", "naam": ad_naam,
                 "_error": copy_data.get("_error", "AI niet beschikbaar"),
             }
         copy_data["naam"] = ad_naam
