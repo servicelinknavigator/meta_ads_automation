@@ -2085,11 +2085,33 @@ def _run_meta_sync(client_id: int, connection: dict,
         )
 
         # Auto-tag + hook snapshots
-        from core.axes_mapper import map_axes
+        # aggregate_hook_performance expects Ad objects, so convert norm dicts first
         from core.hook_analyzer import aggregate_hook_performance
+        from models.campaign import Ad as _Ad
         saved_mappings = db.get_ad_name_mappings(client_id)
-        tagged = map_axes(norm, saved_mappings)
-        hook_perf = aggregate_hook_performance(tagged)
+        ad_objects = [
+            _Ad(
+                ad_id           = r.get("ad_id", ""),
+                ad_name         = r.get("ad_name", ""),
+                ad_set_name     = r.get("adset_name", ""),
+                campaign_name   = r.get("campaign_name", ""),
+                impressions     = int(r.get("impressions", 0) or 0),
+                reach           = int(r.get("reach", 0) or 0),
+                clicks          = int(r.get("clicks", 0) or 0),
+                link_clicks     = int(r.get("link_clicks", 0) or 0),
+                spend           = float(r.get("spend", 0) or 0),
+                results         = int(r.get("results", 0) or 0),
+                ctr             = float(r.get("ctr", 0) or 0),
+                cpc             = float(r.get("cpc", 0) or 0),
+                cpm             = float(r.get("cpm", 0) or 0),
+                roas            = float(r.get("roas", 0) or 0),
+                frequency       = float(r.get("frequency", 0) or 0),
+                cost_per_result = float(r.get("cost_per_result", 0) or 0),
+                delivery_status = r.get("status", ""),
+            )
+            for r in norm
+        ]
+        hook_perf = aggregate_hook_performance(ad_objects, overrides=saved_mappings)
         if hook_perf:
             db.save_hook_snapshots(client_id, upload_id, hook_perf)
 
