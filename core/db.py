@@ -174,6 +174,8 @@ def init_schema() -> None:
         # Migrations: add columns introduced after initial schema creation
         cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS headline_2 VARCHAR(500)")
         cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS headline_3 VARCHAR(500)")
+        cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS hook_type VARCHAR(100)")
+        cur.execute("ALTER TABLE ad_creatives ADD COLUMN IF NOT EXISTS format_type VARCHAR(100)")
 
         # Meta connection storage
         cur.execute("""
@@ -566,7 +568,8 @@ def get_ad_creatives(client_id: int) -> dict[str, dict]:
         cur = conn.cursor()
         cur.execute("""
             SELECT ad_naam, script, headline, headline_2, headline_3,
-                   ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad
+                   ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad,
+                   hook_type, format_type
             FROM ad_creatives WHERE client_id = %s
         """, (client_id,))
         rows = cur.fetchall()
@@ -581,22 +584,44 @@ def get_ad_creatives(client_id: int) -> dict[str, dict]:
             "ad_copy_2":      r[6] or "",
             "ad_copy_3":      r[7] or "",
             "afbeelding_pad": r[8] or "",
+            "hook_type":      r[9] or "",
+            "format_type":    r[10] or "",
         }
         for r in rows
     }
 
 
+def get_ad_creatives_list(client_id: int) -> list[dict]:
+    """Return list of all creatives with metadata, newest first — used for history view."""
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, ad_naam, hook_type, format_type,
+                   script, headline, ad_copy_1, afbeelding_pad,
+                   created_at, updated_at
+            FROM ad_creatives
+            WHERE client_id = %s
+            ORDER BY created_at DESC
+        """, (client_id,))
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close()
+    return rows
+
+
 def upsert_ad_creative(client_id: int, ad_naam: str, script: str = "",
                         headline: str = "", headline_2: str = "", headline_3: str = "",
                         ad_copy_1: str = "", ad_copy_2: str = "", ad_copy_3: str = "",
-                        afbeelding_pad: str = "") -> None:
+                        afbeelding_pad: str = "",
+                        hook_type: str = "", format_type: str = "") -> None:
     with _conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO ad_creatives
                 (client_id, ad_naam, script, headline, headline_2, headline_3,
-                 ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                 ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad,
+                 hook_type, format_type, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (client_id, ad_naam)
             DO UPDATE SET
                 script         = COALESCE(NULLIF(EXCLUDED.script, ''),         ad_creatives.script),
@@ -607,11 +632,14 @@ def upsert_ad_creative(client_id: int, ad_naam: str, script: str = "",
                 ad_copy_2      = COALESCE(NULLIF(EXCLUDED.ad_copy_2, ''),      ad_creatives.ad_copy_2),
                 ad_copy_3      = COALESCE(NULLIF(EXCLUDED.ad_copy_3, ''),      ad_creatives.ad_copy_3),
                 afbeelding_pad = COALESCE(NULLIF(EXCLUDED.afbeelding_pad, ''), ad_creatives.afbeelding_pad),
+                hook_type      = COALESCE(NULLIF(EXCLUDED.hook_type, ''),      ad_creatives.hook_type),
+                format_type    = COALESCE(NULLIF(EXCLUDED.format_type, ''),    ad_creatives.format_type),
                 updated_at     = NOW()
         """, (client_id, ad_naam, script or None, headline or None,
               headline_2 or None, headline_3 or None,
               ad_copy_1 or None, ad_copy_2 or None, ad_copy_3 or None,
-              afbeelding_pad or None))
+              afbeelding_pad or None,
+              hook_type or None, format_type or None))
         cur.close()
 
 
@@ -667,7 +695,7 @@ def get_ad_names_with_creatives(client_id: int) -> set[str]:
 
 
 def get_industry_cross_client_data(industry: str, exclude_client_id: int | None = None,
-                                    min_spend: float = 30.0) -> list[dict]:
+                                    min_spend: float = 25.0) -> list[dict]:
     """
     Returns top-performing ad+creative combinations from other clients in the same industry.
     Used for cross-client pattern recognition.
