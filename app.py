@@ -2013,21 +2013,26 @@ def _parse_srt(srt_text: str) -> str:
     return " ".join(out).strip()
 
 
-def _smart_version(client_id: int, format_type: str, hook_type: str, slug: str = "") -> int:
+def _smart_version(client_id: int, format_type: str, hook_type: str, slug: str) -> int:
     """
-    Versienummer op basis van format + hook_type — telt alle ads van die invalshoek.
-    Slug is puur beschrijvend in de naam, niet gebruikt voor versiedetectie.
+    Versienummer: format + hook_type + minimaal 2/3 slug-woorden moeten matchen.
+    Zelfde concept -> versie ophogen. Ander concept met zelfde hook -> v1.
     """
     import re as _re
     try:
         creatives = db.get_ad_creatives(client_id)
         prefix = format_type.lower() + "-" + hook_type.lower() + "-v"
+        candidate_words = set(slug.split("-")) - {""}
         highest = 0
         for naam in creatives:
             normalized = _re.sub(r"[ ]*-[ ]*", "-", naam.lower())
-            m = _re.match(_re.escape(prefix) + r"([0-9]+)", normalized)
-            if m:
-                highest = max(highest, int(m.group(1)))
+            m = _re.match(_re.escape(prefix) + r"([0-9]+)-(.*)", normalized)
+            if not m:
+                continue
+            version_num = int(m.group(1))
+            existing_slug_words = set(m.group(2).split("-")) - {""}
+            if len(candidate_words & existing_slug_words) >= 2:
+                highest = max(highest, version_num)
         return highest + 1
     except Exception:
         return 1
