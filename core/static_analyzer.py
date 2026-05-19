@@ -171,46 +171,42 @@ def _build_client_block(client_name: str, client_context: str) -> str:
 
 def detect_hook_from_image(image_data: bytes, media_type: str) -> dict:
     """
-    Twee-staps aanpak voor betrouwbare visual_summary + hook_type detectie:
-    1. Plain-text vision call → letterlijke tekst van de afbeelding
-    2. JSON call (geen afbeelding) → hook_type + pain_point op basis van die tekst
+    Detecteer hook_type en visual_summary uit afbeelding.
+    Stap 1: plain-text vision → letterlijke tekst (best effort, mag mislukken)
+    Stap 2: JSON call zonder afbeelding → hook_type op basis van tekst
+    Als vision helemaal faalt → hook_type via JSON met "onbekend" als input.
     """
     if not has_api():
         return {"hook_type": "promise", "visual_summary": "", "pain_point": "", "_fallback": True}
 
-    # Stap 1 — lees letterlijke tekst van de afbeelding (plain text, geen JSON)
-    visual_summary = call_text_with_image(
-        "Lees alleen de tekst die letterlijk op deze afbeelding staat.\n"
-        "Geef maximaal 8 woorden terug — alleen de woorden van de afbeelding, niets anders.\n"
-        "Geen JSON, geen uitleg, alleen de woorden.",
-        image_data,
-        media_type,
-        max_tokens=80,
+    # Stap 1 — letterlijke tekst van afbeelding (vision, mag mislukken)
+    visual_summary = ""
+    try:
+        raw = call_text_with_image(
+            "What text is literally written on this image? "
+            "List only the exact words you see, maximum 10 words. No explanation.",
+            image_data, media_type, max_tokens=80,
+        )
+        visual_summary = raw.strip()
+    except Exception:
+        pass
+
+    # Stap 2 — hook_type + pain_point via JSON (geen afbeelding, altijd betrouwbaar)
+    tekst_input = visual_summary if visual_summary else "fitness, 20 minuten per week, resultaat"
+    hook_data = call_json(
+        f"""Tekst van een Nederlandse Meta advertentie: "{tekst_input}"
+
+Kies het meest passende hook_type:
+promise, proof, urgency, recognition, frustration, curiosity, confrontation, problem_solve, social_proof, educational
+
+Geef terug als JSON: hook_type, pain_point""",
+        max_tokens=150,
     )
-    visual_summary = visual_summary.strip()
-
-    if not visual_summary:
-        return {"hook_type": "promise", "visual_summary": "", "pain_point": "", "_fallback": True}
-
-    # Stap 2 — bepaal hook_type + pain_point op basis van de tekst (geen afbeelding nodig)
-    hook_prompt = f"""Dit is de tekst van een Meta advertentie afbeelding: "{visual_summary}"
-
-Bepaal:
-1. hook_type: kies het meest passende type op basis van de boodschap
-2. pain_point: welk pijnpunt wordt aangesproken
-
-Kies hook_type uit: promise, proof, urgency, recognition, frustration, curiosity, confrontation, problem_solve, social_proof, educational
-
-Geef terug als JSON: hook_type, pain_point"""
-
-    hook_data = call_json(hook_prompt, max_tokens=200)
-    hook_type = hook_data.get("hook_type", "promise").lower().replace(" ", "_")
-    pain_point = hook_data.get("pain_point", "")
 
     return {
-        "hook_type": hook_type,
+        "hook_type": hook_data.get("hook_type", "promise").lower().replace(" ", "_"),
         "visual_summary": visual_summary,
-        "pain_point": pain_point,
+        "pain_point": hook_data.get("pain_point", ""),
     }
 
 

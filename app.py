@@ -2270,44 +2270,26 @@ def nieuwe_advertentie_static(client_id):
     except Exception:
         afbeelding_pad = ""
 
-    # Stap 1 — Vision analyse (gefocuste hook+tekst detectie)
-    hook_type      = "proof"
+    # Stap 1 — Vision: hook_type detectie (visual_summary is bonus, niet kritisch voor naam)
+    hook_type      = "promise"
     visual_summary = ""
     pain_point     = ""
     client_context = client.get("client_context") or ""
-    hook_data_raw  = {}
     try:
         hook_data_raw  = detect_hook_from_image(img_data, media_type)
-        logger.info("DEBUG static | raw detect_hook response: %r", hook_data_raw)
-        hook_type      = hook_data_raw.get("hook_type", "proof").lower().replace(" ", "_")
-        visual_summary = (hook_data_raw.get("visual_summary") or
-                          hook_data_raw.get("visual_samenvatting") or "")
+        logger.info("DEBUG static | detect_hook: %r", hook_data_raw)
+        hook_type      = hook_data_raw.get("hook_type", "promise").lower().replace(" ", "_")
+        visual_summary = hook_data_raw.get("visual_summary", "").strip()
         pain_point     = hook_data_raw.get("pain_point", "")
-        logger.info("DEBUG static | hook_type=%r visual_summary=%r", hook_type, visual_summary)
     except Exception as e:
         logger.warning("Vision analyse mislukt: %s", e)
 
-    # Stap 2 — Naam genereren op basis van letterlijke afbeeldingstekst (stopwoorden gefilterd)
-    import re as _re_dbg
-    _vs_words_raw = _re_dbg.findall(r"[a-zA-Z0-9À-ɏ]+", visual_summary) if visual_summary else []
-    _vs_filtered  = [w for w in _vs_words_raw if w.lower() not in _STOPWOORDEN]
-    logger.info("DEBUG naam (static) | raw_words=%r | filtered=%r", _vs_words_raw[:8], _vs_filtered[:5])
-    slug = _slug_words(visual_summary, 3)
-    if not slug or "advertentie" in slug:
-        # Fallback: visual_summary leeg of alleen stopwoorden — gebruik hook_type als slug
-        slug = hook_type.replace("_", "-")
-        logger.warning("DEBUG naam (static) | slug fallback → hook_type: %r", slug)
-    versie  = _smart_version(client_id, "static", hook_type, slug)
-    ad_naam = f"static-{hook_type}-v{versie}-{slug}"
-    logger.info("DEBUG naam (static) | slug=%r | ad_naam=%r", slug, ad_naam)
-
-    # Stap 4 — Copy genereren
+    # Stap 2 — Copy genereren (VOOR naamgeneratie — headline wordt slug-fallback)
     winning_copies = _get_winning_copies(client_id)
-
     copy_data = {
         "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
         "headline_1": "", "headline_2": "", "headline_3": "",
-        "cta": "Plan een gratis kennismaking", "naam": ad_naam,
+        "cta": "Plan een gratis kennismaking",
     }
     if has_api():
         prev_copies = "\n".join(f"  - {c}" for c in winning_copies) if winning_copies else "geen beschikbaar"
@@ -2325,7 +2307,7 @@ Regels:
 - De CTA is altijd laagdrempelig: passend bij het aanbod van deze klant — nooit "Koop nu" of "Schrijf je in"
 
 Wat er op de afbeelding staat / visuele boodschap:
-{visual_summary[:1000]}
+{visual_summary[:1000] if visual_summary else 'niet beschikbaar'}
 
 Historisch beste copy van deze klant (gebruik dit als stijlreferentie, niet kopiëren):
 {prev_copies}
@@ -2348,10 +2330,21 @@ Geef terug als JSON:
             copy_data = {
                 "ad_copy_1": "", "ad_copy_2": "", "ad_copy_3": "",
                 "headline_1": "", "headline_2": "", "headline_3": "",
-                "cta": "Plan een gratis kennismaking", "naam": ad_naam,
+                "cta": "Plan een gratis kennismaking",
                 "_error": copy_data.get("_error", "AI niet beschikbaar"),
             }
-        copy_data["naam"] = ad_naam
+
+    # Stap 3 — Naam: visual_summary → headline_1 → hook_type (gegarandeerd betekenisvol)
+    slug = _slug_words(visual_summary, 3)
+    if not slug or slug == hook_type.replace("_", "-"):
+        slug = _slug_words(copy_data.get("headline_1", ""), 3)
+        logger.info("DEBUG static | slug uit headline: %r -> %r", copy_data.get("headline_1", ""), slug)
+    if not slug:
+        slug = hook_type.replace("_", "-")
+    versie  = _smart_version(client_id, "static", hook_type, slug)
+    ad_naam = f"static-{hook_type}-v{versie}-{slug}"
+    logger.info("DEBUG static | ad_naam=%r", ad_naam)
+    copy_data["naam"] = ad_naam
 
     test_mode = request.form.get("test_mode") == "1"
     result = {
