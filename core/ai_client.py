@@ -105,13 +105,15 @@ def call_json_with_image(
     system: str = _SLN_SYSTEM_JSON,
     max_tokens: int = 1000,
 ) -> dict:
+    import base64
+    import logging as _log
+    _logger = _log.getLogger(__name__)
     try:
-        import base64
-        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
         b64 = base64.standard_b64encode(image_data).decode("utf-8")
+        _logger.info("call_json_with_image START | model=%s | img_len=%d | media=%s", _VISION_MODEL, len(image_data), media_type)
         msg = client.messages.create(
-            model=model,
+            model=_VISION_MODEL,
             max_tokens=max_tokens,
             system=system,
             messages=[{
@@ -129,9 +131,16 @@ def call_json_with_image(
                 ],
             }],
         )
-        return json.loads(_extract_json(msg.content[0].text))
+        raw = msg.content[0].text
+        _logger.info("call_json_with_image OK | raw[:120]=%r", raw[:120])
+        return json.loads(_extract_json(raw))
     except Exception as e:
+        import traceback as _tb
+        _logger.error("call_json_with_image FAILED | type=%s | error=%s\n%s", type(e).__name__, e, _tb.format_exc())
         return {"_error": str(e)}
+
+
+_VISION_MODEL = "claude-sonnet-4-6"
 
 
 def call_text_with_image(
@@ -141,13 +150,15 @@ def call_text_with_image(
     max_tokens: int = 100,
 ) -> str:
     """Plain-text vision call — returns raw text, no JSON parsing."""
+    import base64
+    import logging as _log
+    _logger = _log.getLogger(__name__)
     try:
-        import base64
-        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
         b64 = base64.standard_b64encode(image_data).decode("utf-8")
+        _logger.info("call_text_with_image START | model=%s | img_len=%d | media=%s", _VISION_MODEL, len(image_data), media_type)
         msg = client.messages.create(
-            model=model,
+            model=_VISION_MODEL,
             max_tokens=max_tokens,
             messages=[{
                 "role": "user",
@@ -158,12 +169,11 @@ def call_text_with_image(
             }],
         )
         result = msg.content[0].text.strip()
-        import logging as _log
-        _log.getLogger(__name__).info("call_text_with_image OK | len=%d | result=%r", len(image_data), result[:80])
+        _logger.info("call_text_with_image OK | result=%r", result[:80])
         return result
     except Exception as e:
-        import logging as _log
-        _log.getLogger(__name__).error("call_text_with_image FAILED | len=%d | error=%s", len(image_data), e)
+        import traceback as _tb
+        _logger.error("call_text_with_image FAILED | type=%s | error=%s\n%s", type(e).__name__, e, _tb.format_exc())
         return ""
 
 

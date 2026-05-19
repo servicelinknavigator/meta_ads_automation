@@ -637,6 +637,55 @@ def _psycopg2_version() -> str:
         return "NIET GEINSTALLEERD"
 
 
+@app.route("/debug/vision")
+@login_required
+def debug_vision():
+    """Test vision API with a minimal 1x1 PNG — shows exactly what fails."""
+    import base64
+    import traceback
+    from core.ai_client import _VISION_MODEL, has_api
+    import anthropic as _anthropic
+
+    lines = []
+    lines.append(f"ANTHROPIC_MODEL env     : {os.getenv('ANTHROPIC_MODEL', '(niet ingesteld)')}")
+    lines.append(f"Vision model hardcoded  : {_VISION_MODEL}")
+    lines.append(f"API key aanwezig        : {'JA' if has_api() else 'NEE'}")
+    lines.append(f"API key prefix          : {os.getenv('ANTHROPIC_API_KEY', '')[:12]}...")
+    lines.append("")
+
+    if not has_api():
+        lines.append("STOP — geen API key.")
+        return f"<pre>{'chr(10)'.join(lines)}</pre>"
+
+    png_1x1 = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII="
+    )
+    b64 = base64.standard_b64encode(png_1x1).decode()
+
+    try:
+        client = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        lines.append(f"Client aangemaakt       : OK")
+        msg = client.messages.create(
+            model=_VISION_MODEL,
+            max_tokens=30,
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
+                {"type": "text", "text": "What color is this image? One word."},
+            ]}],
+        )
+        lines.append(f"Vision API resultaat    : OK")
+        lines.append(f"Antwoord                : {msg.content[0].text.strip()}")
+    except Exception as e:
+        lines.append(f"Vision API FOUT type    : {type(e).__name__}")
+        lines.append(f"Vision API FOUT detail  : {e}")
+        lines.append("")
+        lines.append(traceback.format_exc())
+
+    return f"<pre style='font-family:monospace;padding:2rem;font-size:.9rem;'>{'%0A'.join(lines)}</pre>".replace(
+        "%0A", "\n"
+    )
+
+
 @app.route("/clients")
 @login_required
 def clients():
