@@ -171,42 +171,38 @@ def _build_client_block(client_name: str, client_context: str) -> str:
 
 def detect_hook_from_image(image_data: bytes, media_type: str) -> dict:
     """
-    Detecteer hook_type en visual_summary uit afbeelding.
-    Stap 1: plain-text vision → letterlijke tekst (best effort, mag mislukken)
-    Stap 2: JSON call zonder afbeelding → hook_type op basis van tekst
-    Als vision helemaal faalt → hook_type via JSON met "onbekend" als input.
+    Detecteer hook_type, visual_summary en pain_point uit afbeelding.
+    Één JSON vision call geeft alles tegelijk terug (betrouwbaarder dan twee losse calls).
     """
     if not has_api():
         return {"hook_type": "promise", "visual_summary": "", "pain_point": "", "_fallback": True}
 
-    # Stap 1 — letterlijke tekst van afbeelding (vision, mag mislukken)
-    visual_summary = ""
-    try:
-        raw = call_text_with_image(
-            "What text is literally written on this image? "
-            "List only the exact words you see, maximum 10 words. No explanation.",
-            image_data, media_type, max_tokens=80,
-        )
-        visual_summary = raw.strip()
-    except Exception:
-        pass
-
-    # Stap 2 — hook_type + pain_point via JSON (geen afbeelding, altijd betrouwbaar)
-    tekst_input = visual_summary if visual_summary else "fitness, 20 minuten per week, resultaat"
-    hook_data = call_json(
-        f"""Tekst van een Nederlandse Meta advertentie: "{tekst_input}"
-
-Kies het meest passende hook_type:
-promise, proof, urgency, recognition, frustration, curiosity, confrontation, problem_solve, social_proof, educational
-
-Geef terug als JSON: hook_type, pain_point""",
-        max_tokens=150,
+    hook_opts = (
+        "promise, proof, urgency, recognition, frustration, curiosity, "
+        "confrontation, problem_solve, social_proof, educational"
     )
 
+    result = call_json_with_image(
+        f"""Analyseer deze Meta advertentie afbeelding.
+
+Geef terug als JSON:
+{{
+  "hook_type": "kies uit: {hook_opts}",
+  "visual_summary": "2-5 woorden: wat zie je op de afbeelding (bijv. 'vrouw traint in gym', '20 minuten resultaat', 'voor na vergelijking')",
+  "pain_point": "1 zin: welk probleem of verlangen speelt de afbeelding in?"
+}}""",
+        image_data,
+        media_type,
+        max_tokens=200,
+    )
+
+    if "_error" in result:
+        return {"hook_type": "promise", "visual_summary": "", "pain_point": "", "_error": result["_error"]}
+
     return {
-        "hook_type": hook_data.get("hook_type", "promise").lower().replace(" ", "_"),
-        "visual_summary": visual_summary,
-        "pain_point": hook_data.get("pain_point", ""),
+        "hook_type": result.get("hook_type", "promise").lower().replace(" ", "_"),
+        "visual_summary": result.get("visual_summary", "").strip(),
+        "pain_point": result.get("pain_point", ""),
     }
 
 
