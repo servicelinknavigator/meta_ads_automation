@@ -188,7 +188,7 @@ def detect_hook_from_image(image_data: bytes, media_type: str) -> dict:
 Geef terug als JSON:
 {{
   "hook_type": "kies uit: {hook_opts}",
-  "visual_summary": "2-5 woorden: wat zie je op de afbeelding (bijv. 'vrouw traint in gym', '20 minuten resultaat', 'voor na vergelijking')",
+  "visual_summary": "2-4 concrete zelfstandige naamwoorden of bijvoeglijke naamwoorden die het beeld beschrijven — geen lidwoorden, voorzetsels of werkwoorden. Voorbeelden: 'vrouw resultaat gym', 'voor-na transformatie', 'fit20 machine training', 'gezin energie sport'",
   "pain_point": "1 zin: welk probleem of verlangen speelt de afbeelding in?"
 }}""",
         image_data,

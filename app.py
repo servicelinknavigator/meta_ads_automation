@@ -2106,6 +2106,10 @@ _STOPWOORDEN = {
     "wel", "niet", "met", "bij", "als", "om", "uit", "naar", "door",
     "over", "per", "tot", "aan", "wil", "jij", "hier", "eens", "die",
     "was", "zijn", "heb", "kan", "ik", "we", "te", "hij", "zij",
+    "geen", "meer", "nu", "jouw", "mijn", "goed", "weer", "want",
+    "want", "ook", "iets", "altijd", "nooit", "heel", "echt", "toch",
+    "what", "this", "that", "with", "from", "text", "image", "the",
+    "and", "for", "are", "you", "your", "not", "no", "yes", "its",
 }
 
 
