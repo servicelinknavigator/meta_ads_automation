@@ -54,7 +54,9 @@ def _get_latest_ad_rows(client_id: int, latest_upload: dict) -> list[dict]:
         from core.csv_parser import parse_csv_string
         rows, _ = parse_csv_string(csv_content)
         return rows or []
-    except Exception:
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).error("CSV parsing failed in action_planner: %s", e)
         return []
 
 
@@ -94,7 +96,7 @@ def _build_plan(client: dict, ad_rows: list[dict], hook_perf: list[dict],
             cpl   = round(spend / res, 2) if res else 0
             roas  = float(r.get("roas", 0) or 0)
             lines.append(
-                f"  - {r.get('ad_name', '?')}: €{spend:.0f} spend, "
+                f"  - {r.get('ad_name') or '?'}: €{spend:.0f} spend, "
                 f"{res} resultaten, CPL €{cpl}, ROAS {roas}"
             )
         return "\n".join(lines) if lines else "  (geen)"

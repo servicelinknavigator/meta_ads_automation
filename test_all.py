@@ -431,51 +431,63 @@ test("Hook CPL: berekening klopt", t_hook_cpl_calculation)
 print("\n═══ 4. SHOOT BRIEF (fallback, geen API) ═══")
 from core.shoot_brief import generate_shoot_brief, _strip_em_dashes, _clean_script, _build_script, HOOK_TYPES as SB_HOOKS
 
-def t_shoot_brief_returns_3():
+EXPECTED_BRIEF_LEN = 17  # 7 bewezen + 2 test + 1 wild_card + 1 testimonial + 5 short + 1 broll
+EXPECTED_TYPES = {"bewezen", "test", "wild_card", "testimonial", "short", "broll"}
+
+def t_shoot_brief_returns_17():
     brief = generate_shoot_brief(summary, all_ads, client_name="fit20 Gooise Meren")
-    assert len(brief) == 3, f"Verwacht 3 shoots, got {len(brief)}"
+    assert len(brief) == EXPECTED_BRIEF_LEN, f"Verwacht {EXPECTED_BRIEF_LEN} shoots, got {len(brief)}"
     return True
 
 def t_shoot_brief_types():
     brief = generate_shoot_brief(summary, all_ads, client_name="fit20 Gooise Meren")
     types = {s["type"] for s in brief}
-    assert types == {"safe", "new_hook", "format_test"}, f"Types kloppen niet: {types}"
+    assert types == EXPECTED_TYPES, f"Types kloppen niet: {types}"
     return True
 
 def t_shoot_brief_required_fields():
     brief = generate_shoot_brief(summary, all_ads, client_name="fit20 Gooise Meren")
-    required = ["type", "hook_type", "format", "openingszin", "cta", "script", "shots", "concept"]
+    long_types = {"bewezen", "test", "wild_card"}
     for shoot in brief:
-        for f in required:
-            assert f in shoot, f"Veld {f} ontbreekt in shoot {shoot.get('type')}"
+        t = shoot.get("type")
+        assert "type" in shoot, "Veld 'type' ontbreekt"
+        if t in long_types:
+            for f in ["hook_type", "naam", "logica", "redenering", "cta", "tijdcodes"]:
+                assert f in shoot, f"Veld {f} ontbreekt in shoot {t}"
+        elif t == "short":
+            for f in ["hook_type", "naam", "logica", "openingszin", "kernbelofte", "cta"]:
+                assert f in shoot, f"Veld {f} ontbreekt in short shoot"
+        elif t == "testimonial":
+            for f in ["hook_type", "naam", "vragen", "cta"]:
+                assert f in shoot, f"Veld {f} ontbreekt in testimonial"
+        elif t == "broll":
+            assert "broll" in shoot, "Veld 'broll' ontbreekt in broll shoot"
     return True
 
 def t_shoot_brief_script_has_4_blocks():
     brief = generate_shoot_brief(summary, all_ads, client_name="fit20 Gooise Meren")
+    long_types = {"bewezen", "test", "wild_card"}
     for shoot in brief:
-        script = shoot.get("script", [])
-        assert len(script) >= 3, f"Script heeft maar {len(script)} blokken in {shoot['type']}"
-        for block in script:
-            assert "time" in block and "tekst" in block, f"Script block mist keys: {block}"
+        if shoot.get("type") in long_types:
+            tijdcodes = shoot.get("tijdcodes", {})
+            assert len(tijdcodes) >= 3, f"Script heeft maar {len(tijdcodes)} tijdcodes in {shoot['type']}"
     return True
 
 def t_no_em_dashes_in_fallback():
     brief = generate_shoot_brief(summary, all_ads, client_name="fit20 Gooise Meren")
+    script_types = {"bewezen", "test", "wild_card", "short"}
     for shoot in brief:
-        for block in shoot.get("script", []):
-            assert "—" not in block["tekst"], f"Em dash gevonden in script: {block['tekst']}"
-        assert "—" not in shoot.get("openingszin", ""), f"Em dash in openingszin: {shoot['openingszin']}"
+        if shoot.get("type") in script_types:
+            for tekst in shoot.get("tijdcodes", {}).values():
+                assert "—" not in tekst, f"Em dash gevonden in tijdcodes: {tekst}"
     return True
 
 def t_client_name_in_script():
     brief = generate_shoot_brief(summary, all_ads, client_name="TestBedrijf")
     all_text = " ".join(
-        b["tekst"] for s in brief for b in s.get("script", [])
-    ) + " ".join(s.get("openingszin", "") for s in brief)
-    # At least one mention of the client name expected in fallback
-    if not any("TestBedrijf" in s.get("openingszin", "") or
-               any("TestBedrijf" in b["tekst"] for b in s.get("script", []))
-               for s in brief):
+        v for s in brief for v in s.get("tijdcodes", {}).values()
+    )
+    if "TestBedrijf" not in all_text:
         return "WARN: Klantnaam niet gevonden in scripts (kan kloppen bij specifieke hook combos)"
     return True
 
@@ -510,10 +522,10 @@ def t_no_api_fallback():
 
 def t_unknown_client_name_fallback():
     brief = generate_shoot_brief(summary, all_ads, client_name="")
-    assert len(brief) == 3, "Lege client_name crasht niet"
+    assert len(brief) == EXPECTED_BRIEF_LEN, f"Lege client_name crasht niet (got {len(brief)})"
     return True
 
-test("Shoot brief: geeft altijd 3 shoots terug", t_shoot_brief_returns_3)
+test("Shoot brief: geeft altijd 17 shoots terug", t_shoot_brief_returns_17)
 test("Shoot brief: types zijn safe/new_hook/format_test", t_shoot_brief_types)
 test("Shoot brief: alle verplichte velden aanwezig", t_shoot_brief_required_fields)
 test("Shoot brief: elk script heeft 3+ blokken", t_shoot_brief_script_has_4_blocks)

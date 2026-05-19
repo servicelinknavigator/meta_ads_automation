@@ -53,6 +53,11 @@ def _clean_script(script) -> list[dict]:
     return []
 
 
+def _build_script(hook: str, cta: str, client_name: str) -> list[dict]:
+    data = _fallback_script(hook, 1, client_name, cta)
+    return [{"time": k, "tekst": _strip_em_dashes(v)} for k, v in data["tijdcodes"].items()]
+
+
 def _best_hook(hook_perf: list[dict]) -> str:
     for row in hook_perf:
         if row["hook_type"] != "unknown" and row.get("results") and row["results"] > 0:

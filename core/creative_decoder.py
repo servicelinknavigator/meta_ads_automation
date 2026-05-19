@@ -45,6 +45,14 @@ Return ALLEEN dit JSON object (geen tekst eromheen):
     result = call_json(prompt, max_tokens=900)
     if "_error" in result or not result.get("hook_type"):
         return _fallback_winner(ad, summary)
+    # Ensure all expected fields are present (AI may omit some)
+    _winner_defaults = {
+        "hook_explanation": "", "promise": "", "audience_pain": "",
+        "format": "reels", "cta_intent": "", "psychological_driver": "",
+        "why_wins": "", "test_hypothesis": "",
+    }
+    for k, v in _winner_defaults.items():
+        result.setdefault(k, v)
     result["_fallback"] = False
     return result
 
@@ -83,6 +91,13 @@ Return ALLEEN dit JSON:
     result = call_json(prompt, max_tokens=700)
     if "_error" in result or not result.get("failure_reason"):
         return _fallback_loser(ad, summary)
+    # Ensure all expected fields are present (AI may omit some)
+    _loser_defaults = {
+        "failure_explanation": "", "fix_direction": "",
+        "should_kill": False, "kill_reasoning": "", "test_hypothesis": "",
+    }
+    for k, v in _loser_defaults.items():
+        result.setdefault(k, v)
     result["_fallback"] = False
     return result
 

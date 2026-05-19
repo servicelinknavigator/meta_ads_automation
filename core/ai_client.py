@@ -121,6 +121,9 @@ def _compress_for_vision(image_data: bytes, media_type: str) -> tuple[bytes, str
         return image_data, media_type
 
 
+_VISION_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+
+
 def call_json_with_image(
     prompt: str,
     image_data: bytes,
@@ -162,9 +165,6 @@ def call_json_with_image(
         import traceback as _tb
         _logger.error("call_json_with_image FAILED | type=%s | error=%s\n%s", type(e).__name__, e, _tb.format_exc())
         return {"_error": str(e)}
-
-
-_VISION_MODEL = "claude-sonnet-4-6"
 
 
 def call_text_with_image(

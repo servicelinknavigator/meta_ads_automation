@@ -194,12 +194,18 @@ def get_ads(token: str, ad_account_id: str,
         data = resp.json()
         raw  = data.get("data", [])
 
-        # Paginate through all results
+        # Paginate through all results (max 200 pages = 100k rows)
         paging = data.get("paging", {})
-        while paging.get("next"):
-            page = requests.get(paging["next"], timeout=30)
-            page.raise_for_status()
-            page_data = page.json()
+        page_count = 0
+        while paging.get("next") and page_count < 200:
+            page_count += 1
+            try:
+                page = requests.get(paging["next"], timeout=30)
+                page.raise_for_status()
+                page_data = page.json()
+            except Exception as page_err:
+                logger.warning("Pagination request %d failed, returning partial results: %s", page_count, page_err)
+                break
             raw.extend(page_data.get("data", []))
             paging = page_data.get("paging", {})
 

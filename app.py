@@ -10,7 +10,7 @@ from pathlib import Path
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify
-from markupsafe import Markup
+from markupsafe import Markup, escape as html_escape
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -69,9 +69,16 @@ def _cache_get(key: str) -> dict | None:
 
 # ── App setup ──────────────────────────────────────────────────────────────────
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
+_flask_secret = os.getenv("FLASK_SECRET_KEY", "")
+if not _flask_secret:
+    logger.warning("FLASK_SECRET_KEY not set — using insecure default. Set this in production!")
+    _flask_secret = "dev-secret-change-me"
+app.secret_key = _flask_secret
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", 50)) * 1024 * 1024
 app.permanent_session_lifetime = timedelta(hours=4)
+
+if not os.getenv("TOKEN_ENCRYPTION_KEY"):
+    logger.warning("TOKEN_ENCRYPTION_KEY not set — Meta OAuth tokens will be stored in plaintext!")
 
 UPLOAD_FOLDER = Path(__file__).parent / "uploads"
 UPLOAD_FOLDER.mkdir(exist_ok=True)
@@ -601,10 +608,10 @@ def debug_upload(upload_id):
             f"CSV regels : {len(lines)}\n"
             f"Parsed rows: {len(rows)}\n"
             f"Totaal spend: €{total_spend:.2f}\n\n"
-            f"--- Eerste 10 regels CSV ---\n{preview}\n</pre>"
+            f"--- Eerste 10 regels CSV ---\n{html_escape(preview)}\n</pre>"
         )
     except Exception as e:
-        return f"<pre>Fout: {e}</pre>"
+        return f"<pre>Fout: {html_escape(str(e))}</pre>"
 
 
 @app.route("/debug/db")
@@ -2797,7 +2804,11 @@ def connect_meta(client_id):
         flash("META_APP_ID omgevingsvariabele is niet ingesteld.", "danger")
         return redirect(url_for("client_profile", client_id=client_id))
 
-    auth_url = get_auth_url(state=str(client_id))
+    import secrets as _secrets
+    oauth_nonce = _secrets.token_urlsafe(24)
+    session["meta_oauth_nonce"] = oauth_nonce
+    session["meta_oauth_pending_client_id"] = client_id
+    auth_url = get_auth_url(state=oauth_nonce)
     return redirect(auth_url)
 
 
@@ -2817,13 +2828,11 @@ def meta_callback():
         flash("Geen OAuth code ontvangen van Meta.", "danger")
         return redirect(url_for("clients"))
 
-    try:
-        client_id = int(state) if state.isdigit() else None
-    except (ValueError, AttributeError):
-        client_id = None
-
-    if not client_id:
-        flash("Ongeldige state parameter in OAuth callback.", "danger")
+    # Validate state nonce to prevent CSRF
+    expected_nonce = session.pop("meta_oauth_nonce", None)
+    client_id = session.pop("meta_oauth_pending_client_id", None)
+    if not expected_nonce or not hmac.compare_digest(state, expected_nonce) or not client_id:
+        flash("Ongeldige OAuth state — mogelijk CSRF aanval. Probeer opnieuw.", "danger")
         return redirect(url_for("clients"))
 
     token_data = exchange_code_for_token(code)
@@ -3065,7 +3074,9 @@ def sync_all():
     Protected by X-Cron-Secret header matching CRON_SECRET env var.
     """
     cron_secret = os.getenv("CRON_SECRET", "")
-    if cron_secret and request.headers.get("X-Cron-Secret", "") != cron_secret:
+    if not cron_secret:
+        return jsonify({"error": "Unauthorized — CRON_SECRET not configured"}), 401
+    if not hmac.compare_digest(request.headers.get("X-Cron-Secret", ""), cron_secret):
         return jsonify({"error": "Unauthorized"}), 401
 
     if not _META_AVAILABLE or not db.is_available():
