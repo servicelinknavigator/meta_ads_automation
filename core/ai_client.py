@@ -98,6 +98,29 @@ Return uitsluitend dit JSON object (sleutels zijn de nummers als string):
     return result
 
 
+def _compress_for_vision(image_data: bytes, media_type: str) -> tuple[bytes, str]:
+    """Resize + compress image to max 1024x1024 JPEG before sending to vision API."""
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(image_data))
+        img = img.convert("RGB")
+        img.thumbnail((1024, 1024), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85, optimize=True)
+        compressed = buf.getvalue()
+        import logging as _log
+        _log.getLogger(__name__).info(
+            "compress_for_vision | %d -> %d bytes | orig_media=%s",
+            len(image_data), len(compressed), media_type,
+        )
+        return compressed, "image/jpeg"
+    except Exception as e:
+        import logging as _log
+        _log.getLogger(__name__).warning("compress_for_vision failed (%s) — using original", e)
+        return image_data, media_type
+
+
 def call_json_with_image(
     prompt: str,
     image_data: bytes,
@@ -109,6 +132,7 @@ def call_json_with_image(
     import logging as _log
     _logger = _log.getLogger(__name__)
     try:
+        image_data, media_type = _compress_for_vision(image_data, media_type)
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
         b64 = base64.standard_b64encode(image_data).decode("utf-8")
         _logger.info("call_json_with_image START | model=%s | img_len=%d | media=%s", _VISION_MODEL, len(image_data), media_type)
@@ -154,6 +178,7 @@ def call_text_with_image(
     import logging as _log
     _logger = _log.getLogger(__name__)
     try:
+        image_data, media_type = _compress_for_vision(image_data, media_type)
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
         b64 = base64.standard_b64encode(image_data).decode("utf-8")
         _logger.info("call_text_with_image START | model=%s | img_len=%d | media=%s", _VISION_MODEL, len(image_data), media_type)
