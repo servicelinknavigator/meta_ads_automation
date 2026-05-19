@@ -637,10 +637,24 @@ def _psycopg2_version() -> str:
         return "NIET GEINSTALLEERD"
 
 
+def _make_test_png(width=100, height=100) -> bytes:
+    """Generate a valid RGB PNG programmatically (no PIL needed)."""
+    import struct, zlib
+    def chunk(ctype, data):
+        c = ctype + data
+        return struct.pack(">I", len(data)) + c + struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
+    sig = b"\x89PNG\r\n\x1a\n"
+    ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    raw = b"".join(b"\x00" + bytes([255, 100, 50] * width) for _ in range(height))
+    idat = chunk(b"IDAT", zlib.compress(raw))
+    iend = chunk(b"IEND", b"")
+    return sig + ihdr + idat + iend
+
+
 @app.route("/debug/vision")
 @login_required
 def debug_vision():
-    """Test vision API with a minimal 1x1 PNG — shows exactly what fails."""
+    """Test vision API with a proper 100x100 PNG."""
     import base64
     import traceback
     from core.ai_client import _VISION_MODEL, has_api
@@ -657,10 +671,9 @@ def debug_vision():
         lines.append("STOP — geen API key.")
         return f"<pre>{'chr(10)'.join(lines)}</pre>"
 
-    png_1x1 = base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII="
-    )
-    b64 = base64.standard_b64encode(png_1x1).decode()
+    test_png = _make_test_png(100, 100)
+    b64 = base64.standard_b64encode(test_png).decode()
+    lines.append(f"Test PNG grootte        : {len(test_png)} bytes (100x100 oranje vlak)")
 
     try:
         client = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
