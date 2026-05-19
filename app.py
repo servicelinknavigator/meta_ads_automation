@@ -651,52 +651,57 @@ def _make_test_png(width=100, height=100) -> bytes:
     return sig + ihdr + idat + iend
 
 
-@app.route("/debug/vision")
+@app.route("/debug/vision", methods=["GET", "POST"])
 @login_required
 def debug_vision():
-    """Test vision API with a proper 100x100 PNG."""
-    import base64
-    import traceback
+    """Upload een echte afbeelding en zie wat de vision API exact teruggeeft."""
     from core.ai_client import _VISION_MODEL, has_api
+    from core.static_analyzer import detect_hook_from_image
+
+    if request.method == "GET":
+        return """
+        <html><body style="font-family:monospace;padding:2rem;">
+        <h2>Vision API test — upload echte afbeelding</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="img" accept="image/*" required><br><br>
+            <button type="submit">Test vision</button>
+        </form>
+        </body></html>
+        """
+
+    f = request.files.get("img")
+    if not f:
+        return "Geen bestand", 400
+
+    import base64, traceback
     import anthropic as _anthropic
 
-    lines = []
-    lines.append(f"ANTHROPIC_MODEL env     : {os.getenv('ANTHROPIC_MODEL', '(niet ingesteld)')}")
-    lines.append(f"Vision model hardcoded  : {_VISION_MODEL}")
-    lines.append(f"API key aanwezig        : {'JA' if has_api() else 'NEE'}")
-    lines.append(f"API key prefix          : {os.getenv('ANTHROPIC_API_KEY', '')[:12]}...")
-    lines.append("")
+    ext = f.filename.rsplit(".", 1)[-1].lower()
+    media_type = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext, "image/jpeg")
+    image_data = f.read()
 
-    if not has_api():
-        lines.append("STOP — geen API key.")
-        return f"<pre>{'chr(10)'.join(lines)}</pre>"
-
-    test_png = _make_test_png(100, 100)
-    b64 = base64.standard_b64encode(test_png).decode()
-    lines.append(f"Test PNG grootte        : {len(test_png)} bytes (100x100 oranje vlak)")
+    lines = [
+        f"Bestand       : {f.filename}",
+        f"Media type    : {media_type}",
+        f"Grootte       : {len(image_data)} bytes",
+        f"Model         : {_VISION_MODEL}",
+        "",
+        "--- detect_hook_from_image() ---",
+    ]
 
     try:
-        client = _anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
-        lines.append(f"Client aangemaakt       : OK")
-        msg = client.messages.create(
-            model=_VISION_MODEL,
-            max_tokens=30,
-            messages=[{"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
-                {"type": "text", "text": "What color is this image? One word."},
-            ]}],
-        )
-        lines.append(f"Vision API resultaat    : OK")
-        lines.append(f"Antwoord                : {msg.content[0].text.strip()}")
+        result = detect_hook_from_image(image_data, media_type)
+        lines.append(f"hook_type     : {result.get('hook_type')}")
+        lines.append(f"visual_summary: {result.get('visual_summary')}")
+        lines.append(f"pain_point    : {result.get('pain_point')}")
+        if "_error" in result:
+            lines.append(f"_error        : {result['_error']}")
     except Exception as e:
-        lines.append(f"Vision API FOUT type    : {type(e).__name__}")
-        lines.append(f"Vision API FOUT detail  : {e}")
-        lines.append("")
+        lines.append(f"FOUT: {e}")
         lines.append(traceback.format_exc())
 
-    return f"<pre style='font-family:monospace;padding:2rem;font-size:.9rem;'>{'%0A'.join(lines)}</pre>".replace(
-        "%0A", "\n"
-    )
+    output = "\n".join(lines)
+    return f"<pre style='font-family:monospace;padding:2rem;font-size:.9rem;'>{output}</pre>"
 
 
 @app.route("/clients")
