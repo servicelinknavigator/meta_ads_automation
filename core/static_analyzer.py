@@ -185,10 +185,22 @@ def detect_hook_from_image(image_data: bytes, media_type: str) -> dict:
     result = call_json_with_image(
         f"""Analyseer deze Meta advertentie afbeelding.
 
+Hook type regels (kies de meest dominante):
+- urgency: bevat tijdelijk aanbod, kortingsbedrag (€), deadline, "bespaar", "nu", beperkte tijd
+- promise: belooft resultaat of voordeel zonder tijdsdruk ("fit worden", "meer energie")
+- proof: toont bewijs via cijfers, testimonial, voor/na, statistieken
+- recognition: spreekt herkenbare situatie aan ("herken je dit?", dagelijks probleem)
+- frustration: benoemt frustratie of pijn direct
+- curiosity: roept vraag op, verrassend element
+- social_proof: reviews, aantallen klanten, sterren
+- problem_solve: laat oplossing voor concreet probleem zien
+- educational: legt iets uit, how-to
+- confrontation: directe uitdaging of schokeffect
+
 Geef terug als JSON:
 {{
   "hook_type": "kies uit: {hook_opts}",
-  "visual_summary": "2-4 concrete zelfstandige naamwoorden of bijvoeglijke naamwoorden die het beeld beschrijven — geen lidwoorden, voorzetsels of werkwoorden. Voorbeelden: 'vrouw resultaat gym', 'voor-na transformatie', 'fit20 machine training', 'gezin energie sport'",
+  "visual_summary": "3 woorden die dit beeld uniek identificeren — gebruik merkwoorden, persoonsbeschrijving of het hoofdonderwerp. Voorbeelden: 'oudere vrouw machine', 'fit20 roermond prijs', 'man sport resultaat'. GEEN werkwoorden, GEEN 'geen', GEEN 'minuten'.",
   "pain_point": "1 zin: welk probleem of verlangen speelt de afbeelding in?"
 }}""",
         image_data,
