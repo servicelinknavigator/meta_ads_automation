@@ -2754,7 +2754,7 @@ try:
         get_auth_url, exchange_code_for_token, get_ads,
         normalize_meta_data, refresh_token as _refresh_meta_token,
     )
-    from core.ad_library import get_competitor_hooks, analyze_competitor_hooks
+    from core.ad_library import get_competitor_hooks, analyze_competitor_hooks, get_app_token
     from core.icp_updater import update_icp
     from core.action_planner import generate_action_plan
     from core.transcript_analyzer import analyze_and_save as analyze_transcript
@@ -3238,7 +3238,7 @@ def action_plan(client_id):
     return render_template("action_plan.html", client=client, plan_text=plan_text)
 
 
-@app.route("/client/<int:client_id>/competitor-analysis")
+@app.route("/client/<int:client_id>/competitor-analysis", methods=["GET", "POST"])
 @login_required
 def competitor_analysis(client_id):
     """Show competitor hook analysis from the Meta Ad Library."""
@@ -3247,30 +3247,75 @@ def competitor_analysis(client_id):
         flash("Klant niet gevonden.", "danger")
         return redirect(url_for("clients"))
 
-    industry = client.get("industry", "") or ""
-    keywords = [kw.strip() for kw in industry.split(",") if kw.strip()]
-    if not keywords:
-        keywords = [industry] if industry else []
+    industry   = (client.get("industry") or "").strip()
+    custom_kw  = request.values.get("keywords", "").strip()
 
-    competitor_ads   = []
-    analysis_text    = ""
-    library_disabled = not bool(os.getenv("META_AD_LIBRARY_TOKEN"))
+    if custom_kw:
+        keywords = [k.strip() for k in custom_kw.replace(",", "\n").splitlines() if k.strip()]
+    else:
+        keywords = [kw.strip() for kw in industry.split(",") if kw.strip()] or (
+            [industry] if industry else []
+        )
 
-    if _META_AVAILABLE and keywords and not library_disabled:
-        competitor_ads = get_competitor_hooks(keywords)
+    # ── Token resolution (no separate env var needed) ──────────────────────
+    token        = ""
+    token_source = ""
+
+    if _META_AVAILABLE:
+        # 1. App access token: works with just META_APP_ID + META_APP_SECRET
+        try:
+            token = get_app_token()
+            if token:
+                token_source = "app"
+        except Exception:
+            pass
+
+        # 2. Client's connected Meta user token
+        if not token:
+            try:
+                if db.is_available():
+                    conn = db.get_meta_connection(client_id)
+                    if conn and conn.get("access_token"):
+                        _t = _decrypt_token(conn["access_token"])
+                        if _t:
+                            token        = _t
+                            token_source = "client"
+            except Exception as _te:
+                logger.warning("Could not get client Meta token: %s", _te)
+
+    # 3. Explicit env var override
+    if not token:
+        token = os.getenv("META_AD_LIBRARY_TOKEN", "")
+        if token:
+            token_source = "env"
+
+    library_disabled = not bool(token)
+
+    competitor_ads = []
+    analysis_text  = ""
+    api_error      = ""
+
+    if _META_AVAILABLE and keywords and token:
+        competitor_ads, api_error = get_competitor_hooks(keywords, token=token)
         if competitor_ads:
             hook_perf    = db.get_all_hook_performance(client_id) if db.is_available() else []
             client_hooks = [h["hook_type"] for h in hook_perf if h.get("hook_type")]
             analysis_text = analyze_competitor_hooks(
                 competitor_ads, client_hooks, client.get("name", "")
             )
+        elif not api_error:
+            api_error = f"Geen advertenties gevonden voor: {', '.join(keywords)}"
 
     return render_template(
         "competitor_analysis.html",
-        client         = client,
-        competitor_ads = competitor_ads,
-        analysis_text  = analysis_text,
+        client           = client,
+        competitor_ads   = competitor_ads,
+        analysis_text    = analysis_text,
         library_disabled = library_disabled,
+        api_error        = api_error,
+        token_source     = token_source,
+        keywords_used    = keywords,
+        custom_kw        = custom_kw,
     )
 
 

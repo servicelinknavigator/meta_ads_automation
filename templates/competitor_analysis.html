@@ -62,7 +62,7 @@
       background: linear-gradient(135deg, #ff5c2b, #ff8c5a); color: #fff; border: none;
       padding: .5rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: .82rem;
       text-decoration: none; box-shadow: 0 4px 14px rgba(255,92,43,.3);
-      transition: all .18s; display: inline-block;
+      transition: all .18s; display: inline-block; cursor: pointer;
     }
     .btn-accent:hover { transform: translateY(-1px); color: #fff; }
     .ad-card {
@@ -78,14 +78,40 @@
     .analysis-body {
       padding: 1.5rem 1.75rem; font-size: .88rem; line-height: 1.75; color: #1e293b;
     }
-    .analysis-body h2 { font-size: 1rem; font-weight: 800; margin: 1.25rem 0 .4rem; }
-    .analysis-body h2:first-child { margin-top: 0; }
+    .analysis-body h2, .analysis-body h3 { font-size: 1rem; font-weight: 800; margin: 1.25rem 0 .4rem; }
+    .analysis-body h2:first-child, .analysis-body h3:first-child { margin-top: 0; }
     .empty-state { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
     .empty-state i { font-size: 2.5rem; display: block; margin-bottom: .75rem; }
     .badge-industry {
       display: inline-block; background: rgba(99,102,241,.12);
       border: 1px solid rgba(99,102,241,.25); color: #6366f1;
       padding: 2px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600;
+    }
+    .search-box {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 10px; padding: 1rem 1.25rem; margin-top: 1rem;
+    }
+    .search-input {
+      background: rgba(255,255,255,.9); border: 1px solid rgba(0,0,0,.1);
+      border-radius: 8px; padding: .45rem .85rem; font-size: .85rem; width: 100%;
+      outline: none;
+    }
+    .search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .token-badge {
+      font-size: .68rem; padding: 2px 8px; border-radius: 20px; font-weight: 600;
+    }
+    .token-app    { background: rgba(16,185,129,.12); color: #059669; border: 1px solid rgba(16,185,129,.25); }
+    .token-client { background: rgba(99,102,241,.12);  color: #6366f1; border: 1px solid rgba(99,102,241,.25); }
+    .token-env    { background: rgba(245,158,11,.12);  color: #b45309; border: 1px solid rgba(245,158,11,.25); }
+    .token-none   { background: rgba(239,68,68,.1);   color: #dc2626; border: 1px solid rgba(239,68,68,.2); }
+    .error-box {
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+      border-radius: 10px; padding: .85rem 1rem; font-size: .82rem; color: #b91c1c;
+    }
+    .kw-chip {
+      display: inline-block; background: rgba(99,102,241,.1); color: #4338ca;
+      border: 1px solid rgba(99,102,241,.2); border-radius: 20px;
+      padding: 2px 10px; font-size: .72rem; font-weight: 600; margin: 2px;
     }
   </style>
 </head>
@@ -107,9 +133,36 @@
       Concurrentie-analyse
     </div>
     <h1 style="font-size:1.75rem; font-weight:800; color:#fff; margin:0;">{{ client.name }}</h1>
-    <p style="color:rgba(255,255,255,.5); font-size:.85rem; margin:.3rem 0 0;">
+    <p style="color:rgba(255,255,255,.5); font-size:.85rem; margin:.3rem 0 .75rem;">
       <i class="bi bi-people"></i> Meta Ad Library — branche: <span class="badge-industry">{{ client.industry or 'niet ingesteld' }}</span>
     </p>
+
+    <!-- Zoekformulier -->
+    <form method="POST" action="/client/{{ client.id }}/competitor-analysis" class="search-box">
+      <div style="color:rgba(255,255,255,.7); font-size:.78rem; font-weight:600; margin-bottom:.5rem;">
+        <i class="bi bi-search"></i> Zoek op trefwoord of concurrentienaam
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <input type="text" name="keywords" class="search-input" style="flex:1; min-width:200px;"
+               placeholder="bijv. fitness amsterdam, sportschool, personal training"
+               value="{{ custom_kw or '' }}">
+        <button type="submit" class="btn-accent" style="white-space:nowrap;">
+          <i class="bi bi-search me-1"></i> Analyseer
+        </button>
+      </div>
+      <div style="color:rgba(255,255,255,.4); font-size:.72rem; margin-top:.4rem;">
+        Komma's of enters scheiden meerdere termen &nbsp;·&nbsp;
+        Laat leeg om branche-instelling te gebruiken
+      </div>
+    </form>
+
+    {% if keywords_used %}
+    <div style="margin-top:.6rem;">
+      {% for kw in keywords_used %}
+        <span class="kw-chip"><i class="bi bi-tag-fill me-1"></i>{{ kw }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 </div>
 
@@ -120,17 +173,43 @@
     {% endfor %}
   {% endwith %}
 
+  <!-- Token status balk -->
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap" style="font-size:.78rem;">
+    {% if token_source == 'app' %}
+      <span class="token-badge token-app"><i class="bi bi-shield-check me-1"></i>App-token actief</span>
+      <span style="color:#64748b;">Meta Ad Library verbonden via app-credentials</span>
+    {% elif token_source == 'client' %}
+      <span class="token-badge token-client"><i class="bi bi-person-check me-1"></i>Klant-token actief</span>
+      <span style="color:#64748b;">Verbonden via Meta-koppeling van deze klant</span>
+    {% elif token_source == 'env' %}
+      <span class="token-badge token-env"><i class="bi bi-key me-1"></i>Env-token actief</span>
+      <span style="color:#64748b;">META_AD_LIBRARY_TOKEN omgevingsvariabele</span>
+    {% else %}
+      <span class="token-badge token-none"><i class="bi bi-x-circle me-1"></i>Geen token</span>
+      <span style="color:#64748b;">Stel META_APP_ID + META_APP_SECRET in, of koppel Meta voor deze klant</span>
+    {% endif %}
+  </div>
+
+  <!-- API foutmelding -->
+  {% if api_error %}
+  <div class="error-box mb-4">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Meta Ad Library melding:</strong> {{ api_error }}
+    <div style="margin-top:.4rem; font-size:.78rem; color:#94a3b8;">
+      Mogelijke oorzaken: token verlopen, geen toegang tot Ad Library API, of geen advertenties gevonden voor dit zoekwoord.
+    </div>
+  </div>
+  {% endif %}
+
   {% if library_disabled %}
     <div class="card-sln mb-4">
       <div class="p-4 text-center">
         <i class="bi bi-key" style="font-size:2rem; color:#F59E0B; display:block; margin-bottom:.75rem;"></i>
         <p style="font-size:.9rem; color:#64748b; margin-bottom:1rem;">
-          De Meta Ad Library is niet geconfigureerd.<br>
-          Stel <code>META_AD_LIBRARY_TOKEN</code> in als omgevingsvariabele om concurrentie-advertenties op te halen.
+          Geen Meta-token beschikbaar.<br>
+          Zorg dat <code>META_APP_ID</code> en <code>META_APP_SECRET</code> in Render zijn ingesteld,
+          of koppel een Meta-account voor deze klant.
         </p>
-        <a href="https://www.facebook.com/ads/library/api/" target="_blank" rel="noopener" class="btn-accent">
-          <i class="bi bi-box-arrow-up-right me-1"></i> Token aanvragen bij Meta
-        </a>
       </div>
     </div>
   {% endif %}
@@ -141,23 +220,38 @@
       <div class="card-sln">
         <div class="card-header-sln">
           <i class="bi bi-robot"></i> AI hook-analyse
+          {% if competitor_ads %}
+            <span class="ms-auto" style="font-size:.7rem; opacity:.6;">gebaseerd op {{ competitor_ads | length }} advertenties</span>
+          {% endif %}
         </div>
-        {% if analysis_text and not analysis_text.startswith('[AI') and not analysis_text.startswith('Geen') %}
+        {% if analysis_text and not analysis_text.startswith('[AI') and not analysis_text.startswith('Geen') and not analysis_text.startswith('Gevonden') %}
           <div class="analysis-body">
-            {{ analysis_text | replace('\n## ', '<h2>') | replace('\n### ', '<h3>') | replace('\n- ', '<br>• ') | replace('\n', '<br>') | safe }}
+            {{ analysis_text
+               | replace('\n## ', '\n<h2>')
+               | replace('\n### ', '\n<h3>')
+               | replace('\n**', '\n<strong>')
+               | replace('**\n', '</strong>\n')
+               | replace('\n- ', '\n<br>• ')
+               | replace('\n', '<br>')
+               | safe }}
+          </div>
+        {% elif analysis_text %}
+          <div class="empty-state">
+            <i class="bi bi-info-circle"></i>
+            <p style="font-size:.88rem;">{{ analysis_text }}</p>
           </div>
         {% else %}
           <div class="empty-state">
             <i class="bi bi-search"></i>
             <p style="font-size:.88rem;">
-              {% if not client.industry %}
-                Stel eerst een branche in bij de klantinstellingen.
+              {% if not client.industry and not custom_kw %}
+                Stel een branche in via de klantinstellingen, of zoek hierboven op een trefwoord.
               {% elif library_disabled %}
-                Configureer META_AD_LIBRARY_TOKEN voor automatische analyse.
-              {% elif analysis_text %}
-                {{ analysis_text }}
+                Configureer META_APP_ID + META_APP_SECRET voor automatische analyse.
+              {% elif api_error %}
+                Zie de foutmelding hierboven.
               {% else %}
-                Geen concurrentie-advertenties gevonden voor "{{ client.industry }}".
+                Geen advertenties gevonden — probeer een specifieker trefwoord.
               {% endif %}
             </p>
           </div>
@@ -179,15 +273,15 @@
             {% for ad in competitor_ads %}
               <div class="ad-card">
                 <div class="ad-page"><i class="bi bi-building"></i> {{ ad.page_name }}</div>
+                {% if ad.ad_title %}
+                  <div style="font-size:.78rem; font-weight:700; color:#334155; margin:.2rem 0 .15rem;">{{ ad.ad_title[:80] }}</div>
+                {% endif %}
                 {% if ad.ad_creative_body %}
-                  <div class="ad-body">{{ ad.ad_creative_body[:200] }}{% if ad.ad_creative_body|length > 200 %}…{% endif %}</div>
+                  <div class="ad-body">{{ ad.ad_creative_body[:220] }}{% if ad.ad_creative_body|length > 220 %}…{% endif %}</div>
                 {% endif %}
                 <div class="ad-meta d-flex gap-3 flex-wrap">
                   {% if ad.started_running %}
                     <span><i class="bi bi-calendar3"></i> {{ ad.started_running[:10] }}</span>
-                  {% endif %}
-                  {% if ad.impressions %}
-                    <span><i class="bi bi-eye"></i> {{ ad.impressions }}+ vertoningen</span>
                   {% endif %}
                   {% if ad.ad_snapshot_url %}
                     <a href="{{ ad.ad_snapshot_url }}" target="_blank" rel="noopener"
@@ -204,10 +298,12 @@
               <p style="font-size:.85rem;">
                 {% if library_disabled %}
                   Token vereist voor Ad Library toegang.
-                {% elif not client.industry %}
-                  Geen branche ingesteld.
+                {% elif not client.industry and not custom_kw %}
+                  Geen branche ingesteld — zoek handmatig hierboven.
+                {% elif api_error %}
+                  {{ api_error }}
                 {% else %}
-                  Geen advertenties gevonden voor "{{ client.industry }}".
+                  Geen advertenties gevonden. Probeer een ander zoekwoord.
                 {% endif %}
               </p>
             </div>
@@ -221,7 +317,10 @@
     <a href="/client/{{ client.id }}/action-plan" class="btn-accent">
       <i class="bi bi-calendar-check me-1"></i> Weekplan genereren
     </a>
-    <a href="/client/{{ client.id }}/meta-status" style="background:rgba(255,255,255,.7); color:#0f172a; border:1px solid rgba(0,0,0,.12); padding:.5rem 1.2rem; border-radius:8px; font-size:.82rem; font-weight:600; text-decoration:none; display:inline-block;">
+    <a href="/client/{{ client.id }}/meta-status"
+       style="background:rgba(255,255,255,.7); color:#0f172a; border:1px solid rgba(0,0,0,.12);
+              padding:.5rem 1.2rem; border-radius:8px; font-size:.82rem; font-weight:600;
+              text-decoration:none; display:inline-block;">
       <i class="bi bi-meta me-1"></i> Meta verbinding
     </a>
   </div>
