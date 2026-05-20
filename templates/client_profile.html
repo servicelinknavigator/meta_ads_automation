@@ -442,25 +442,16 @@
       {% if client.roas_benchmark %} · Benchmark ROAS {{ client.roas_benchmark }}{% endif %}
     </div>
     <div class="hero-stats">
-      {% set ns = namespace(total_spend=0, total_leads=0, cpl_sum=0, cpl_count=0) %}
-      {% for u in uploads %}
-        {% set ns.total_spend = ns.total_spend + (u.total_spend|float if u.total_spend else 0) %}
-        {% set ns.total_leads = ns.total_leads + (u.total_results|int if u.total_results else 0) %}
-        {% if u.avg_cpl %}
-          {% set ns.cpl_sum = ns.cpl_sum + (u.avg_cpl|float) %}
-          {% set ns.cpl_count = ns.cpl_count + 1 %}
-        {% endif %}
-      {% endfor %}
       <div>
-        <div class="hero-stat-val">{% if ns.cpl_count %}€{{ "%.0f"|format(ns.cpl_sum / ns.cpl_count) }}{% else %}—{% endif %}</div>
+        <div class="hero-stat-val">{% if client_totals.avg_cpl %}€{{ "%.0f"|format(client_totals.avg_cpl) }}{% else %}—{% endif %}</div>
         <div class="hero-stat-lbl">Gem. CPL</div>
       </div>
       <div>
-        <div class="hero-stat-val">{% if uploads %}€{{ "%.0f"|format(ns.total_spend) }}{% else %}—{% endif %}</div>
+        <div class="hero-stat-val">{% if uploads %}€{{ "%.0f"|format(client_totals.total_spend) }}{% else %}—{% endif %}</div>
         <div class="hero-stat-lbl">Totale spend</div>
       </div>
       <div>
-        <div class="hero-stat-val">{% if uploads %}{{ ns.total_leads }}{% else %}—{% endif %}</div>
+        <div class="hero-stat-val">{% if uploads %}{{ client_totals.total_results }}{% else %}—{% endif %}</div>
         <div class="hero-stat-lbl">Totaal leads</div>
       </div>
       <div>

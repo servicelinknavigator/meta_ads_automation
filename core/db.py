@@ -215,6 +215,29 @@ def init_schema() -> None:
 
 # ── Clients ───────────────────────────────────────────────────────────────────
 
+def get_correct_totals(client_id: int) -> dict:
+    """
+    Compute total spend, results, and CPL using only non-overlapping upload periods.
+    Newer uploads are authoritative for any date they cover; older uploads fill in
+    uncovered periods. This prevents double-counting when upload date ranges overlap.
+    """
+    valid_ids = _non_redundant_upload_ids(client_id)
+    if not valid_ids:
+        return {"total_spend": 0.0, "total_results": 0, "avg_cpl": None}
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COALESCE(SUM(total_spend), 0), COALESCE(SUM(total_results), 0)
+            FROM uploads WHERE client_id = %s AND id = ANY(%s)
+        """, (client_id, valid_ids))
+        row = cur.fetchone()
+        cur.close()
+    spend   = float(row[0] or 0)
+    results = int(row[1] or 0)
+    cpl     = round(spend / results, 2) if results > 0 else None
+    return {"total_spend": spend, "total_results": results, "avg_cpl": cpl}
+
+
 def get_clients() -> list[dict]:
     with _conn() as conn:
         cur = conn.cursor()
@@ -222,23 +245,7 @@ def get_clients() -> list[dict]:
             SELECT c.id, c.name, c.industry, c.campaign_type,
                    c.cpl_benchmark, c.roas_benchmark, c.notes, c.created_at,
                    COUNT(u.id) AS upload_count,
-                   MAX(u.uploaded_at) AS last_upload,
-                   (SELECT COALESCE(SUM(s.spend), 0) FROM (
-                       SELECT DISTINCT ON (COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''))
-                              u2.total_spend AS spend
-                       FROM uploads u2
-                       WHERE u2.client_id = c.id
-                       ORDER BY COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''),
-                                u2.uploaded_at DESC
-                   ) s) AS total_spend,
-                   (SELECT COALESCE(SUM(s.results), 0) FROM (
-                       SELECT DISTINCT ON (COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''))
-                              u2.total_results AS results
-                       FROM uploads u2
-                       WHERE u2.client_id = c.id
-                       ORDER BY COALESCE(u2.date_from::text,''), COALESCE(u2.date_to::text,''),
-                                u2.uploaded_at DESC
-                   ) s) AS total_results
+                   MAX(u.uploaded_at) AS last_upload
             FROM clients c
             LEFT JOIN uploads u ON u.client_id = c.id
             GROUP BY c.id
@@ -247,6 +254,10 @@ def get_clients() -> list[dict]:
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
         cur.close()
+    for row in rows:
+        totals = get_correct_totals(row["id"])
+        row["total_spend"]   = totals["total_spend"]
+        row["total_results"] = totals["total_results"]
     return rows
 
 

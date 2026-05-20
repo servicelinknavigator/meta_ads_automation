@@ -790,10 +790,12 @@ def client_profile(client_id):
 
     meta_connection = None
     transcripts = []
+    client_totals = {"total_spend": 0.0, "total_results": 0, "avg_cpl": None}
     try:
         if db.is_available():
             meta_connection = db.get_meta_connection(client_id)
             transcripts     = db.get_transcripts(client_id, limit=5)
+            client_totals   = db.get_correct_totals(client_id)
     except Exception:
         pass
 
@@ -802,7 +804,8 @@ def client_profile(client_id):
                            shoot_briefs=shoot_briefs, hook_perf=hook_perf,
                            pending_count=pending_count,
                            meta_connection=meta_connection,
-                           transcripts=transcripts)
+                           transcripts=transcripts,
+                           client_totals=client_totals)
 
 
 @app.route("/clients/<int:client_id>/edit", methods=["POST"])
@@ -2797,9 +2800,25 @@ def _run_meta_sync(client_id: int, connection: dict,
     from datetime import date, timedelta
     today = date.today()
     if not date_from:
-        date_from = (today - timedelta(days=30)).isoformat()
+        last_sync = connection.get("last_sync_at")
+        if last_sync:
+            if hasattr(last_sync, "date"):
+                last_sync_date = last_sync.date()
+            else:
+                try:
+                    last_sync_date = date.fromisoformat(str(last_sync)[:10])
+                except ValueError:
+                    last_sync_date = None
+            if last_sync_date:
+                date_from = (last_sync_date + timedelta(days=1)).isoformat()
+        if not date_from:
+            date_from = (today - timedelta(days=30)).isoformat()
     if not date_to:
         date_to = today.isoformat()
+
+    if date_from > date_to:
+        logger.info("Sync skipped for client %s: already up to date (last=%s)", client_id, date_from)
+        return {"ok": True, "upload_id": None, "num_ads": 0, "skipped": True}
 
     try:
         token    = _decrypt_token(connection["access_token"])

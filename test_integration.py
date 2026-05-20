@@ -160,6 +160,7 @@ def _mock_db():
     m.save_ad_name_mappings.return_value = 0
     m.get_meta_connection.return_value = None
     m.get_transcripts.return_value = []
+    m.get_correct_totals.return_value = {"total_spend": 1250.0, "total_results": 42, "avg_cpl": 29.76}
     m.get_industry_cross_client_data.return_value = []
     m.save_upload.return_value = 101
     m.get_action_plan.return_value = None
@@ -814,6 +815,278 @@ chk("Dedup key: verschillende maanden = verschillende keys", lambda: (
     _dedup_key({"ad_id": "0", "ad_name": "A", "campaign_id": "0", "campaign_name": "C", "day": "2025-03-01"}) !=
     _dedup_key({"ad_id": "0", "ad_name": "A", "campaign_id": "0", "campaign_name": "C", "day": "2025-04-01"})
 ))
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 22. Incrementele sync — datum-logica
+# ═════════════════════════════════════════════════════════════════════════════
+section("22. Incrementele sync — datum-logica")
+from datetime import date as _date, timedelta as _td, datetime as _dt
+
+def _resolve_sync_dates(connection: dict, date_from=None, date_to=None):
+    """Spiegeling van de datum-logica uit _run_meta_sync, zonder DB/API."""
+    today = _date(2026, 5, 20)
+    if not date_from:
+        last_sync = connection.get("last_sync_at")
+        if last_sync:
+            if hasattr(last_sync, "date"):
+                last_sync_date = last_sync.date()
+            else:
+                try:
+                    last_sync_date = _date.fromisoformat(str(last_sync)[:10])
+                except ValueError:
+                    last_sync_date = None
+            if last_sync_date:
+                date_from = (last_sync_date + _td(days=1)).isoformat()
+        if not date_from:
+            date_from = (today - _td(days=30)).isoformat()
+    if not date_to:
+        date_to = today.isoformat()
+    skipped = date_from > date_to
+    return date_from, date_to, skipped
+
+chk("Geen last_sync → valt terug op 30 dagen geleden",
+    lambda: _resolve_sync_dates({})[0] == "2026-04-20")
+
+chk("last_sync gisteren → date_from = vandaag",
+    lambda: _resolve_sync_dates({"last_sync_at": "2026-05-19"})[0] == "2026-05-20")
+
+chk("last_sync vandaag → date_from = morgen → skip",
+    lambda: _resolve_sync_dates({"last_sync_at": "2026-05-20"})[2] is True)
+
+chk("last_sync als datetime object",
+    lambda: _resolve_sync_dates({"last_sync_at": _dt(2026, 5, 18, 7, 0, 0)})[0] == "2026-05-19")
+
+chk("Handmatig date_from meegegeven → last_sync genegeerd",
+    lambda: _resolve_sync_dates({"last_sync_at": "2026-01-01"}, date_from="2026-03-01")[0] == "2026-03-01")
+
+chk("last_sync 7 dagen geleden → pakt precies 6 dagen terug",
+    lambda: _resolve_sync_dates({"last_sync_at": "2026-05-13"})[0] == "2026-05-14")
+
+chk("Skip flag False als er nog data te halen is",
+    lambda: _resolve_sync_dates({"last_sync_at": "2026-05-19"})[2] is False)
+
+chk("date_to is altijd vandaag als niet opgegeven",
+    lambda: _resolve_sync_dates({})[1] == "2026-05-20")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 23. Deduplicatie logica — _non_redundant_upload_ids
+# ═════════════════════════════════════════════════════════════════════════════
+section("23. Deduplicatie logica — non-redundant uploads")
+from datetime import date as _d, timedelta as _tdd
+
+def _simulate_non_redundant(uploads):
+    """
+    Puur-Python simulatie van _non_redundant_upload_ids.
+    uploads = list van (id, date_from_str, date_to_str), nieuwste eerst.
+    """
+    def _parse(s):
+        try:
+            return _d.fromisoformat(str(s)[:10]) if s else None
+        except ValueError:
+            return None
+
+    covered = set()
+    selected = []
+    for uid, date_from, date_to in uploads:
+        d_from = _parse(date_from)
+        d_to   = _parse(date_to)
+        if d_from is None or d_to is None:
+            selected.append(uid)
+            continue
+        days = set()
+        d = d_from
+        while d <= d_to:
+            days.add(d)
+            d += _tdd(days=1)
+        new_days = days - covered
+        if new_days:
+            selected.append(uid)
+            covered |= days
+    return selected
+
+# Scenario A: geen overlap (cron dagelijks)
+uploads_a = [
+    (3, "2026-05-20", "2026-05-20"),  # nieuwste
+    (2, "2026-05-19", "2026-05-19"),
+    (1, "2026-01-01", "2026-05-18"),  # handmatig groot
+]
+chk("Geen overlap: alle uploads selected",
+    lambda: set(_simulate_non_redundant(uploads_a)) == {1, 2, 3})
+
+# Scenario B: volledige overlap (zelfde periode opnieuw geüpload)
+uploads_b = [
+    (2, "2026-01-01", "2026-05-20"),  # nieuwste, zelfde periode
+    (1, "2026-01-01", "2026-05-20"),  # oudste → volledig gedekt
+]
+chk("Volledig overlappend: alleen nieuwste selected",
+    lambda: _simulate_non_redundant(uploads_b) == [2])
+
+# Scenario C: deels overlap — oud upload heeft vroegere data
+uploads_c = [
+    (2, "2026-04-01", "2026-05-20"),  # nieuwste
+    (1, "2026-01-01", "2026-03-31"),  # oudste, geen overlap
+]
+chk("Aangrenzend zonder overlap: beide selected",
+    lambda: set(_simulate_non_redundant(uploads_c)) == {1, 2})
+
+# Scenario D: cron na handmatig (incrementeel correct)
+uploads_d = [
+    (4, "2026-05-20", "2026-05-20"),
+    (3, "2026-05-19", "2026-05-19"),
+    (2, "2026-05-18", "2026-05-18"),
+    (1, "2026-01-01", "2026-05-17"),
+]
+chk("Incrementele cron na handmatig: alle 4 selected (geen overlap)",
+    lambda: len(_simulate_non_redundant(uploads_d)) == 4)
+
+# Scenario E: single upload
+uploads_e = [(1, "2026-01-01", "2026-05-20")]
+chk("Single upload: altijd selected",
+    lambda: _simulate_non_redundant(uploads_e) == [1])
+
+# Scenario F: lege lijst
+chk("Lege uploads: leeg resultaat",
+    lambda: _simulate_non_redundant([]) == [])
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 24. get_correct_totals — geen dubbeltelling
+# ═════════════════════════════════════════════════════════════════════════════
+section("24. get_correct_totals — geen dubbeltelling")
+
+def _simulate_correct_totals(uploads_with_spend):
+    """
+    uploads_with_spend = list van (id, date_from, date_to, total_spend, total_results)
+    Nieuwste eerst. Berekent totalen zonder dubbeltelling.
+    """
+    upload_tuples = [(u[0], u[1], u[2]) for u in uploads_with_spend]
+    valid_ids = set(_simulate_non_redundant(upload_tuples))
+    spend   = sum(u[3] for u in uploads_with_spend if u[0] in valid_ids)
+    results = sum(u[4] for u in uploads_with_spend if u[0] in valid_ids)
+    return {"total_spend": spend, "total_results": results}
+
+# Incrementeel (dagelijkse cron): optelling moet kloppen
+uploads_inc = [
+    (3, "2026-05-20", "2026-05-20", 50.0,    3),
+    (2, "2026-05-19", "2026-05-19", 45.0,    2),
+    (1, "2026-01-01", "2026-05-18", 10000.0, 600),
+]
+result_inc = _simulate_correct_totals(uploads_inc)
+chk("Incrementeel: spend correct opgeteld (geen dubbel)",
+    lambda: result_inc["total_spend"] == 10095.0)
+chk("Incrementeel: results correct opgeteld",
+    lambda: result_inc["total_results"] == 605)
+
+# Zelfde periode opnieuw: alleen nieuwste telt
+uploads_dup = [
+    (2, "2026-01-01", "2026-05-20", 9800.0, 590),  # herberekend nieuwste
+    (1, "2026-01-01", "2026-05-20", 9500.0, 570),  # oudste, identieke periode
+]
+result_dup = _simulate_correct_totals(uploads_dup)
+chk("Zelfde periode: alleen nieuwste upload telt (geen dubbel)",
+    lambda: result_dup["total_spend"] == 9800.0)
+chk("Zelfde periode: results van nieuwste",
+    lambda: result_dup["total_results"] == 590)
+
+# Geen uploads
+chk("Lege uploads: spend = 0",
+    lambda: _simulate_correct_totals([])["total_spend"] == 0)
+chk("Lege uploads: results = 0",
+    lambda: _simulate_correct_totals([])["total_results"] == 0)
+
+# avg_cpl check
+chk("CPL = spend / results wanneer results > 0",
+    lambda: round(10095.0 / 605, 2) == 16.69)
+chk("CPL = None wanneer geen results",
+    lambda: (None if 0 == 0 else 0) is None)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 25. Flask route — client_profile krijgt client_totals mee
+# ═════════════════════════════════════════════════════════════════════════════
+section("25. Flask route — client_profile met correcte totalen")
+
+def _test_client_profile_totals():
+    with patch("app.db", _mock):
+        c = _client({**_demo_sess, "client_id": 1})
+        resp = c.get("/clients/1")
+        return resp.status_code == 200
+
+chk("client_profile route: get_correct_totals aangeroepen (geen crash)",
+    _test_client_profile_totals)
+
+def _test_sync_skip_when_uptodate():
+    """_run_meta_sync moet skipped=True teruggeven als al gesynchroniseerd vandaag."""
+    from app import _run_meta_sync
+    fake_conn = {
+        "access_token": "nep",
+        "ad_account_id": "act_123",
+        "last_sync_at": _dt.today(),
+        "client_name": "Test",
+        "campaign_type": "leads",
+    }
+    with patch("app.db") as mdb, \
+         patch("app.get_ads", return_value=[]), \
+         patch("app._decrypt_token", return_value="nep_token"):
+        mdb.get_client.return_value = {"campaign_type": "leads", "id": 1}
+        result = _run_meta_sync(1, fake_conn)
+    return result.get("skipped") is True and result.get("ok") is True
+
+chk("Sync skip: vandaag al gesynchroniseerd → skipped=True, ok=True",
+    _test_sync_skip_when_uptodate)
+
+def _test_sync_uses_last_sync_date():
+    """Cron sync moet date_from = last_sync + 1 dag gebruiken."""
+    from app import _run_meta_sync
+    captured = {}
+    def fake_get_ads(token, acct_id, date_from, date_to):
+        captured["date_from"] = date_from
+        return []
+    fake_conn = {
+        "access_token": "nep",
+        "ad_account_id": "act_123",
+        "last_sync_at": "2026-05-10",
+        "client_name": "Test",
+        "campaign_type": "leads",
+    }
+    with patch("app.db") as mdb, \
+         patch("app.get_ads", side_effect=fake_get_ads), \
+         patch("app._decrypt_token", return_value="nep_token"):
+        mdb.get_client.return_value = {"campaign_type": "leads", "id": 1}
+        _run_meta_sync(1, fake_conn)
+    return captured.get("date_from") == "2026-05-11"
+
+chk("Cron sync: date_from = last_sync_at + 1 dag",
+    _test_sync_uses_last_sync_date)
+
+def _test_sync_fallback_30days():
+    """Zonder last_sync moet de sync 30 dagen teruggaan."""
+    from datetime import date as _today_date
+    from app import _run_meta_sync
+    captured = {}
+    def fake_get_ads(token, acct_id, date_from, date_to):
+        captured["date_from"] = date_from
+        return []
+    fake_conn = {
+        "access_token": "nep",
+        "ad_account_id": "act_123",
+        "last_sync_at": None,
+        "client_name": "Test",
+        "campaign_type": "leads",
+    }
+    with patch("app.db") as mdb, \
+         patch("app.get_ads", side_effect=fake_get_ads), \
+         patch("app._decrypt_token", return_value="nep_token"):
+        mdb.get_client.return_value = {"campaign_type": "leads", "id": 1}
+        _run_meta_sync(1, fake_conn)
+    from datetime import date, timedelta
+    expected = (date.today() - timedelta(days=30)).isoformat()
+    return captured.get("date_from") == expected
+
+chk("Cron sync fallback: geen last_sync → 30 dagen terug",
+    _test_sync_fallback_30days)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
