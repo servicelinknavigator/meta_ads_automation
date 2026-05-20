@@ -1523,7 +1523,7 @@ def generate_shoot_brief_async(client_id):
             pass
 
     _base_context = (_client.get("client_context") or "" if _client else "")
-    _full_context = _base_context + _creative_ctx
+    _full_context = _base_context + ("===CREATIVE_CONTEXT===\n" + _creative_ctx if _creative_ctx else "")
 
     shoot_brief = generate_shoot_brief(
         summary, all_ads, top_ad=top_ad,

@@ -160,12 +160,17 @@ def generate_shoot_brief(
         if top_ad else ""
     )
 
+    # Splits klant context (ICP/beschrijving) en creative context (ad copy) expliciet
+    _ctx_parts = client_context.split("===CREATIVE_CONTEXT===", 1) if client_context else ["", ""]
+    _base_ctx = _ctx_parts[0].strip()
+    _creative_ref = _ctx_parts[1].strip() if len(_ctx_parts) > 1 else ""
+
     client_block = ""
     if client_name or client_context:
         client_block = f"""
 KLANT INFORMATIE:
 Naam: {client_name or 'onbekend'}
-{('Context / ICP (doelgroep van de klant):\n' + client_context[:1200]) if client_context else ''}
+{('ICP & klantbeschrijving:\n' + _base_ctx[:1000]) if _base_ctx else 'WAARSCHUWING: Geen klantbeschrijving ingevuld. Genereer scripts op basis van de performance data.'}
 
 SPREKERS ROL: De scripts 1-10 worden uitgesproken door de EIGENAAR of TRAINER van {client_name or 'het bedrijf'}.
 - "Ik" = de ondernemer/eigenaar die zijn potentiele klanten aanspreekt
@@ -174,6 +179,10 @@ SPREKERS ROL: De scripts 1-10 worden uitgesproken door de EIGENAAR of TRAINER va
 - Gebruik de ICP-informatie om de doelgroep te kennen, maar de spreker blijft de eigenaar
 Gebruik NOOIT em-dashes (—). Spreektaal. Knipmomenten na elke 2-3 zinnen.
 Noem altijd concrete cijfers of resultaten waar mogelijk.
+{('''
+BESTAANDE AD-COPY REFERENTIE (ALLEEN voor stijl en toon — NIET letterlijk overnemen in scripts):
+VERBODEN: kopieer GEEN prijsvoordelen, aanbiedingen of promotieteksten (bijv. 'geen inschrijfkosten', 'nu gratis', 'aanbieding') uit deze referentie naar video scripts — die horen in static ads, niet in video.
+''' + _creative_ref[:600]) if _creative_ref else ''}
 """
 
     prompt = f"""Genereer een complete shoot dag planning van 16 stuks op basis van deze performance data:
