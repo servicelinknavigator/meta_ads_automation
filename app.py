@@ -983,10 +983,11 @@ def client_go(client_id, destination):
     session["upload_id"] = latest["id"]
 
     dest_map = {
-        "analyse":    url_for("index"),
-        "creative":   url_for("creative"),
-        "hooks":      url_for("hooks"),
-        "export/pdf": url_for("export_pdf"),
+        "analyse":      url_for("index"),
+        "creative":     url_for("creative"),
+        "hooks":        url_for("hooks"),
+        "shoot-brief":  url_for("hooks", mode="brief"),
+        "export/pdf":   url_for("export_pdf"),
     }
     return redirect(dest_map.get(destination, url_for("index")))
 
