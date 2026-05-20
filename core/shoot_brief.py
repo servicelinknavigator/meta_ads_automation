@@ -185,12 +185,27 @@ STRUCTUUR (lever exact dit op):
 12-16: Short scripts (15 seconden) — gebaseerd op de 5 sterkste hooks uit scripts 1-10
 
 VEREISTEN PER SCRIPT:
-- 30-60 seconden voor lange scripts (10 zinnen ± 5), 15 seconden voor shorts (3 zinnen)
-- Tijdcodes: 0-5s hook, 5-20s probleem/context, 20-40s oplossing/bewijs, 40-55s CTA
-- Elke script heeft een andere hook en andere energie — geen herhaling
+- Elk script is één coherent verhaal: de hook (0-5s) bepaalt het HELE script
+- 0-5s: de haak — openingszin die het scrollen stopt, specifiek voor dit hook-type
+- 5-20s: bouwt DIRECT voort op de openingszin — verdiept, verbaast of bevestigt wat 0-5s opende
+- 20-40s: bewijs, resultaat of concrete oplossing die past bij de belofte van 0-5s
+- 40-55s: CTA die logisch volgt op het verhaal — altijd laagdrempelig
+- VERBODEN: dezelfde zin of concept in meerdere scripts gebruiken — elk script is 100% uniek
+- VERBODEN: generieke merkcopy in 5-20s ("Bij X is het anders", "Persoonlijk en laagdrempelig", "vol te houden") — te vaag
+- Noem altijd concrete cijfers of ervaringen uit de klantcontext waar mogelijk
 - Vanuit klantperspectief (ik) — nooit marketingbureau-perspectief
-- Knipmomenten ingebouwd na elke 2-3 zinnen (markeer met [KNIP])
-- CTA altijd laagdrempelig
+- Knipmomenten na elke 2-3 zinnen (markeer met [KNIP])
+
+HOOK-TYPE SCHRIJFGIDS (de hook bepaalt de structuur van het hele script):
+- proof: 0-5s = klantresultaat of uitspraak. 5-20s = meer bewijs stapelen. 20-40s = hoe dat resultaat behaald werd.
+- problem_solve: 0-5s = het probleem benoemen. 5-20s = verdiep het probleem/de frustratie. 20-40s = de oplossing.
+- curiosity: 0-5s = mysterieuze of verrassende stelling. 5-20s = bouw spanning op. 20-40s = onthul het antwoord.
+- confrontation: 0-5s = provocatieve uitdaging. 5-20s = ga verder in de confrontatie. 20-40s = de omslag/oplossing.
+- recognition: 0-5s = herkenbare situatie. 5-20s = "dat was ik ook" — verdien de identificatie. 20-40s = hoe het veranderde.
+- promise: 0-5s = concrete belofte. 5-20s = specificeer de belofte met details. 20-40s = bewijs dat het werkt.
+- urgency: 0-5s = urgente situatie of deadline. 5-20s = waarom wachten risico is. 20-40s = de uitweg.
+- social_proof: 0-5s = anderen doen het al. 5-20s = wie en met welk resultaat. 20-40s = hoe jij ook kunt starten.
+- educational: 0-5s = interessante onbekende feit. 5-20s = leg het uit. 20-40s = wat betekent dit voor de kijker.
 
 B-ROLL:
 Na de 16 scripts genereer je één gecombineerde b-roll lijst.
