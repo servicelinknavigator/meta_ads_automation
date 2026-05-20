@@ -474,6 +474,29 @@
   {% endif %}
 {% endwith %}
 
+{% if pending_count > 0 %}
+<div class="container mt-2 mb-1">
+  <div style="background:rgba(255,247,237,.92);border:1px solid rgba(254,215,170,.85);border-radius:11px;
+              padding:.7rem 1.1rem;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;">
+    <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:1.15rem;flex-shrink:0;"></i>
+    <div style="flex:1;min-width:180px;">
+      <strong style="font-size:.84rem;color:#92400e;">{{ pending_count }} advertentie{{ 's' if pending_count != 1 }} zonder content</strong>
+      <div style="font-size:.75rem;color:#b45309;margin-top:.1rem;">Scripts, headlines of copy ontbreekt — de AI gebruikt content voor betere aanbevelingen.</div>
+    </div>
+    <a href="{{ url_for('new_ads_content', client_id=client.id) }}"
+       style="background:#f59e0b;color:#fff;padding:.38rem .9rem;border-radius:7px;font-size:.78rem;
+              font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(245,158,11,.3);">
+      <i class="bi bi-pencil-square me-1"></i>Content toevoegen →
+    </a>
+    <a href="{{ url_for('import_creatives_page', client_id=client.id) }}"
+       style="background:rgba(245,158,11,.12);color:#92400e;padding:.38rem .9rem;border-radius:7px;font-size:.78rem;
+              font-weight:600;text-decoration:none;white-space:nowrap;border:1px solid rgba(245,158,11,.3);">
+      <i class="bi bi-upload me-1"></i>Bulk import
+    </a>
+  </div>
+</div>
+{% endif %}
+
 <div class="container py-4">
 
   <!-- ── KPI trend row ── -->
@@ -674,6 +697,36 @@
         </div>
       </div>
 
+      <!-- Content beheer -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100" style="border-top:2px solid rgba(245,158,11,.25);">
+          <div class="action-card-icon" style="background:rgba(245,158,11,.1);">
+            <i class="bi bi-collection-fill" style="color:#d97706;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">
+            Content
+            {% if pending_count > 0 %}
+            <span style="font-size:.65rem;background:#ef4444;color:#fff;padding:1px 6px;border-radius:10px;font-weight:700;margin-left:4px;vertical-align:middle;">{{ pending_count }}</span>
+            {% endif %}
+          </div>
+          <div class="action-card-desc">
+            Scripts, headlines en copy per advertentie — bekijk, vul aan of importeer in bulk
+            {% if pending_count > 0 %}
+            <br><span style="color:#d97706;font-weight:600;font-size:.75rem;">{{ pending_count }} ad{{ 's' if pending_count != 1 }} nog zonder content</span>
+            {% endif %}
+          </div>
+          {% if pending_count > 0 %}
+          <a href="{{ url_for('new_ads_content', client_id=client.id) }}" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 3px 10px rgba(245,158,11,.3);margin-bottom:.4rem;">
+            <i class="bi bi-pencil-square"></i>Content toevoegen
+          </a>
+          {% endif %}
+          <a href="{{ url_for('import_creatives_page', client_id=client.id) }}" class="action-btn-secondary">
+            <i class="bi bi-upload"></i>Bulk import / bekijken
+          </a>
+        </div>
+      </div>
+
     </div><!-- /rij 2 -->
 
     <!-- Rij 3: Optimalisatie -->
@@ -792,6 +845,57 @@
         </form>
       </div>
 
+
+      <!-- ── Geüploade CSV's ── -->
+      {% if uploads %}
+      <div class="section-title mt-4">
+        <i class="bi bi-cloud-upload" style="color:#6366f1;"></i>
+        Geüploade CSV's
+        <span style="font-size:.7rem;font-weight:500;color:#94a3b8;margin-left:.4rem;">({{ uploads|length }})</span>
+      </div>
+      <div class="card-sln mb-3">
+        <div style="padding:.85rem 1rem;">
+          {% for upload in uploads %}
+          <div style="display:flex;align-items:center;gap:.7rem;padding:.55rem .7rem;
+                      background:{% if loop.first %}rgba(99,102,241,.06){% else %}rgba(255,255,255,.35){% endif %};
+                      border-radius:9px;border:1px solid {% if loop.first %}rgba(99,102,241,.18){% else %}rgba(0,0,0,.05){% endif %};
+                      margin-bottom:{% if not loop.last %}.45rem{% else %}0{% endif %};">
+            <i class="bi bi-file-earmark-text" style="color:#6366f1;font-size:.95rem;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.8rem;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                {{ upload.filename or 'onbekend' }}
+                {% if loop.first %}
+                <span style="font-size:.63rem;background:rgba(99,102,241,.14);color:#6366f1;padding:1px 6px;border-radius:3px;font-weight:700;margin-left:4px;vertical-align:middle;">LAATSTE</span>
+                {% endif %}
+              </div>
+              <div style="font-size:.71rem;color:#64748b;margin-top:.15rem;">
+                {% if upload.date_from %}{{ upload.date_from }} → {{ upload.date_to or '?' }}{% else %}<em>geen periode</em>{% endif %}
+                &nbsp;·&nbsp;€{{ "%.0f"|format(upload.total_spend or 0) }} spend
+                &nbsp;·&nbsp;{{ upload.num_ads or 0 }} ads
+                &nbsp;·&nbsp;{{ upload.uploaded_at.strftime('%d %b %Y %H:%M') if upload.uploaded_at else '?' }}
+              </div>
+            </div>
+            <div style="display:flex;gap:.35rem;flex-shrink:0;">
+              <button onclick="loadUpload({{ upload.id }})"
+                      title="Analyseer deze upload"
+                      style="font-size:.72rem;padding:.28rem .55rem;border-radius:6px;
+                             border:1px solid rgba(99,102,241,.25);background:rgba(99,102,241,.08);
+                             color:#6366f1;cursor:pointer;font-weight:600;white-space:nowrap;">
+                <i class="bi bi-folder2-open"></i> Laden
+              </button>
+              <button onclick="deleteUpload('/clients/{{ client.id }}/uploads/{{ upload.id }}/delete')"
+                      title="Upload verwijderen"
+                      style="font-size:.72rem;padding:.28rem .55rem;border-radius:6px;
+                             border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.05);
+                             color:#dc2626;cursor:pointer;font-weight:600;">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Client notes -->
       {% if client.notes %}

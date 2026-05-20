@@ -1206,6 +1206,23 @@ def upload():
     except Exception:
         csv_text = None
 
+    # Warn if this filename was already uploaded for this client (duplicate detection)
+    _dup_client_id = session.get("client_id")
+    if _dup_client_id and db.is_available():
+        try:
+            _existing = db.get_uploads(_dup_client_id)
+            _fname = file.filename.strip().lower()
+            if any(u.get("filename", "").strip().lower() == _fname for u in _existing):
+                flash(
+                    Markup(
+                        f"<strong>Let op:</strong> '{file.filename}' is al eerder geüpload voor deze klant. "
+                        "Als dit dezelfde data is, verwijder dan de oude upload om dubbeltellingen te voorkomen."
+                    ),
+                    "warning",
+                )
+        except Exception:
+            pass
+
     campaign_type_override = request.form.get("campaign_type_override", "")
 
     # Auto-threshold: load client to use CPL benchmark as default
