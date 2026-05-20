@@ -192,13 +192,36 @@
 
   <!-- API foutmelding -->
   {% if api_error %}
-  <div class="error-box mb-4">
-    <i class="bi bi-exclamation-triangle me-2"></i>
-    <strong>Meta Ad Library melding:</strong> {{ api_error }}
-    <div style="margin-top:.4rem; font-size:.78rem; color:#94a3b8;">
-      Mogelijke oorzaken: token verlopen, geen toegang tot Ad Library API, of geen advertenties gevonden voor dit zoekwoord.
+    {% if 'AD_LIBRARY_PERMISSION' in api_error %}
+    <div class="mb-4" style="background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3); border-radius:12px; padding:1.1rem 1.25rem;">
+      <div style="font-weight:700; font-size:.9rem; color:#92400e; margin-bottom:.5rem;">
+        <i class="bi bi-shield-exclamation me-2"></i>Meta-app heeft geen Ad Library API-toegang
+      </div>
+      <p style="font-size:.83rem; color:#78350f; margin-bottom:.75rem;">
+        Jouw Meta-app (geïdentificeerd door <code>META_APP_ID</code>) heeft de Ad Library API nog niet ingeschakeld.
+        Volg onderstaande stappen om dit eenmalig te activeren:
+      </p>
+      <ol style="font-size:.82rem; color:#78350f; margin:0; padding-left:1.2rem; line-height:1.9;">
+        <li>Ga naar <strong>developers.facebook.com</strong> en open jouw app.</li>
+        <li>Klik links op <strong>Products</strong> → zoek <strong>Marketing API</strong> → klik <em>Set Up</em>.</li>
+        <li>Ga naar <strong>App Review → Permissions and Features</strong> en zoek <strong>Ads Library API</strong>.</li>
+        <li>Klik <em>Request Standard Access</em> en volg de verificatiestappen.</li>
+        <li>Na goedkeuring (meestal direct voor basis-toegang) werkt de zoekopdracht automatisch.</li>
+      </ol>
+      <div style="margin-top:.7rem; font-size:.76rem; color:#a16207;">
+        <i class="bi bi-info-circle me-1"></i>
+        Basis-toegang voor publieke, niet-politieke advertenties is gewoonlijk direct beschikbaar na het toevoegen van de Marketing API product.
+      </div>
     </div>
-  </div>
+    {% else %}
+    <div class="error-box mb-4">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <strong>Meta Ad Library melding:</strong> {{ api_error }}
+      <div style="margin-top:.4rem; font-size:.78rem; color:#94a3b8;">
+        Mogelijke oorzaken: token verlopen, geen toegang tot Ad Library API, of geen advertenties gevonden voor dit zoekwoord.
+      </div>
+    </div>
+    {% endif %}
   {% endif %}
 
   {% if library_disabled %}

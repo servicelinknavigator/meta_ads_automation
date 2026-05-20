@@ -59,6 +59,20 @@ def get_app_token() -> str:
         return ""
 
 
+def _translate_meta_error(code: int, message: str) -> str:
+    """Return a user-friendly Dutch error string for common Meta API errors."""
+    msg_lower = message.lower()
+    if code == 10 or "does not have permission" in msg_lower or "permission" in msg_lower:
+        return (
+            "AD_LIBRARY_PERMISSION: Jouw Meta-app heeft geen toegang tot de Ad Library API. "
+            "Activeer de Marketing API en vraag Ad Library API-toegang aan via "
+            "developers.facebook.com → jouw app → Products → Marketing API."
+        )
+    if "token" in msg_lower and ("expired" in msg_lower or "invalid" in msg_lower or "session" in msg_lower):
+        return "Access token verlopen of ongeldig — vernieuw de Meta-verbinding."
+    return message
+
+
 def search_ads(query: str, token: str = "", country: str = "NL",
                ad_type: str = "ALL", limit: int = 50) -> tuple[list[dict], str]:
     """
@@ -89,8 +103,10 @@ def search_ads(query: str, token: str = "", country: str = "NL",
 
         if "error" in data:
             err = data["error"]
-            msg = err.get("message", str(err))
-            logger.error("search_ads API error (query=%r country=%s): %s", query, country, msg)
+            raw_msg = err.get("message", str(err))
+            code = err.get("code", 0)
+            logger.error("search_ads API error (query=%r country=%s code=%s): %s", query, country, code, raw_msg)
+            msg = _translate_meta_error(code, raw_msg)
             return [], msg
 
         resp.raise_for_status()
