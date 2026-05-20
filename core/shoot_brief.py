@@ -26,9 +26,10 @@ _SHOOT_SYSTEM = (
     "Je schrijft video shoot briefs. Spreektaal, knipmomenten na elke 2-3 zinnen. "
     "Geen marketingclichés. Geen em-dashes. "
     "Letterlijk te lezen op papier door de ondernemer/eigenaar. "
-    "KRITISCH: scripts 1-10 worden uitgesproken door de EIGENAAR of TRAINER van het bedrijf. "
+    "KRITISCH: scripts 1-9 worden uitgesproken door de EIGENAAR of TRAINER van het bedrijf. "
     "De 'ik' in het script = de ondernemer die zijn doelgroep aanspreekt. "
-    "NOOIT vanuit het perspectief van een klant/lid — dat is alleen voor Script 11 (testimonial)."
+    "Script 10 (wild card) mag experimenteren met andere perspectieven. "
+    "Script 11 (testimonial) is het enige vaste klantperspectief."
 )
 
 _HOOK_NL: dict[str, str] = {
@@ -196,7 +197,8 @@ VEREISTEN PER SCRIPT:
 - 40-55s: CTA die logisch volgt op het verhaal — altijd laagdrempelig
 - VERBODEN: dezelfde zin of concept in meerdere scripts gebruiken — elk script is 100% uniek
 - VERBODEN: generieke merkcopy in 5-20s ("Bij X is het anders", "Persoonlijk en laagdrempelig", "vol te houden") — te vaag
-- VERBODEN: scripts schrijven vanuit het perspectief van een klant/lid — de spreker is ALTIJD de eigenaar/trainer (scripts 1-10)
+- VERBODEN voor scripts 1-9: schrijven vanuit het perspectief van een klant/lid — de spreker is de eigenaar/trainer
+- Script 10 (wild card) MAG experimenteren met klantstem of andere onverwachte sprekerperspectieven als dat de verrassing IS
 - Noem altijd concrete cijfers of ervaringen uit de klantcontext waar mogelijk
 - Knipmomenten na elke 2-3 zinnen (markeer met [KNIP])
 
