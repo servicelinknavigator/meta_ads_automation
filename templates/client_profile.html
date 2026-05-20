@@ -1018,15 +1018,29 @@
           <div class="brief-body" id="brief-{{ loop.index0 }}">
             {% for shoot in brief.brief_json %}
             {% set sid = 'sb' ~ loop.index0 ~ '-' ~ loop.index %}
+            {% set shoot_name = shoot.naam_suggestie or shoot.naam or '—' %}
+            {% set shoot_desc = shoot.hypothese or shoot.logica or '' %}
             <div class="shoot-mini">
               <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="shoot-type-badge shoot-{{ shoot.type }}">
-                  {% if shoot.type == 'safe' %}Safe{% elif shoot.type == 'new_hook' %}New Hook{% else %}Format Test{% endif %}
+                <span class="shoot-type-badge shoot-{{ shoot.type or 'bewezen' }}">
+                  {% if shoot.type == 'safe' %}Safe
+                  {% elif shoot.type == 'new_hook' %}New Hook
+                  {% elif shoot.type == 'bewezen' %}Bewezen
+                  {% elif shoot.type == 'test' %}Test
+                  {% elif shoot.type == 'wild_card' %}Wild Card
+                  {% elif shoot.type == 'testimonial' %}Testimonial
+                  {% elif shoot.type == 'short' %}Short
+                  {% else %}{{ (shoot.type or '').replace('_',' ').title() }}{% endif %}
                 </span>
-                <span style="font-size:.7rem;color:#64748b;">{{ shoot.hook_type.replace('_',' ') }} · {{ shoot.format.replace('_',' ') }} · {{ shoot.duur_seconden }}s</span>
+                <span style="font-size:.7rem;color:#64748b;">
+                  {{ (shoot.hook_type or '').replace('_',' ') }}
+                  {%- if shoot.format %} · {{ shoot.format.replace('_',' ') }}{% endif %}
+                  {%- if shoot.duur_seconden %} · {{ shoot.duur_seconden }}s{% endif %}
+                  {%- if shoot.regel %} · {{ shoot.regel }}{% endif %}
+                </span>
               </div>
-              <div class="shoot-mini-name">{{ shoot.naam_suggestie }}</div>
-              <div class="shoot-mini-hyp">{{ shoot.hypothese }}</div>
+              <div class="shoot-mini-name">{{ shoot_name }}</div>
+              {% if shoot_desc %}<div class="shoot-mini-hyp">{{ shoot_desc }}</div>{% endif %}
               {% if shoot.script %}
               <div class="mt-2">
                 <button class="btn-script-mini" onclick="toggleScriptMini('{{ sid }}')">
@@ -1040,6 +1054,13 @@
                   </div>
                   {% endfor %}
                 </div>
+              </div>
+              {% elif shoot.volledig_script %}
+              <div class="mt-2">
+                <button class="btn-script-mini" onclick="toggleScriptMini('{{ sid }}')">
+                  <i class="bi bi-mic me-1"></i>script bekijken
+                </button>
+                <div class="script-mini" id="{{ sid }}" style="background:rgba(240,249,255,.85);border:1px solid rgba(186,230,253,.6);border-radius:6px;padding:.5rem .6rem;margin-top:.4rem;white-space:pre-wrap;font-size:.75rem;color:#374151;line-height:1.5;">{{ shoot.volledig_script }}</div>
               </div>
               {% endif %}
             </div>
