@@ -338,8 +338,12 @@
     </div>
   </a>
   <div class="d-flex align-items-center gap-2">
-    <a href="/creative" class="btn-sln-outline"><i class="bi bi-stars me-1"></i>Creative Report</a>
+    {% if not brief_only %}<a href="/creative" class="btn-sln-outline"><i class="bi bi-stars me-1"></i>Creative Report</a>{% endif %}
+    {% if brief_only and active_client %}
+    <a href="/clients/{{ active_client.id }}/export/shoot-brief" class="btn-nav"><i class="bi bi-file-earmark-pdf me-1"></i>Download shoot brief PDF</a>
+    {% else %}
     <a href="/export/pdf" class="btn-nav"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</a>
+    {% endif %}
     <div style="width:1px;height:18px;background:rgba(255,255,255,.12);margin:0 .1rem;"></div>
     <span style="font-size:.72rem;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:4px;">
       <i class="bi bi-person-circle"></i>{{ session.username }}

@@ -186,3 +186,282 @@ def generate_pdf(summary: AnalysisSummary, insights: str,
     buf = io.BytesIO()
     pdf.output(buf)
     return buf.getvalue()
+
+
+# ── Shoot Brief PDF ───────────────────────────────────────────────────────────
+
+_TYPE_COLORS = {
+    "bewezen":   (16,  185, 129),
+    "test":      (59,  130, 246),
+    "wild_card": (245, 158,  11),
+    "testimonial":(139, 92, 246),
+    "short":     (245, 158,  11),
+}
+
+_TYPE_LABELS = {
+    "bewezen":    "BEWEZEN",
+    "test":       "TEST",
+    "wild_card":  "WILD CARD",
+    "testimonial":"TESTIMONIAL",
+    "short":      "SHORT 15s",
+}
+
+_HOOK_NL = {
+    "recognition":   "Herkenning",
+    "frustration":   "Frustratie",
+    "curiosity":     "Nieuwsgierigheid",
+    "proof":         "Bewijs",
+    "promise":       "Belofte",
+    "confrontation": "Confrontatie",
+    "urgency":       "Urgentie",
+    "problem_solve": "Probleem-oplossing",
+    "social_proof":  "Sociale bewijskracht",
+    "educational":   "Educatief",
+}
+
+
+class _ShootBriefPDF(FPDF):
+    def __init__(self, client_name: str = ""):
+        super().__init__()
+        self._client_name = client_name
+
+    def header(self):
+        self.set_fill_color(255, 92, 43)
+        self.rect(0, 0, 210, 16, "F")
+        self.set_font("Helvetica", "B", 11)
+        self.set_text_color(255, 255, 255)
+        self.set_xy(10, 3)
+        title = _t(f"Shoot Brief{' — ' + self._client_name if self._client_name else ''}")
+        self.cell(140, 10, title, align="L")
+        self.set_font("Helvetica", "", 8)
+        self.set_xy(0, 4)
+        self.cell(200, 8, date.today().strftime("%d-%m-%Y"), align="R")
+        self.set_text_color(0, 0, 0)
+        self.ln(14)
+
+    def footer(self):
+        self.set_y(-12)
+        self.set_font("Helvetica", "I", 8)
+        self.set_text_color(150, 150, 150)
+        self.cell(0, 10, f"Pagina {self.page_no()} - Shoot Brief SLN Solutions", align="C")
+        self.set_text_color(0, 0, 0)
+
+
+def _sb_section_title(pdf: _ShootBriefPDF, title: str):
+    pdf.set_fill_color(30, 41, 59)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(0, 7, _t(f"  {title}"), fill=True, ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(2)
+
+
+def _sb_script_block(pdf: _ShootBriefPDF, s: dict):
+    stype = s.get("type", "bewezen")
+    r, g, b = _TYPE_COLORS.get(stype, (100, 100, 100))
+    type_label = _TYPE_LABELS.get(stype, stype.upper())
+    hook = s.get("hook_type", "")
+    hook_nl = _HOOK_NL.get(hook, hook).replace("_", " ")
+    nummer = s.get("nummer", "")
+    regel = s.get("regel", "")
+    naam = _t(str(s.get("naam", "")))
+    logica = _t(str(s.get("logica", "")))
+
+    # Colored top bar
+    pdf.set_fill_color(r, g, b)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 8)
+    bar_text = _t(f"  Script {nummer}  -  {regel}  -  {type_label}  -  {hook_nl}")
+    pdf.cell(0, 6, bar_text, fill=True, ln=True)
+    pdf.set_text_color(0, 0, 0)
+
+    # Name + logica
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_x(10)
+    pdf.cell(0, 5, naam, ln=True)
+    if logica:
+        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_x(10)
+        pdf.cell(0, 4, logica, ln=True)
+        pdf.set_text_color(0, 0, 0)
+    pdf.ln(2)
+
+    # Tijdcodes table
+    tijdcodes = s.get("tijdcodes")
+    if tijdcodes and isinstance(tijdcodes, dict):
+        pdf.set_fill_color(241, 245, 249)
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_x(10)
+        pdf.cell(190, 5, "TIJDCODES", fill=True, ln=True)
+        pdf.set_text_color(0, 0, 0)
+        for tijd, tekst in tijdcodes.items():
+            pdf.set_font("Helvetica", "B", 8)
+            pdf.set_text_color(r, g, b)
+            pdf.set_x(10)
+            pdf.cell(20, 5, _t(str(tijd)), border="B")
+            pdf.set_text_color(30, 41, 59)
+            pdf.set_font("Helvetica", "", 8)
+            # Use multi_cell for wrapping, but we need to handle position manually
+            x_after = 30
+            pdf.set_xy(x_after, pdf.get_y())
+            # Check remaining width
+            pdf.multi_cell(170, 5, _t(str(tekst)), border="B")
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(2)
+
+    # Volledig script (collapsed in print — shown small)
+    volledig = s.get("volledig_script")
+    if volledig:
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_x(10)
+        pdf.cell(0, 4, "VOLLEDIG SCRIPT", ln=True)
+        pdf.set_font("Helvetica", "", 7.5)
+        pdf.set_text_color(55, 65, 81)
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_x(10)
+        pdf.multi_cell(190, 4, _t(str(volledig)), fill=True)
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(1)
+
+    # CTA
+    cta = s.get("cta")
+    if cta:
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(255, 92, 43)
+        pdf.set_x(10)
+        pdf.cell(0, 5, _t(f"CTA: {cta}"), ln=True)
+        pdf.set_text_color(0, 0, 0)
+
+    pdf.ln(5)
+
+
+def _sb_testimonial_block(pdf: _ShootBriefPDF, t: dict):
+    r, g, b = _TYPE_COLORS["testimonial"]
+    pdf.set_fill_color(r, g, b)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.cell(0, 6, _t("  Script 11  -  APART  -  TESTIMONIAL INTERVIEW"), fill=True, ln=True)
+    pdf.set_text_color(0, 0, 0)
+
+    logica = _t(str(t.get("logica", "")))
+    if logica:
+        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_x(10)
+        pdf.cell(0, 5, logica, ln=True)
+        pdf.set_text_color(0, 0, 0)
+    pdf.ln(1)
+
+    vragen = t.get("vragen", [])
+    if vragen:
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_x(10)
+        pdf.cell(0, 4, "INTERVIEWVRAGEN", ln=True)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Helvetica", "", 8.5)
+        for i, v in enumerate(vragen, 1):
+            pdf.set_x(10)
+            pdf.multi_cell(190, 5, _t(f"{i}. {v}"))
+    pdf.ln(5)
+
+
+def _sb_shorts_section(pdf: _ShootBriefPDF, shorts: list[dict]):
+    _sb_section_title(pdf, f"Short Scripts 15s ({len(shorts)}x)")
+    for s in shorts:
+        r, g, b = _TYPE_COLORS["short"]
+        hook = s.get("hook_type", "")
+        hook_nl = _HOOK_NL.get(hook, hook).replace("_", " ")
+        naam = _t(str(s.get("naam", "")))
+        opening = _t(str(s.get("openingszin", "")))
+        kern = _t(str(s.get("kernbelofte", "")))
+        cta = _t(str(s.get("cta", "")))
+
+        pdf.set_fill_color(255, 251, 235)
+        pdf.set_draw_color(r, g, b)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(r, g, b)
+        pdf.set_x(10)
+        pdf.cell(190, 5, f"  {naam}  -  {hook_nl}", fill=True, border="L", ln=True)
+        pdf.set_draw_color(0, 0, 0)
+        pdf.set_text_color(0, 0, 0)
+
+        # Three time slots inline
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_text_color(r, g, b)
+        pdf.set_x(10)
+        pdf.cell(15, 4, "0-3s:")
+        pdf.set_font("Helvetica", "", 7.5)
+        pdf.set_text_color(30, 41, 59)
+        pdf.multi_cell(175, 4, opening)
+
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_text_color(r, g, b)
+        pdf.set_x(10)
+        pdf.cell(15, 4, "3-10s:")
+        pdf.set_font("Helvetica", "", 7.5)
+        pdf.set_text_color(30, 41, 59)
+        pdf.multi_cell(175, 4, kern)
+
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_text_color(255, 92, 43)
+        pdf.set_x(10)
+        pdf.cell(15, 4, "10-15s:")
+        pdf.set_font("Helvetica", "", 7.5)
+        pdf.set_text_color(30, 41, 59)
+        pdf.multi_cell(175, 4, cta)
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+
+
+def _sb_broll_section(pdf: _ShootBriefPDF, broll: dict):
+    _sb_section_title(pdf, "B-Roll Lijst (afvinkbaar tijdens shoot)")
+    pdf.set_font("Helvetica", "", 8.5)
+    for categorie, shots in broll.items():
+        if not shots:
+            continue
+        cat_label = _t(categorie.replace("_", " ").title())
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_x(10)
+        pdf.cell(0, 5, cat_label.upper(), ln=True)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Helvetica", "", 8.5)
+        for shot in shots:
+            pdf.set_x(10)
+            pdf.multi_cell(190, 5, _t(f"[ ]  {shot}"))
+        pdf.ln(2)
+
+
+def generate_shoot_brief_pdf(scripts: list[dict], client_name: str = "") -> bytes:
+    long_scripts = [s for s in scripts if s.get("type") in ("bewezen", "test", "wild_card")]
+    testimonials = [s for s in scripts if s.get("type") == "testimonial"]
+    shorts       = [s for s in scripts if s.get("type") == "short"]
+    brolls       = [s for s in scripts if s.get("type") == "broll"]
+
+    pdf = _ShootBriefPDF(client_name)
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    if long_scripts:
+        _sb_section_title(pdf, f"Video Scripts ({len(long_scripts)}x)")
+        for s in long_scripts:
+            _sb_script_block(pdf, s)
+
+    for t in testimonials:
+        _sb_testimonial_block(pdf, t)
+
+    if shorts:
+        _sb_shorts_section(pdf, shorts)
+
+    for b in brolls:
+        if b.get("broll"):
+            pdf.add_page()
+            _sb_broll_section(pdf, b["broll"])
+
+    buf = io.BytesIO()
+    pdf.output(buf)
+    return buf.getvalue()

@@ -29,7 +29,7 @@ from core.analysis import (
     filter_zero_spend, build_ad_delivery_map,
 )
 from core.generation import generate_insights
-from core.reporter import generate_pdf
+from core.reporter import generate_pdf, generate_shoot_brief_pdf
 from core.creative_decoder import decode_winner, decode_loser
 from core.axes_mapper import map_axes
 from core.smart_generator import generate_testkit
@@ -1277,6 +1277,28 @@ def export_pdf():
         mimetype="application/pdf",
         as_attachment=True,
         download_name="meta_ads_rapport.pdf",
+    )
+
+
+@app.route("/clients/<int:client_id>/export/shoot-brief", methods=["GET"])
+@login_required
+def export_shoot_brief_pdf(client_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    if not client:
+        flash("Klant niet gevonden.", "warning")
+        return redirect(url_for("hooks"))
+    briefs = db.get_shoot_briefs(client_id, limit=1) if db.is_available() else []
+    if not briefs:
+        flash("Nog geen shoot brief beschikbaar voor deze klant. Genereer er eerst een.", "warning")
+        return redirect(url_for("hooks", mode="brief"))
+    scripts = briefs[0]["brief_json"]
+    pdf_bytes = generate_shoot_brief_pdf(scripts, client_name=client.get("name", ""))
+    safe_name = (client.get("name") or "shoot_brief").replace(" ", "_").lower()
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"shoot_brief_{safe_name}.pdf",
     )
 
 
