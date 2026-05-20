@@ -1,0 +1,135 @@
+{% if shoot_brief %}
+
+{% set long_scripts = shoot_brief | selectattr('type', 'in', ['bewezen','test','wild_card']) | list %}
+{% set testimonials  = shoot_brief | selectattr('type', 'equalto', 'testimonial') | list %}
+{% set shorts        = shoot_brief | selectattr('type', 'equalto', 'short') | list %}
+{% set brolls        = shoot_brief | selectattr('type', 'equalto', 'broll') | list %}
+
+{% if long_scripts %}
+<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:.5rem 0 .6rem;">
+  <i class="bi bi-camera-video me-1"></i>Video scripts ({{ long_scripts|length }})
+</div>
+<div class="d-flex flex-column gap-3 mb-4">
+{% for s in long_scripts %}
+<div class="shoot-card"
+     style="border-left:4px solid {% if s.type == 'bewezen' %}#10B981{% elif s.type == 'test' %}#3b82f6{% else %}#f59e0b{% endif %};">
+  <div style="padding:1rem 1.4rem .5rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;flex-wrap:wrap;">
+        <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:2px 9px;border-radius:20px;
+          {% if s.type == 'bewezen' %}background:#ecfdf5;color:#059669;{% elif s.type == 'test' %}background:#eff6ff;color:#2563eb;{% else %}background:#fffbeb;color:#d97706;{% endif %}">
+          {% if s.type == 'bewezen' %}<i class="bi bi-shield-check me-1"></i>{% elif s.type == 'test' %}<i class="bi bi-flask me-1"></i>{% else %}<i class="bi bi-lightning me-1"></i>{% endif %}
+          Script {{ s.nummer }} — {{ s.regel }}
+        </span>
+        <span class="spec-chip" style="margin:0;"><i class="bi bi-lightning me-1"></i>{{ s.hook_type.replace('_',' ') }}</span>
+      </div>
+      <div style="font-weight:700;font-size:.88rem;color:#0f172a;margin-bottom:.15rem;">{{ s.naam }}</div>
+      {% if s.logica %}<div style="font-size:.77rem;color:#64748b;font-style:italic;">{{ s.logica }}</div>{% endif %}
+    </div>
+  </div>
+  <div style="padding:.25rem 1.4rem 1.2rem;">
+    {% if s.tijdcodes %}
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.4rem;"><i class="bi bi-clock me-1"></i>Tijdcodes</div>
+    <div style="display:grid;grid-template-columns:60px 1fr;gap:.2rem .6rem;font-size:.8rem;margin-bottom:.75rem;background:rgba(241,245,249,.7);border-radius:8px;padding:.55rem .75rem;">
+      {% for tijd, tekst in s.tijdcodes.items() %}
+      <span style="font-weight:700;color:#ff5c2b;font-family:monospace;align-self:start;padding-top:.05rem;">{{ tijd }}</span>
+      <span style="color:#1f2937;line-height:1.5;">"{{ tekst }}"</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if s.volledig_script %}
+    <div class="mb-1 d-flex align-items-center justify-content-between">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;"><i class="bi bi-mic me-1"></i>Volledig script</div>
+      <button class="btn-script-toggle" onclick="toggleScript('sc-{{ s.nummer }}')">toon script</button>
+    </div>
+    <div class="script-block d-none" id="sc-{{ s.nummer }}" style="white-space:pre-wrap;font-size:.81rem;color:#374151;line-height:1.65;background:rgba(255,255,255,.7);border-radius:8px;padding:.65rem .85rem;border:1px solid rgba(0,0,0,.07);margin-bottom:.6rem;">{{ s.volledig_script }}</div>
+    {% endif %}
+    {% if s.redenering %}
+    <div class="reason-box" style="margin-bottom:.4rem;"><strong><i class="bi bi-bar-chart-line me-1"></i>Waarom dit script?</strong> {{ s.redenering }}</div>
+    {% endif %}
+    {% if s.cta %}<div style="font-size:.78rem;font-weight:700;color:#ff5c2b;"><i class="bi bi-cursor me-1"></i>CTA: {{ s.cta }}</div>{% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+{% if testimonials %}
+<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:.5rem 0 .6rem;">
+  <i class="bi bi-person-video2 me-1"></i>Testimonial script
+</div>
+{% for t in testimonials %}
+<div class="shoot-card mb-4" style="border-left:4px solid #8b5cf6;">
+  <div style="padding:1rem 1.4rem .75rem;">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:#f5f3ff;color:#7c3aed;padding:2px 9px;border-radius:20px;display:inline-block;margin-bottom:.5rem;">
+      <i class="bi bi-person-video2 me-1"></i>Script 11 — Testimonial interview
+    </div>
+    <div style="font-size:.82rem;color:#374151;font-style:italic;margin-bottom:.9rem;">{{ t.logica }}</div>
+    {% if t.vragen %}
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.5rem;"><i class="bi bi-chat-quote me-1"></i>Interviewvragen</div>
+    <ol style="font-size:.84rem;color:#1f2937;line-height:1.7;padding-left:1.2rem;">
+      {% for v in t.vragen %}<li>{{ v }}</li>{% endfor %}
+    </ol>
+    {% endif %}
+    {% if t.interviewstructuur %}
+    <div style="margin-top:.6rem;font-size:.76rem;background:rgba(245,243,255,.8);border:1px solid rgba(196,181,253,.5);border-radius:8px;padding:.45rem .75rem;color:#5b21b6;">
+      <strong>Structuur:</strong> {{ t.interviewstructuur }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if shorts %}
+<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:.5rem 0 .6rem;">
+  <i class="bi bi-lightning-charge me-1"></i>Short scripts 15s ({{ shorts|length }})
+</div>
+<div class="row g-3 mb-4">
+{% for s in shorts %}
+<div class="col-md-6">
+  <div style="background:rgba(255,255,255,.6);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.7);border-radius:12px;border-left:4px solid #f59e0b;padding:1rem 1.1rem;height:100%;">
+    <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;flex-wrap:wrap;">
+      <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;background:#fffbeb;color:#d97706;padding:2px 8px;border-radius:20px;">
+        <i class="bi bi-lightning-charge me-1"></i>{{ s.naam }} — 15s
+      </span>
+      <span class="spec-chip" style="margin:0;font-size:.65rem;"><i class="bi bi-lightning me-1"></i>{{ (s.hook_type or '').replace('_',' ') }}</span>
+    </div>
+    {% if s.openingszin %}<div style="font-size:.82rem;font-weight:700;color:#0f172a;margin-bottom:.25rem;line-height:1.4;">0-3s: "{{ s.openingszin }}"</div>{% endif %}
+    {% if s.kernbelofte %}<div style="font-size:.8rem;color:#374151;margin-bottom:.25rem;line-height:1.5;">3-10s: {{ s.kernbelofte }}</div>{% endif %}
+    {% if s.cta %}<div style="font-size:.78rem;font-weight:700;color:#ff5c2b;">10-15s: {{ s.cta }}</div>{% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+{% for broll_item in brolls %}
+{% if broll_item.broll %}
+{% set br = broll_item.broll %}
+<div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:.5rem 0 .6rem;">
+  <i class="bi bi-film me-1"></i>B-roll lijst (afvinkbaar tijdens shoot)
+</div>
+<div class="card-sln mb-5">
+  <div style="padding:1.1rem 1.4rem;">
+  {% for categorie, shots in br.items() %}
+  {% if shots %}
+  <div style="font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.4rem;margin-top:.7rem;border-top:1px solid rgba(0,0,0,.06);padding-top:.7rem;">
+    {{ categorie.replace('_', ' ').title() }}
+  </div>
+  {% for shot in shots %}
+  <div style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;color:#374151;padding:.25rem 0;line-height:1.5;">
+    <input type="checkbox" id="broll-{{ loop.index }}-{{ loop.depth }}" style="margin-top:.2rem;flex-shrink:0;cursor:pointer;">
+    <label for="broll-{{ loop.index }}-{{ loop.depth }}" style="cursor:pointer;">{{ shot }}</label>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% else %}
+<div style="color:#64748b;font-size:.85rem;padding:1rem 0;">Shoot brief kon niet worden gegenereerd.</div>
+{% endif %}

@@ -1400,25 +1400,6 @@ def hooks():
         except Exception:
             pass
 
-    _base_context = (_client.get("client_context") or "" if _client else "")
-    _full_context = _base_context + (_creative_ctx_for_brief if _creative_ctx_for_brief else "")
-
-    shoot_brief = generate_shoot_brief(
-        summary, all_ads, top_ad=top_ad,
-        client_name=_client["name"] if _client else "",
-        client_context=_full_context,
-    )
-
-    # Save shoot brief to DB — only once per upload (avoid duplicates on page refresh)
-    upload_id = session.get("upload_id")
-    last_saved_id = session.get("last_brief_upload_id")
-    if client_id and db.is_available() and upload_id != last_saved_id:
-        try:
-            db.save_shoot_brief(client_id, upload_id, shoot_brief)
-            session["last_brief_upload_id"] = upload_id
-        except Exception as e:
-            logger.warning("Shoot brief save failed: %s", e)
-
     thresholds = session.get("thresholds", {"winner": 25, "mid": 50})
 
     return render_template(
@@ -1429,13 +1410,73 @@ def hooks():
         combos=combos,
         untested_hooks=untested_hooks,
         untested_formats=untested_formats,
-        shoot_brief=shoot_brief,
         is_demo=session.get("data_source") == "demo",
         active_client=_client,
         date_range=session.get("date_range"),
         t_win=thresholds.get("winner", 30),
         t_mid=thresholds.get("mid", 50),
     )
+
+
+@app.route("/clients/<int:client_id>/generate-shoot-brief", methods=["POST"])
+@login_required
+def generate_shoot_brief_async(client_id):
+    """Async endpoint: generate shoot brief and return rendered HTML partial."""
+    rows = _load_rows_from_session()
+    if rows is None:
+        return "Geen data beschikbaar. Laad eerst een CSV.", 400
+
+    campaigns = build_campaigns(rows)
+    summary   = build_summary(rows, campaigns)
+    all_ads   = sorted(get_all_ads(campaigns), key=lambda a: a.spend, reverse=True)
+    top_ad    = next((a for a in all_ads if a.results > 0 and a.cost_per_result > 0), None)
+
+    _client = None
+    if db.is_available():
+        try:
+            _client = db.get_client(client_id)
+        except Exception:
+            pass
+
+    _creative_ctx = ""
+    if db.is_available():
+        try:
+            _creatives = db.get_ad_creatives(client_id)
+            if _creatives:
+                from core.generation import _format_creative_context
+                from core.hook_analyzer import detect_format
+                _VIDEO_FORMATS = {"reels", "ugc", "testimonial", "story",
+                                  "product_demo", "before_after", "problem_solve"}
+                winning_video_ads = [
+                    a.ad_name for a in all_ads
+                    if a.results > 0 and detect_format(a.ad_name) in _VIDEO_FORMATS
+                ][:6]
+                winning_ads = [a.ad_name for a in all_ads[:8] if a.results > 0]
+                _creative_ctx = _format_creative_context(
+                    _creatives, winning_ads, video_ad_names=winning_video_ads,
+                )
+        except Exception:
+            pass
+
+    _base_context = (_client.get("client_context") or "" if _client else "")
+    _full_context = _base_context + _creative_ctx
+
+    shoot_brief = generate_shoot_brief(
+        summary, all_ads, top_ad=top_ad,
+        client_name=_client["name"] if _client else "",
+        client_context=_full_context,
+    )
+
+    upload_id = session.get("upload_id")
+    last_saved_id = session.get("last_brief_upload_id")
+    if db.is_available() and upload_id and upload_id != last_saved_id:
+        try:
+            db.save_shoot_brief(client_id, upload_id, shoot_brief)
+            session["last_brief_upload_id"] = upload_id
+        except Exception as e:
+            logger.warning("Shoot brief save failed: %s", e)
+
+    return render_template("_shoot_brief_partial.html", shoot_brief=shoot_brief)
 
 
 def _parse_static_image_upload(request_obj):
