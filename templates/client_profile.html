@@ -632,18 +632,18 @@
     </div>
     <div class="row g-3 mb-4">
 
-      <!-- Shoot voorbereiden -->
+      <!-- Shoot hub -->
       <div class="col-12 col-md-4">
         <div class="action-card h-100">
           <div class="action-card-icon" style="background:rgba(6,182,212,.12);">
             <i class="bi bi-camera-video-fill" style="color:#0891b2;font-size:1.1rem;"></i>
           </div>
-          <div class="action-card-title">Shoot voorbereiden</div>
-          <div class="action-card-desc">16 kant-en-klare scripts voor je volgende opname — gebaseerd op wat werkt</div>
+          <div class="action-card-title">Shoot</div>
+          <div class="action-card-desc">Scripts genereren, history bekijken en PDF downloaden voor je volgende opname</div>
           {% if uploads %}
           <a href="/clients/{{ client.id }}/go/shoot-brief" class="action-btn-primary"
              style="background:linear-gradient(135deg,#0891b2,#06b6d4);box-shadow:0 3px 10px rgba(6,182,212,.25);">
-            <i class="bi bi-magic"></i>Genereer shoot brief
+            <i class="bi bi-camera-video"></i>Open shoot hub
           </a>
           {% else %}
           <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
@@ -757,33 +757,6 @@
   <div class="row g-4">
     <div class="col-12">
 
-      <!-- Upload history header -->
-      <div class="d-flex align-items-center justify-content-between mb-3">
-        <div class="section-title" style="margin-bottom:0;">
-          <i class="bi bi-upload" style="color:#ff5c2b;"></i>Upload history
-          <span class="help-icon ms-1" data-bs-toggle="tooltip"
-            title="Elke CSV-upload wordt hier opgeslagen. Klik op een rij om die upload te herladen. Selecteer meerdere uploads via de checkboxen om ze samen te voegen tot één analyse.">
-            <i class="bi bi-question-lg"></i>
-          </span>
-        </div>
-        <div class="d-flex gap-2">
-          {% if uploads %}
-          <a href="/clients/{{ client.id }}/load/{{ uploads[0].id }}"
-             style="font-size:.75rem;padding:.3rem .85rem;display:inline-flex;align-items:center;gap:.3rem;
-                    background:rgba(6,13,26,.1);color:#0f172a;border:1px solid rgba(0,0,0,.15);
-                    border-radius:8px;text-decoration:none;font-weight:600;transition:all .15s;"
-             onmouseover="this.style.background='rgba(6,13,26,.18)'"
-             onmouseout="this.style.background='rgba(6,13,26,.1)'"
-             title="Laad de meest recente upload opnieuw">
-            <i class="bi bi-play-fill me-1"></i>Laatste analyse
-          </a>
-          {% endif %}
-          <button class="btn-nav-accent" style="font-size:.75rem;padding:.3rem .85rem;"
-                  onclick="document.getElementById('inlineUpload').classList.toggle('d-none');this.textContent=document.getElementById('inlineUpload').classList.contains('d-none')?'+ Nieuwe upload':'✕ Sluiten'">
-            <i class="bi bi-plus-lg me-1"></i>Nieuwe upload
-          </button>
-        </div>
-      </div>
 
       <!-- Inline upload form -->
       <div id="inlineUpload" class="{% if not uploads %}{% else %}d-none{% endif %} mb-3">
@@ -828,101 +801,6 @@
         </form>
       </div>
 
-      <!-- Shoot brief history -->
-      <div class="section-title"><i class="bi bi-camera-fill" style="color:#ff5c2b;"></i>Shoot brief history</div>
-      {% if shoot_briefs %}
-        {% for brief in shoot_briefs %}
-        <div class="brief-card">
-          <div class="brief-header" onclick="toggleBrief({{ loop.index0 }})">
-            <div>
-              <div class="brief-date"><i class="bi bi-calendar3 me-1"></i>{{ brief.created_at.strftime('%d %b %Y') }}</div>
-              <div class="brief-meta">
-                {% if brief.date_from %}{{ brief.date_from }} – {{ brief.date_to }} &middot;{% endif %}
-                {{ brief.brief_json|length }} shoots
-              </div>
-            </div>
-            <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
-              <a href="/clients/{{ client.id }}/briefs/{{ brief.id }}/pdf"
-                 style="display:inline-flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;
-                        color:#ff5c2b;border:1px solid rgba(255,92,43,.25);border-radius:7px;
-                        padding:3px 9px;text-decoration:none;background:rgba(255,92,43,.05);transition:all .15s;"
-                 onmouseover="this.style.background='rgba(255,92,43,.12)'"
-                 onmouseout="this.style.background='rgba(255,92,43,.05)'"
-                 title="Download als PDF">
-                <i class="bi bi-file-earmark-pdf" style="font-size:.8rem;"></i>PDF
-              </a>
-              <form method="POST" action="/clients/{{ client.id }}/briefs/{{ brief.id }}/delete"
-                    onsubmit="return confirm('Shoot brief verwijderen?')">
-                <button type="submit" style="background:none;border:none;padding:4px 6px;border-radius:6px;color:#94a3b8;cursor:pointer;line-height:1;transition:all .15s;"
-                        onmouseover="this.style.background='rgba(254,242,242,.8)';this.style.color='#dc2626'"
-                        onmouseout="this.style.background='none';this.style.color='#94a3b8'">
-                  <i class="bi bi-trash3" style="font-size:.85rem;"></i>
-                </button>
-              </form>
-              <i class="bi bi-chevron-down" id="chev-{{ loop.index0 }}" style="color:#94a3b8;transition:transform .2s;"></i>
-            </div>
-          </div>
-          <div class="brief-body" id="brief-{{ loop.index0 }}">
-            {% for shoot in brief.brief_json %}
-            {% set sid = 'sb' ~ loop.index0 ~ '-' ~ loop.index %}
-            {% set shoot_name = shoot.naam_suggestie or shoot.naam or '—' %}
-            {% set shoot_desc = shoot.hypothese or shoot.logica or '' %}
-            <div class="shoot-mini">
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="shoot-type-badge shoot-{{ shoot.type or 'bewezen' }}">
-                  {% if shoot.type == 'safe' %}Safe
-                  {% elif shoot.type == 'new_hook' %}New Hook
-                  {% elif shoot.type == 'bewezen' %}Bewezen
-                  {% elif shoot.type == 'test' %}Test
-                  {% elif shoot.type == 'wild_card' %}Wild Card
-                  {% elif shoot.type == 'testimonial' %}Testimonial
-                  {% elif shoot.type == 'short' %}Short
-                  {% else %}{{ (shoot.type or '').replace('_',' ').title() }}{% endif %}
-                </span>
-                <span style="font-size:.7rem;color:#64748b;">
-                  {{ (shoot.hook_type or '').replace('_',' ') }}
-                  {%- if shoot.format %} · {{ shoot.format.replace('_',' ') }}{% endif %}
-                  {%- if shoot.duur_seconden %} · {{ shoot.duur_seconden }}s{% endif %}
-                  {%- if shoot.regel %} · {{ shoot.regel }}{% endif %}
-                </span>
-              </div>
-              <div class="shoot-mini-name">{{ shoot_name }}</div>
-              {% if shoot_desc %}<div class="shoot-mini-hyp">{{ shoot_desc }}</div>{% endif %}
-              {% if shoot.script %}
-              <div class="mt-2">
-                <button class="btn-script-mini" onclick="toggleScriptMini('{{ sid }}')">
-                  <i class="bi bi-mic me-1"></i>script bekijken
-                </button>
-                <div class="script-mini" id="{{ sid }}" style="background:rgba(240,249,255,.85);border:1px solid rgba(186,230,253,.6);border-radius:6px;padding:.5rem .6rem;margin-top:.4rem;">
-                  {% for line in shoot.script %}
-                  <div class="script-mini-line">
-                    <span class="script-mini-time">{{ line.time }}</span>
-                    <span class="script-mini-tekst">"{{ line.tekst }}"</span>
-                  </div>
-                  {% endfor %}
-                </div>
-              </div>
-              {% elif shoot.volledig_script %}
-              <div class="mt-2">
-                <button class="btn-script-mini" onclick="toggleScriptMini('{{ sid }}')">
-                  <i class="bi bi-mic me-1"></i>script bekijken
-                </button>
-                <div class="script-mini" id="{{ sid }}" style="background:rgba(240,249,255,.85);border:1px solid rgba(186,230,253,.6);border-radius:6px;padding:.5rem .6rem;margin-top:.4rem;white-space:pre-wrap;font-size:.75rem;color:#374151;line-height:1.5;">{{ shoot.volledig_script }}</div>
-              </div>
-              {% endif %}
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-      <div class="card-sln">
-        <div class="empty-note">
-          <i class="bi bi-camera" style="font-size:1.5rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
-          Nog geen shoot briefs voor deze klant.<br>Genereer er een via de Hook Analyse pagina.
-        </div>
-      </div>
-      {% endif %}
 
       <!-- Client notes -->
       {% if client.notes %}

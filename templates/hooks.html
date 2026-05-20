@@ -583,6 +583,38 @@
   </div>
   {% endif %}{# /not brief_only #}
 
+  <!-- ── Shoot Brief History (alleen in brief mode) ── -->
+  {% if brief_only and shoot_briefs %}
+  <div class="mb-2 d-flex align-items-center justify-content-between mt-1">
+    <div class="section-title mb-0"><i class="bi bi-clock-history me-2" style="color:#64748b;"></i>Eerdere shoot briefs</div>
+  </div>
+  <div class="card-sln mb-4">
+    <div style="padding:.6rem .8rem;">
+    {% for brief in shoot_briefs %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.55rem .6rem;
+                border-radius:8px;transition:background .15s;{% if not loop.last %}border-bottom:1px solid rgba(0,0,0,.05);{% endif %}"
+         onmouseover="this.style.background='rgba(241,245,249,.8)'" onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-size:.82rem;font-weight:600;color:#0f172a;">{{ brief.created_at.strftime('%d %b %Y') }}</div>
+        <div style="font-size:.72rem;color:#64748b;">
+          {% if brief.date_from %}{{ brief.date_from }} – {{ brief.date_to }} &middot; {% endif %}
+          {{ brief.brief_json | selectattr('type', 'in', ['bewezen','test','wild_card']) | list | length }} scripts
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <a href="/clients/{{ active_client.id }}/briefs/{{ brief.id }}/pdf"
+           style="display:inline-flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;
+                  color:#ff5c2b;border:1px solid rgba(255,92,43,.25);border-radius:7px;
+                  padding:3px 10px;text-decoration:none;background:rgba(255,92,43,.05);">
+          <i class="bi bi-file-earmark-pdf" style="font-size:.8rem;"></i>PDF
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── Shoot Brief ── -->
   <div class="mb-2 d-flex align-items-center justify-content-between">
     <div class="section-title mb-0"><i class="bi bi-camera-fill me-2" style="color:#ff5c2b;"></i>Shoot Brief</div>

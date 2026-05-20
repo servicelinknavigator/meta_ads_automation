@@ -1444,6 +1444,13 @@ def hooks():
 
     thresholds = session.get("thresholds", {"winner": 25, "mid": 50})
 
+    shoot_briefs = []
+    if client_id and db.is_available():
+        try:
+            shoot_briefs = db.get_shoot_briefs(client_id, limit=10)
+        except Exception:
+            pass
+
     return render_template(
         "hooks.html",
         summary=summary,
@@ -1457,6 +1464,7 @@ def hooks():
         date_range=session.get("date_range"),
         t_win=thresholds.get("winner", 30),
         t_mid=thresholds.get("mid", 50),
+        shoot_briefs=shoot_briefs,
     )
 
 
