@@ -799,13 +799,54 @@ def client_profile(client_id):
     except Exception:
         pass
 
+    # KPI trend: vergelijk alleen als uploads een vergelijkbare datumrange hebben.
+    # Met dagelijkse sync is uploads[0] 1 dag; vergelijken met een upload van
+    # 140 dagen geeft een zinloze -99%. Toon % alleen als ratio <= 5×.
+    def _upload_days(u):
+        try:
+            from datetime import date as _d
+            d1 = _d.fromisoformat(str(u["date_from"])[:10])
+            d2 = _d.fromisoformat(str(u["date_to"])[:10])
+            return max(1, (d2 - d1).days + 1)
+        except Exception:
+            return None
+
+    kpi_last_days = _upload_days(uploads[0]) if uploads else None
+    kpi_prev_days = _upload_days(uploads[1]) if len(uploads) > 1 else None
+    show_kpi_trend = bool(
+        kpi_last_days and kpi_prev_days and
+        max(kpi_last_days, kpi_prev_days) / min(kpi_last_days, kpi_prev_days) <= 5
+    )
+
+    def _fmt_period(u):
+        """Korte leesbare datumrange voor KPI label, bijv. '22 mei' of 'jan–mei'."""
+        try:
+            from datetime import date as _d
+            MONTHS_NL = ["jan","feb","mrt","apr","mei","jun",
+                         "jul","aug","sep","okt","nov","dec"]
+            d1 = _d.fromisoformat(str(u["date_from"])[:10])
+            d2 = _d.fromisoformat(str(u["date_to"])[:10])
+            if d1 == d2:
+                return f"{d1.day} {MONTHS_NL[d1.month - 1]}"
+            if d1.month == d2.month:
+                return f"{d1.day}–{d2.day} {MONTHS_NL[d1.month - 1]}"
+            return f"{MONTHS_NL[d1.month - 1]}–{MONTHS_NL[d2.month - 1]}"
+        except Exception:
+            return ""
+
+    kpi_last_period = _fmt_period(uploads[0]) if uploads else ""
+    kpi_prev_period = _fmt_period(uploads[1]) if len(uploads) > 1 else ""
+
     return render_template("client_profile.html",
                            client=client, uploads=uploads,
                            shoot_briefs=shoot_briefs, hook_perf=hook_perf,
                            pending_count=pending_count,
                            meta_connection=meta_connection,
                            transcripts=transcripts,
-                           client_totals=client_totals)
+                           client_totals=client_totals,
+                           show_kpi_trend=show_kpi_trend,
+                           kpi_last_period=kpi_last_period,
+                           kpi_prev_period=kpi_prev_period)
 
 
 @app.route("/clients/<int:client_id>/edit", methods=["POST"])

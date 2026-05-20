@@ -487,10 +487,10 @@
         <div class="kpi-icon" style="background:rgba(16,185,129,.12);"><i class="bi bi-currency-euro" style="color:#059669;"></i></div>
         <div>
           <div class="kpi-val">€{{ "%.0f"|format(last.total_spend) }}</div>
-          <div class="kpi-lbl">Laatste spend</div>
-          {% if prev and prev.total_spend %}
+          <div class="kpi-lbl">Spend{% if kpi_last_period %} <span style="font-weight:400;opacity:.65;">{{ kpi_last_period }}</span>{% endif %}</div>
+          {% if show_kpi_trend and prev and prev.total_spend %}
           {% set d = ((last.total_spend - prev.total_spend) / prev.total_spend * 100)|round(1) %}
-          <div class="{{ 'delta-good' if d >= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs vorig</div>
+          <div class="{{ 'delta-good' if d >= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs {{ kpi_prev_period or 'vorig' }}</div>
           {% endif %}
         </div>
       </div>
@@ -500,10 +500,10 @@
         <div class="kpi-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-bullseye" style="color:#2563eb;"></i></div>
         <div>
           <div class="kpi-val">{{ last.total_results }}</div>
-          <div class="kpi-lbl">Resultaten</div>
-          {% if prev and prev.total_results %}
+          <div class="kpi-lbl">Resultaten{% if kpi_last_period %} <span style="font-weight:400;opacity:.65;">{{ kpi_last_period }}</span>{% endif %}</div>
+          {% if show_kpi_trend and prev and prev.total_results %}
           {% set d = ((last.total_results - prev.total_results) / prev.total_results * 100)|round(1) %}
-          <div class="{{ 'delta-good' if d >= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs vorig</div>
+          <div class="{{ 'delta-good' if d >= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs {{ kpi_prev_period or 'vorig' }}</div>
           {% endif %}
         </div>
       </div>
@@ -514,14 +514,14 @@
         <div>
           {% if is_leads %}
           <div class="kpi-val">€{{ last.avg_cpl or '—' }}</div>
-          <div class="kpi-lbl">Gem. CPL</div>
-          {% if prev and prev.avg_cpl and last.avg_cpl %}
+          <div class="kpi-lbl">Gem. CPL{% if kpi_last_period %} <span style="font-weight:400;opacity:.65;">{{ kpi_last_period }}</span>{% endif %}</div>
+          {% if show_kpi_trend and prev and prev.avg_cpl and last.avg_cpl %}
           {% set d = ((last.avg_cpl - prev.avg_cpl) / prev.avg_cpl * 100)|round(1) %}
-          <div class="{{ 'delta-good' if d <= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs vorig</div>
+          <div class="{{ 'delta-good' if d <= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs {{ kpi_prev_period or 'vorig' }}</div>
           {% endif %}
           {% else %}
           <div class="kpi-val">{{ last.avg_roas or '—' }}</div>
-          <div class="kpi-lbl">Gem. ROAS</div>
+          <div class="kpi-lbl">Gem. ROAS{% if kpi_last_period %} <span style="font-weight:400;opacity:.65;">{{ kpi_last_period }}</span>{% endif %}</div>
           {% endif %}
         </div>
       </div>
@@ -531,10 +531,10 @@
         <div class="kpi-icon" style="background:rgba(202,138,4,.1);"><i class="bi bi-cursor" style="color:#ca8a04;"></i></div>
         <div>
           <div class="kpi-val">{{ last.avg_ctr }}%</div>
-          <div class="kpi-lbl">Gem. CTR</div>
-          {% if prev and prev.avg_ctr %}
+          <div class="kpi-lbl">Gem. CTR{% if kpi_last_period %} <span style="font-weight:400;opacity:.65;">{{ kpi_last_period }}</span>{% endif %}</div>
+          {% if show_kpi_trend and prev and prev.avg_ctr %}
           {% set d = ((last.avg_ctr - prev.avg_ctr) / prev.avg_ctr * 100)|round(1) %}
-          <div class="{{ 'delta-good' if d >= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs vorig</div>
+          <div class="{{ 'delta-good' if d >= 0 else 'delta-bad' }}">{{ '+' if d >= 0 }}{{ d }}% vs {{ kpi_prev_period or 'vorig' }}</div>
           {% endif %}
         </div>
       </div>
