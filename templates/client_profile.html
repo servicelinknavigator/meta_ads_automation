@@ -570,13 +570,13 @@
           <div class="action-card-desc">Spend, CPL en CTR trends per periode — laad de laatste data of upload nieuw</div>
           {% if uploads %}
           <div class="action-card-meta"><i class="bi bi-clock me-1"></i>{{ uploads[0].date_from }} — {{ uploads[0].date_to }}</div>
-          <a href="/clients/{{ client.id }}/go/analyse" class="action-btn-primary">
-            <i class="bi bi-play-fill"></i>Laad analyse
-          </a>
           <button class="action-btn-secondary"
                   onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
             <i class="bi bi-upload"></i>Nieuwe upload
           </button>
+          <a href="/clients/{{ client.id }}/go/analyse" class="action-btn-primary">
+            <i class="bi bi-play-fill"></i>Laad analyse
+          </a>
           {% else %}
           <button class="action-btn-primary"
                   onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
