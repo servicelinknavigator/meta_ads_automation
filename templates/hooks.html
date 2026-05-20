@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿{% set brief_only = request.args.get('mode') == 'brief' %}
+<!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
@@ -406,8 +407,6 @@
       De tool groepeert je advertenties automatisch op hook- en formattype op basis van de advertentienaam. Gebruik de naamconventie <code style="background:rgba(241,245,249,.8);padding:1px 5px;border-radius:3px;">Format - Hook - V# - Omschrijving</code> voor de beste resultaten.
     </div>
   </div>
-
-  {% set brief_only = request.args.get('mode') == 'brief' %}
 
   <!-- ── Hook + Format performance ── -->
   {% if not brief_only %}
