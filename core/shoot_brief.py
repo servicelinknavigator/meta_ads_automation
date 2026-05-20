@@ -23,9 +23,12 @@ from core.hook_analyzer import (
 
 _SHOOT_SYSTEM = (
     _SLN_SYSTEM_JSON + " "
-    "Je schrijft video shoot briefs. Spreektaal, knipmomenten na elke 2-3 zinnen, "
-    "altijd vanuit klantperspectief (ik). Geen marketingclichés. Geen em-dashes. "
-    "Letterlijk te lezen op papier door de studio eigenaar."
+    "Je schrijft video shoot briefs. Spreektaal, knipmomenten na elke 2-3 zinnen. "
+    "Geen marketingclichés. Geen em-dashes. "
+    "Letterlijk te lezen op papier door de ondernemer/eigenaar. "
+    "KRITISCH: scripts 1-10 worden uitgesproken door de EIGENAAR of TRAINER van het bedrijf. "
+    "De 'ik' in het script = de ondernemer die zijn doelgroep aanspreekt. "
+    "NOOIT vanuit het perspectief van een klant/lid — dat is alleen voor Script 11 (testimonial)."
 )
 
 _HOOK_NL: dict[str, str] = {
@@ -161,13 +164,14 @@ def generate_shoot_brief(
         client_block = f"""
 KLANT INFORMATIE:
 Naam: {client_name or 'onbekend'}
-{('Context / ICP:\n' + client_context[:1200]) if client_context else ''}
+{('Context / ICP (doelgroep van de klant):\n' + client_context[:1200]) if client_context else ''}
 
-KRITISCH: Schrijf ALLE teksten vanuit het perspectief van de KLANT ({client_name}).
-De klant adverteert aan hun eigen doelgroep voor hun eigen product/dienst.
-NIET vanuit het perspectief van een marketingbureau.
-Gebruik NOOIT em-dashes (—). Gebruik een punt of komma.
-Spreektaal. Knipmomenten na elke 2-3 zinnen. Letterlijk te lezen op papier.
+SPREKERS ROL: De scripts 1-10 worden uitgesproken door de EIGENAAR of TRAINER van {client_name or 'het bedrijf'}.
+- "Ik" = de ondernemer/eigenaar die zijn potentiele klanten aanspreekt
+- De spreker heeft zijn eigen bedrijf, zijn eigen klanten, zijn eigen aanpak
+- NIET een lid/klant die vertelt over zijn eigen resultaten — dat is uitsluitend voor Script 11
+- Gebruik de ICP-informatie om de doelgroep te kennen, maar de spreker blijft de eigenaar
+Gebruik NOOIT em-dashes (—). Spreektaal. Knipmomenten na elke 2-3 zinnen.
 Noem altijd concrete cijfers of resultaten waar mogelijk.
 """
 
@@ -192,8 +196,8 @@ VEREISTEN PER SCRIPT:
 - 40-55s: CTA die logisch volgt op het verhaal — altijd laagdrempelig
 - VERBODEN: dezelfde zin of concept in meerdere scripts gebruiken — elk script is 100% uniek
 - VERBODEN: generieke merkcopy in 5-20s ("Bij X is het anders", "Persoonlijk en laagdrempelig", "vol te houden") — te vaag
+- VERBODEN: scripts schrijven vanuit het perspectief van een klant/lid — de spreker is ALTIJD de eigenaar/trainer (scripts 1-10)
 - Noem altijd concrete cijfers of ervaringen uit de klantcontext waar mogelijk
-- Vanuit klantperspectief (ik) — nooit marketingbureau-perspectief
 - Knipmomenten na elke 2-3 zinnen (markeer met [KNIP])
 
 HOOK-TYPE SCHRIJFGIDS (de hook bepaalt de structuur van het hele script):
