@@ -608,6 +608,16 @@
                   padding:3px 10px;text-decoration:none;background:rgba(255,92,43,.05);">
           <i class="bi bi-file-earmark-pdf" style="font-size:.8rem;"></i>PDF
         </a>
+        <form method="POST" action="/clients/{{ active_client.id }}/briefs/{{ brief.id }}/delete"
+              onsubmit="return confirm('Shoot brief verwijderen?')" style="margin:0;">
+          <button type="submit"
+                  style="background:none;border:none;padding:4px 7px;border-radius:6px;color:#94a3b8;cursor:pointer;line-height:1;transition:all .15s;"
+                  onmouseover="this.style.background='rgba(254,242,242,.8)';this.style.color='#dc2626'"
+                  onmouseout="this.style.background='none';this.style.color='#94a3b8'"
+                  title="Verwijderen">
+            <i class="bi bi-trash3" style="font-size:.82rem;"></i>
+          </button>
+        </form>
       </div>
     </div>
     {% endfor %}
