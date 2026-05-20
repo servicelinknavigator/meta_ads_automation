@@ -22,7 +22,7 @@ services:
 
 crons:
   - name: daily-meta-sync
-    schedule: "0 6 * * *"
+    schedule: "0 5 * * *"
     envVars:
       - key: CRON_SECRET
         value: "sln-daily-sync-v1"
