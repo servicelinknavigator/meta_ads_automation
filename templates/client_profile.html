@@ -442,24 +442,30 @@
       {% if client.roas_benchmark %} · Benchmark ROAS {{ client.roas_benchmark }}{% endif %}
     </div>
     <div class="hero-stats">
+      {% set ns = namespace(total_spend=0, total_leads=0, cpl_sum=0, cpl_count=0) %}
+      {% for u in uploads %}
+        {% set ns.total_spend = ns.total_spend + (u.total_spend|float if u.total_spend else 0) %}
+        {% set ns.total_leads = ns.total_leads + (u.total_results|int if u.total_results else 0) %}
+        {% if u.avg_cpl %}
+          {% set ns.cpl_sum = ns.cpl_sum + (u.avg_cpl|float) %}
+          {% set ns.cpl_count = ns.cpl_count + 1 %}
+        {% endif %}
+      {% endfor %}
       <div>
-        <div class="hero-stat-val">{{ uploads|length }}</div>
-        <div class="hero-stat-lbl">Uploads</div>
+        <div class="hero-stat-val">{% if ns.cpl_count %}€{{ "%.0f"|format(ns.cpl_sum / ns.cpl_count) }}{% else %}—{% endif %}</div>
+        <div class="hero-stat-lbl">Gem. CPL</div>
       </div>
-      {% if uploads %}
-      {% set latest = uploads[0] %}
       <div>
-        <div class="hero-stat-val">€{{ "%.0f"|format(latest.total_spend) }}</div>
-        <div class="hero-stat-lbl">Laatste spend</div>
+        <div class="hero-stat-val">{% if uploads %}€{{ "%.0f"|format(ns.total_spend) }}{% else %}—{% endif %}</div>
+        <div class="hero-stat-lbl">Totale spend</div>
       </div>
       <div>
-        <div class="hero-stat-val">{{ latest.total_results }}</div>
-        <div class="hero-stat-lbl">Laatste resultaten</div>
+        <div class="hero-stat-val">{% if uploads %}{{ ns.total_leads }}{% else %}—{% endif %}</div>
+        <div class="hero-stat-lbl">Totaal leads</div>
       </div>
-      {% endif %}
       <div>
-        <div class="hero-stat-val">{{ shoot_briefs|length }}</div>
-        <div class="hero-stat-lbl">Shoot briefs</div>
+        <div class="hero-stat-val">{{ uploads[0].num_ads if uploads else '—' }}</div>
+        <div class="hero-stat-lbl">Actieve ads</div>
       </div>
     </div>
   </div>
@@ -546,246 +552,206 @@
   {% endif %}
 
   <!-- ── Action Hub ── -->
-  <div class="action-hub mb-4">
+  <div class="mb-4">
 
-    <!-- Analyse -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(255,92,43,.12);">
-        <i class="bi bi-graph-up" style="color:#ff5c2b;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Analyse</div>
-      <div class="action-card-desc">Ad prestaties, CPL trends en aanbevelingen per campagne</div>
-      {% if uploads %}
-      <div class="action-card-meta"><i class="bi bi-clock me-1"></i>{{ uploads[0].date_from }} — {{ uploads[0].date_to }}</div>
-      <a href="/clients/{{ client.id }}/go/analyse" class="action-btn-primary">
-        <i class="bi bi-play-fill"></i>Laad analyse
-      </a>
-      <button class="action-btn-secondary"
-              onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
-        <i class="bi bi-upload"></i>Nieuwe upload
-      </button>
-      {% else %}
-      <button class="action-btn-primary"
-              onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
-        <i class="bi bi-upload"></i>Upload CSV
-      </button>
-      {% endif %}
+    <!-- Rij 1: Data & analyse -->
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:.6rem;">
+      <i class="bi bi-bar-chart-fill me-1"></i>Data &amp; analyse
     </div>
+    <div class="row g-3 mb-4">
 
-    <!-- Creative Report -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(16,185,129,.12);">
-        <i class="bi bi-trophy" style="color:#059669;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Creative Report</div>
-      <div class="action-card-desc">Winners en losers per advertentie met testkit en verbeterpunten</div>
-      {% if uploads %}
-      <a href="/clients/{{ client.id }}/go/creative" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 3px 10px rgba(16,185,129,.25);">
-        <i class="bi bi-bar-chart-fill"></i>Bekijk rapport
-      </a>
-      {% else %}
-      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
-      {% endif %}
-    </div>
-
-    <!-- Hooks & Brief -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(245,158,11,.12);">
-        <i class="bi bi-lightning-charge-fill" style="color:#d97706;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Hooks & Brief</div>
-      <div class="action-card-desc">Hook ranking, format prestaties en shoot brief genereren</div>
-      {% if uploads %}
-      <a href="/clients/{{ client.id }}/go/hooks" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#d97706,#f59e0b);box-shadow:0 3px 10px rgba(245,158,11,.25);">
-        <i class="bi bi-lightning-fill"></i>Bekijk hooks
-      </a>
-      {% else %}
-      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
-      {% endif %}
-    </div>
-
-    <!-- Scripts (video) -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(6,182,212,.12);">
-        <i class="bi bi-camera-video" style="color:#0891b2;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Scripts</div>
-      <div class="action-card-desc">AI schrijft 2 video scripts op basis van wat werkt voor deze klant</div>
-      <button class="action-btn-primary"
-              style="background:linear-gradient(135deg,#0891b2,#06b6d4);box-shadow:0 3px 10px rgba(6,182,212,.25);"
-              onclick="document.getElementById('scripts-section').scrollIntoView({behavior:'smooth'})">
-        <i class="bi bi-magic"></i>Genereer scripts
-      </button>
-    </div>
-
-    <!-- Static Copy -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(139,92,246,.12);">
-        <i class="bi bi-image" style="color:#7c3aed;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Static Copy</div>
-      <div class="action-card-desc">Upload een static ad — AI genereert 2 copy varianten op basis van klantdata</div>
-      <button class="action-btn-primary"
-              style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 3px 10px rgba(139,92,246,.25);"
-              onclick="document.getElementById('static-section').scrollIntoView({behavior:'smooth'})">
-        <i class="bi bi-magic"></i>Genereer copy
-      </button>
-    </div>
-
-    <!-- Rapporten -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(14,165,233,.12);">
-        <i class="bi bi-file-earmark-pdf" style="color:#0ea5e9;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Rapporten</div>
-      <div class="action-card-desc">Download analyse en creative rapporten als PDF voor de klant</div>
-      {% if uploads %}
-      <a href="/clients/{{ client.id }}/go/export/pdf" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 3px 10px rgba(14,165,233,.25);">
-        <i class="bi bi-download"></i>Analyse PDF
-      </a>
-      <a href="/clients/{{ client.id }}/go/creative" class="action-btn-secondary">
-        <i class="bi bi-printer"></i>Creative rapport
-      </a>
-      {% else %}
-      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
-      {% endif %}
-    </div>
-
-    <!-- Meta Ads koppeling -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(24,119,242,.12);">
-        <i class="bi bi-meta" style="color:#1877f2;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Meta Ads</div>
-      {% if meta_connection %}
-      <div class="action-card-desc">Verbonden · laatste sync {{ meta_connection.last_sync_at.strftime('%d %b %H:%M') if meta_connection.last_sync_at else 'nooit' }}</div>
-      <a href="/client/{{ client.id }}/meta-status" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#1877f2,#42a5f5);box-shadow:0 3px 10px rgba(24,119,242,.25);">
-        <i class="bi bi-arrow-repeat"></i>Beheer sync
-      </a>
-      {% else %}
-      <div class="action-card-desc">Koppel Meta Ads voor automatische datasync zonder CSV-export</div>
-      <a href="/client/{{ client.id }}/connect-meta" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#1877f2,#42a5f5);box-shadow:0 3px 10px rgba(24,119,242,.25);">
-        <i class="bi bi-plug-fill"></i>Koppel Meta Ads
-      </a>
-      {% endif %}
-    </div>
-
-    <!-- Weekplan -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(16,185,129,.1);">
-        <i class="bi bi-calendar-check-fill" style="color:#059669;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Weekplan</div>
-      <div class="action-card-desc">Concreet actieplan: stop dit, schaal dit, maak dit — gebaseerd op data</div>
-      {% if uploads %}
-      <a href="/client/{{ client.id }}/action-plan" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 3px 10px rgba(16,185,129,.25);">
-        <i class="bi bi-lightning-fill"></i>Genereer plan
-      </a>
-      {% else %}
-      <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst data nodig</div>
-      {% endif %}
-    </div>
-
-    <!-- Concurrentie-analyse -->
-    <div class="action-card">
-      <div class="action-card-icon" style="background:rgba(139,92,246,.1);">
-        <i class="bi bi-people-fill" style="color:#7c3aed;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Concurrentie</div>
-      <div class="action-card-desc">Bekijk wat concurrenten adverteren in de Meta Ad Library</div>
-      <a href="/client/{{ client.id }}/competitor-analysis" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);box-shadow:0 3px 10px rgba(139,92,246,.25);">
-        <i class="bi bi-search"></i>Analyseer markt
-      </a>
-    </div>
-
-    <!-- Nieuwe advertentie -->
-    <div class="action-card" style="border-top:2px solid rgba(255,92,43,.2);">
-      <div class="action-card-icon" style="background:rgba(255,92,43,.12);">
-        <i class="bi bi-plus-circle-fill" style="color:#ff5c2b;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Nieuwe advertentie</div>
-      <div class="action-card-desc">Upload SRT of afbeelding — AI genereert naam, hook analyse en copy</div>
-      <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" class="action-btn-primary">
-        <i class="bi bi-plus-lg"></i>+ Nieuwe advertentie
-      </a>
-      <a href="{{ url_for('advertentie_geschiedenis', client_id=client.id) }}" class="action-btn-secondary">
-        <i class="bi bi-collection"></i>Advertentiegeschiedenis
-      </a>
-    </div>
-
-    <!-- Static brief -->
-    <div class="action-card" style="border-top:2px solid rgba(139,92,246,.2);">
-      <div class="action-card-icon" style="background:rgba(139,92,246,.12);">
-        <i class="bi bi-image-fill" style="color:#7c3aed;font-size:1.1rem;"></i>
-      </div>
-      <div class="action-card-title">Static brief</div>
-      <div class="action-card-desc">Productie-instructies voor ChatGPT/Manus op basis van hook-prestaties</div>
-      <a href="{{ url_for('static_brief', client_id=client.id) }}" class="action-btn-primary"
-         style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 3px 10px rgba(139,92,246,.25);">
-        <i class="bi bi-image"></i>Bekijk static brief
-      </a>
-    </div>
-
-  </div>
-
-  <!-- ── Transcript upload ── -->
-  <div class="transcript-drop mb-4" id="transcript-section">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-      <div class="section-title" style="margin-bottom:0;">
-        <i class="bi bi-mic-fill" style="color:#6366f1;"></i>Verkoopgesprek uploaden
-      </div>
-      <button class="action-btn-secondary" style="width:auto;padding:.3rem .8rem;font-size:.72rem;"
-              onclick="document.getElementById('transcriptForm').classList.toggle('d-none')">
-        <i class="bi bi-chevron-down"></i> Uitklappen
-      </button>
-    </div>
-    <p style="font-size:.78rem; color:#64748b; margin-bottom:.75rem;">
-      Plak een verkoopgesprek of intake transcript — AI extraheert klantuitspraken, bezwaren en kant-en-klare hook-openingen.
-    </p>
-    <div id="transcriptForm" class="d-none">
-      <form action="/client/{{ client.id }}/upload-transcript" method="POST" enctype="multipart/form-data">
-        <div class="mb-2">
-          <label class="form-label">Transcript tekst (plakken)</label>
-          <textarea name="transcript_text" class="form-control" rows="6"
-                    placeholder="Plak hier het volledige transcript van het gesprek..."></textarea>
+      <!-- Campagne prestaties -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(255,92,43,.12);">
+            <i class="bi bi-graph-up" style="color:#ff5c2b;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Campagne prestaties</div>
+          <div class="action-card-desc">Spend, CPL en CTR trends per periode — laad de laatste data of upload nieuw</div>
+          {% if uploads %}
+          <div class="action-card-meta"><i class="bi bi-clock me-1"></i>{{ uploads[0].date_from }} — {{ uploads[0].date_to }}</div>
+          <a href="/clients/{{ client.id }}/go/analyse" class="action-btn-primary">
+            <i class="bi bi-play-fill"></i>Laad analyse
+          </a>
+          <button class="action-btn-secondary"
+                  onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
+            <i class="bi bi-upload"></i>Nieuwe upload
+          </button>
+          {% else %}
+          <button class="action-btn-primary"
+                  onclick="document.getElementById('inlineUpload').classList.remove('d-none');document.getElementById('inlineUpload').scrollIntoView({behavior:'smooth'})">
+            <i class="bi bi-upload"></i>Upload CSV
+          </button>
+          {% endif %}
         </div>
-        <div class="mb-3" style="font-size:.75rem; color:#94a3b8; text-align:center;">— of —</div>
-        <div class="mb-3">
-          <label class="form-label">Upload als .txt bestand</label>
-          <input type="file" name="transcript_file" class="form-control" accept=".txt,.md">
-        </div>
-        <button type="submit" class="btn-save">
-          <i class="bi bi-magic me-1"></i>Analyseer transcript
-        </button>
-      </form>
+      </div>
 
-      {% if transcripts %}
-      <hr style="border-color:rgba(0,0,0,.08); margin:1rem 0;">
-      <div style="font-size:.78rem; font-weight:700; color:#64748b; margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.06em;">
-        Eerder geüploade transcripts
-      </div>
-      {% for t in transcripts %}
-      <div style="background:rgba(255,255,255,.5); border-radius:8px; padding:.6rem .85rem; margin-bottom:.5rem; font-size:.8rem;">
-        <div style="font-weight:600; color:#0f172a; margin-bottom:.2rem;">
-          {{ t.created_at.strftime('%d %b %Y %H:%M') if t.created_at else '—' }}
+      <!-- Winnende & verliezende ads -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(16,185,129,.12);">
+            <i class="bi bi-trophy" style="color:#059669;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Winnende &amp; verliezende ads</div>
+          <div class="action-card-desc">Welke advertenties werken, welke niet en waarom — met concrete verbeterpunten</div>
+          {% if uploads %}
+          <a href="/clients/{{ client.id }}/go/creative" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 3px 10px rgba(16,185,129,.25);">
+            <i class="bi bi-bar-chart-fill"></i>Bekijk rapport
+          </a>
+          {% else %}
+          <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
+          {% endif %}
         </div>
-        {% if t.extracted_hooks %}
-        <div style="color:#6366f1;"><strong>Hooks:</strong> {{ t.extracted_hooks[:150] }}{% if t.extracted_hooks|length > 150 %}…{% endif %}</div>
-        {% endif %}
-        {% if t.extracted_objections %}
-        <div style="color:#64748b;"><strong>Bezwaren:</strong> {{ t.extracted_objections[:120] }}{% if t.extracted_objections|length > 120 %}…{% endif %}</div>
-        {% endif %}
       </div>
-      {% endfor %}
-      {% endif %}
+
+      <!-- Hook ranking -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(245,158,11,.12);">
+            <i class="bi bi-lightning-charge-fill" style="color:#d97706;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Hook ranking</div>
+          <div class="action-card-desc">Welke hooks leveren de goedkoopste leads voor deze klant</div>
+          {% if uploads %}
+          <a href="/clients/{{ client.id }}/go/hooks" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#d97706,#f59e0b);box-shadow:0 3px 10px rgba(245,158,11,.25);">
+            <i class="bi bi-lightning-fill"></i>Bekijk hooks
+          </a>
+          {% else %}
+          <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /rij 1 -->
+
+    <!-- Rij 2: Productie -->
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:.6rem;">
+      <i class="bi bi-film me-1"></i>Productie
     </div>
+    <div class="row g-3 mb-4">
+
+      <!-- Shoot voorbereiden -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(6,182,212,.12);">
+            <i class="bi bi-camera-video-fill" style="color:#0891b2;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Shoot voorbereiden</div>
+          <div class="action-card-desc">16 kant-en-klare scripts voor je volgende opname — gebaseerd op wat werkt</div>
+          {% if uploads %}
+          <a href="/clients/{{ client.id }}/go/hooks" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#0891b2,#06b6d4);box-shadow:0 3px 10px rgba(6,182,212,.25);">
+            <i class="bi bi-magic"></i>Genereer shoot brief
+          </a>
+          {% else %}
+          <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst CSV uploaden</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Nieuwe advertentie -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100" style="border-top:2px solid rgba(255,92,43,.2);">
+          <div class="action-card-icon" style="background:rgba(255,92,43,.12);">
+            <i class="bi bi-plus-circle-fill" style="color:#ff5c2b;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Nieuwe advertentie</div>
+          <div class="action-card-desc">Upload SRT of static — AI genereert naam, copy en headlines</div>
+          <a href="{{ url_for('nieuwe_advertentie_get', client_id=client.id) }}" class="action-btn-primary">
+            <i class="bi bi-plus-lg"></i>+ Nieuwe advertentie
+          </a>
+          <a href="{{ url_for('advertentie_geschiedenis', client_id=client.id) }}" class="action-btn-secondary">
+            <i class="bi bi-collection"></i>Advertentiegeschiedenis
+          </a>
+        </div>
+      </div>
+
+      <!-- Static maken -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100" style="border-top:2px solid rgba(139,92,246,.2);">
+          <div class="action-card-icon" style="background:rgba(139,92,246,.12);">
+            <i class="bi bi-image-fill" style="color:#7c3aed;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Static maken</div>
+          <div class="action-card-desc">Aanbevelingen voor ChatGPT of Manus op basis van winnende hooks</div>
+          <a href="{{ url_for('static_brief', client_id=client.id) }}" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 3px 10px rgba(139,92,246,.25);">
+            <i class="bi bi-image"></i>Maak static brief
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /rij 2 -->
+
+    <!-- Rij 3: Optimalisatie -->
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:.6rem;">
+      <i class="bi bi-sliders me-1"></i>Optimalisatie
+    </div>
+    <div class="row g-3 mb-1">
+
+      <!-- Weekplan -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(16,185,129,.1);">
+            <i class="bi bi-calendar-check-fill" style="color:#059669;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Weekplan</div>
+          <div class="action-card-desc">Stop dit, schaal dit, maak dit — concrete acties voor deze week gebaseerd op data</div>
+          {% if uploads %}
+          <a href="/client/{{ client.id }}/action-plan" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 3px 10px rgba(16,185,129,.25);">
+            <i class="bi bi-lightning-fill"></i>Genereer plan
+          </a>
+          {% else %}
+          <div class="action-btn-disabled"><i class="bi bi-lock me-1"></i>Eerst data nodig</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Concurrentie -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(139,92,246,.1);">
+            <i class="bi bi-people-fill" style="color:#7c3aed;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Concurrentie</div>
+          <div class="action-card-desc">Wat draaien anderen in jouw branche in de Meta Ad Library</div>
+          <a href="/client/{{ client.id }}/competitor-analysis" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);box-shadow:0 3px 10px rgba(139,92,246,.25);">
+            <i class="bi bi-search"></i>Analyseer markt
+          </a>
+        </div>
+      </div>
+
+      <!-- Meta koppeling -->
+      <div class="col-12 col-md-4">
+        <div class="action-card h-100">
+          <div class="action-card-icon" style="background:rgba(24,119,242,.12);">
+            <i class="bi bi-meta" style="color:#1877f2;font-size:1.1rem;"></i>
+          </div>
+          <div class="action-card-title">Meta koppeling</div>
+          {% if meta_connection %}
+          <div class="action-card-desc">Automatische datasync — verbindingsstatus en laatste sync tijdstip<br>
+            <small style="color:#059669;font-weight:600;">Verbonden · laatste sync {{ meta_connection.last_sync_at.strftime('%d %b %H:%M') if meta_connection.last_sync_at else 'nooit' }}</small>
+          </div>
+          <a href="/client/{{ client.id }}/meta-status" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#1877f2,#42a5f5);box-shadow:0 3px 10px rgba(24,119,242,.25);">
+            <i class="bi bi-arrow-repeat"></i>Beheer sync
+          </a>
+          {% else %}
+          <div class="action-card-desc">Automatische datasync — verbindingsstatus en laatste sync tijdstip</div>
+          <a href="/client/{{ client.id }}/connect-meta" class="action-btn-primary"
+             style="background:linear-gradient(135deg,#1877f2,#42a5f5);box-shadow:0 3px 10px rgba(24,119,242,.25);">
+            <i class="bi bi-plug-fill"></i>Koppel Meta Ads
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /rij 3 -->
+
   </div>
 
   <div class="row g-4">
@@ -979,88 +945,6 @@
         </table>
       </div>
       {% endif %}
-
-      <!-- Script Generator -->
-      <div id="scripts-section" class="section-title"><i class="bi bi-camera-video" style="color:#0891b2;"></i>Script generator (video)</div>
-      <div class="card-sln mb-4">
-        <div style="padding:1rem;">
-          <div style="font-size:.8rem;color:#64748b;margin-bottom:.85rem;line-height:1.5;">
-            AI analyseert welke hooks en schrijfstijlen werken voor <strong>{{ client.name }}</strong> en genereert 2 kant-en-klare video scripts.
-          </div>
-          <button id="sg-generate-btn"
-                  style="background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border:none;
-                         border-radius:9px;padding:.5rem 1.25rem;font-weight:700;font-size:.82rem;
-                         cursor:pointer;display:flex;align-items:center;gap:.4rem;box-shadow:0 3px 10px rgba(6,182,212,.25);"
-                  onclick="sgGenerate()">
-            <i class="bi bi-magic"></i>Genereer 2 script aanbevelingen
-          </button>
-          <div id="sg-loading" style="display:none;text-align:center;padding:1.4rem 0;">
-            <div style="display:inline-block;width:22px;height:22px;border:3px solid rgba(6,182,212,.2);
-                        border-top-color:#0891b2;border-radius:50%;animation:spin .7s linear infinite;"></div>
-            <div style="font-size:.78rem;color:#64748b;margin-top:.5rem;">AI analyseert klantdata van {{ client.name }}...</div>
-          </div>
-          <div id="sg-result" style="display:none;margin-top:1rem;"></div>
-        </div>
-      </div>
-
-      <!-- Static Image Analyser -->
-      <div id="static-section" class="section-title"><i class="bi bi-image" style="color:#8b5cf6;"></i>Static copy generator</div>
-      <div class="card-sln mb-4" id="static-analyzer-card">
-        <div style="padding:1rem;">
-          <div style="font-size:.8rem;color:#64748b;margin-bottom:.85rem;line-height:1.5;">
-            Upload een static ad — de AI analyseert de copy-patronen van <strong>{{ client.name }}</strong> en genereert 2 op maat gemaakte varianten.
-          </div>
-
-          <!-- Drop zone -->
-          <div id="cp-static-drop"
-               style="border:2px dashed rgba(139,92,246,.35);border-radius:12px;padding:1.4rem;
-                      text-align:center;cursor:pointer;transition:all .2s;background:rgba(139,92,246,.04);"
-               ondragover="event.preventDefault();this.style.borderColor='#8b5cf6';this.style.background='rgba(139,92,246,.1)'"
-               ondragleave="this.style.borderColor='rgba(139,92,246,.35)';this.style.background='rgba(139,92,246,.04)'"
-               ondrop="cpHandleDrop(event)"
-               onclick="document.getElementById('cp-static-input').click()">
-            <input type="file" id="cp-static-input" accept="image/jpeg,image/png,image/webp,image/gif"
-                   style="display:none" onchange="cpHandleFile(this.files[0])">
-            <i class="bi bi-image" style="font-size:1.6rem;color:rgba(139,92,246,.5);display:block;margin-bottom:.4rem;"></i>
-            <div style="font-size:.8rem;color:#64748b;">Sleep een static of <span style="color:#8b5cf6;font-weight:600;">klik om te uploaden</span></div>
-            <div style="font-size:.72rem;color:#94a3b8;margin-top:.2rem;">JPEG, PNG, WebP · max 5MB</div>
-          </div>
-
-          <!-- Preview area -->
-          <div id="cp-static-preview-area" style="display:none;margin-top:.85rem;">
-            <div style="display:flex;align-items:center;gap:.75rem;">
-              <img id="cp-static-preview-img" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,.08);">
-              <div style="flex:1;min-width:0;">
-                <div id="cp-static-preview-name" style="font-weight:600;font-size:.82rem;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                <div id="cp-static-preview-size" style="font-size:.72rem;color:#64748b;"></div>
-              </div>
-            </div>
-            <div style="display:flex;gap:.5rem;margin-top:.75rem;">
-              <button id="cp-static-analyze-btn"
-                      style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;
-                             border-radius:8px;padding:.42rem 1.1rem;font-weight:600;font-size:.8rem;cursor:pointer;flex:1;"
-                      onclick="cpAnalyzeStatic()">
-                <i class="bi bi-magic me-1"></i>Genereer 2 copy-varianten
-              </button>
-              <button style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
-                             border-radius:8px;padding:.42rem .8rem;font-size:.8rem;cursor:pointer;"
-                      onclick="cpResetStatic()">
-                <i class="bi bi-x"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Loading -->
-          <div id="cp-static-loading" style="display:none;text-align:center;padding:1.2rem 0;">
-            <div style="display:inline-block;width:22px;height:22px;border:3px solid rgba(139,92,246,.2);
-                        border-top-color:#8b5cf6;border-radius:50%;animation:spin .7s linear infinite;"></div>
-            <div style="font-size:.78rem;color:#64748b;margin-top:.5rem;">AI analyseert copy-patronen van {{ client.name }}...</div>
-          </div>
-
-          <!-- Result -->
-          <div id="cp-static-result" style="display:none;margin-top:.85rem;"></div>
-        </div>
-      </div>
 
       <!-- Creative content shortcut -->
       <div class="section-title"><i class="bi bi-collection" style="color:#6366f1;"></i>Creative content</div>
@@ -1289,221 +1173,7 @@ function toggleScriptMini(id) {
     : '<i class="bi bi-mic me-1"></i>script bekijken';
 }
 
-/* ── Script generator ── */
-async function sgGenerate() {
-  document.getElementById('sg-generate-btn').style.display = 'none';
-  document.getElementById('sg-loading').style.display = 'block';
-  document.getElementById('sg-result').style.display = 'none';
-  try {
-    const resp = await fetch('/clients/{{ client.id }}/generate-scripts', { method: 'POST' });
-    const data = await resp.json();
-    document.getElementById('sg-loading').style.display = 'none';
-    if (data.error) { sgShowError(data.error); return; }
-    sgShowResult(data);
-  } catch(err) {
-    document.getElementById('sg-loading').style.display = 'none';
-    sgShowError('Er ging iets mis. Probeer het opnieuw.');
-  }
-}
-function sgReset() {
-  document.getElementById('sg-generate-btn').style.display = 'flex';
-  document.getElementById('sg-result').style.display = 'none';
-  document.getElementById('sg-result').innerHTML = '';
-}
-function sgRenderScript(s, variant, color, bgColor, borderColor) {
-  if (!s) return '';
-  const hookLabel = (s.hook_type || '').replace(/_/g, ' ');
-  const lines = (s.script || []).map(l =>
-    `<div style="display:flex;gap:.6rem;padding:.4rem 0;border-bottom:1px solid rgba(0,0,0,.05);">
-      <span style="flex-shrink:0;font-size:.62rem;font-weight:700;color:#0284c7;
-                   background:rgba(224,242,254,.8);padding:2px 6px;border-radius:4px;
-                   white-space:nowrap;margin-top:1px;height:fit-content;">${l.time}</span>
-      <span style="font-size:.79rem;color:#374151;font-style:italic;line-height:1.5;">"${l.tekst}"</span>
-    </div>`
-  ).join('');
-  return `
-    <div style="background:${bgColor};border:1px solid ${borderColor};border-radius:10px;padding:.85rem;margin-bottom:.85rem;">
-      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:${color};margin-bottom:.3rem;">
-        <i class="bi bi-${variant === 1 ? 'check-circle' : 'flask'} me-1"></i>
-        Script ${variant} — ${variant === 1 ? 'bewezen aanpak' : 'testoptie'}
-      </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem;align-items:center;">
-        <span style="font-size:.82rem;font-weight:700;color:#0f172a;">${s.naam_suggestie || ''}</span>
-        <span style="font-size:.68rem;padding:2px 8px;border-radius:12px;background:rgba(139,92,246,.1);color:#7c3aed;font-weight:600;">${hookLabel}</span>
-        <span style="font-size:.68rem;padding:2px 8px;border-radius:12px;background:rgba(0,0,0,.06);color:#64748b;font-weight:600;">${s.format || ''}</span>
-      </div>
-      ${s.aanpak ? `<div style="font-size:.71rem;color:#6b7280;font-style:italic;margin-bottom:.6rem;">${s.aanpak}</div>` : ''}
-      <div>${lines}</div>
-    </div>`;
-}
-function sgShowResult(d) {
-  const el = document.getElementById('sg-result');
-  el.innerHTML = `
-    ${d.diagnose ? `
-    <div style="background:rgba(14,165,233,.07);border:1px solid rgba(14,165,233,.2);
-                border-radius:9px;padding:.65rem .85rem;margin-bottom:.9rem;
-                font-size:.79rem;color:#0c4a6e;line-height:1.55;">
-      <strong style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:.25rem;color:#0891b2;">
-        <i class="bi bi-bar-chart me-1"></i>Wat de data zegt
-      </strong>
-      ${d.diagnose}
-    </div>` : ''}
-    ${sgRenderScript(d.script_1, 1, '#059669', 'rgba(236,253,245,.8)', 'rgba(167,243,208,.6)')}
-    ${sgRenderScript(d.script_2, 2, '#7c3aed', 'rgba(245,243,255,.8)', 'rgba(196,181,253,.6)')}
-    <div style="padding-top:.5rem;border-top:1px solid rgba(0,0,0,.06);">
-      <button onclick="sgReset()"
-              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
-                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;width:100%;justify-content:center;">
-        <i class="bi bi-arrow-repeat me-1"></i>Opnieuw genereren
-      </button>
-    </div>`;
-  el.style.display = 'block';
-}
-function sgShowError(msg) {
-  const el = document.getElementById('sg-result');
-  el.innerHTML = `
-    <div style="background:rgba(254,242,242,.9);border:1px solid rgba(254,202,202,.8);
-                border-radius:8px;padding:.65rem .85rem;font-size:.8rem;color:#dc2626;">
-      <i class="bi bi-exclamation-triangle me-1"></i>${msg}
-    </div>
-    <div style="margin-top:.6rem;">
-      <button onclick="sgReset()"
-              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
-                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;">
-        Opnieuw proberen
-      </button>
-    </div>`;
-  el.style.display = 'block';
-  document.getElementById('sg-generate-btn').style.display = 'flex';
-}
 
-/* ── Static analyzer (client profile) ── */
-let _cpFile = null;
-function cpHandleDrop(e) {
-  e.preventDefault();
-  document.getElementById('cp-static-drop').style.borderColor = 'rgba(139,92,246,.35)';
-  document.getElementById('cp-static-drop').style.background = 'rgba(139,92,246,.04)';
-  const file = e.dataTransfer.files[0];
-  if (file) cpHandleFile(file);
-}
-function cpHandleFile(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  _cpFile = file;
-  const reader = new FileReader();
-  reader.onload = ev => { document.getElementById('cp-static-preview-img').src = ev.target.result; };
-  reader.readAsDataURL(file);
-  document.getElementById('cp-static-preview-name').textContent = file.name;
-  document.getElementById('cp-static-preview-size').textContent = (file.size / 1024).toFixed(0) + ' KB';
-  document.getElementById('cp-static-drop').style.display = 'none';
-  document.getElementById('cp-static-preview-area').style.display = 'block';
-  document.getElementById('cp-static-result').style.display = 'none';
-  document.getElementById('cp-static-result').innerHTML = '';
-}
-function cpResetStatic() {
-  _cpFile = null;
-  document.getElementById('cp-static-drop').style.display = 'block';
-  document.getElementById('cp-static-preview-area').style.display = 'none';
-  document.getElementById('cp-static-result').style.display = 'none';
-  document.getElementById('cp-static-result').innerHTML = '';
-  document.getElementById('cp-static-loading').style.display = 'none';
-  document.getElementById('cp-static-input').value = '';
-}
-async function cpAnalyzeStatic() {
-  if (!_cpFile) return;
-  document.getElementById('cp-static-preview-area').style.display = 'none';
-  document.getElementById('cp-static-loading').style.display = 'block';
-  document.getElementById('cp-static-result').style.display = 'none';
-  const fd = new FormData();
-  fd.append('image', _cpFile);
-  try {
-    const resp = await fetch('/clients/{{ client.id }}/analyze-static', { method: 'POST', body: fd });
-    const data = await resp.json();
-    document.getElementById('cp-static-loading').style.display = 'none';
-    if (data.error) { cpShowError(data.error); return; }
-    cpShowResult(data);
-  } catch(err) {
-    document.getElementById('cp-static-loading').style.display = 'none';
-    cpShowError('Er ging iets mis. Probeer het opnieuw.');
-  }
-}
-function cpShowResult(d) {
-  const hookLabel = (d.hook_type || 'onbekend').replace(/_/g, ' ');
-  const el = document.getElementById('cp-static-result');
-  el.innerHTML = `
-    <!-- hook badge -->
-    <div style="margin-bottom:.75rem;">
-      <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;
-                   background:rgba(139,92,246,.12);color:#7c3aed;border:1px solid rgba(139,92,246,.2);">
-        ${hookLabel}
-      </span>
-    </div>
-
-    ${d.visual_samenvatting ? `
-    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.25rem;">Wat communiceert dit beeld</div>
-    <div style="font-size:.8rem;color:#374151;line-height:1.5;margin-bottom:.9rem;font-style:italic;">${d.visual_samenvatting}</div>
-    ` : ''}
-
-    ${d.headline ? `
-    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:.25rem;"><i class="bi bi-type-bold me-1"></i>Headline</div>
-    <div style="font-size:.92rem;font-weight:700;color:#0f172a;margin-bottom:.9rem;line-height:1.35;">${d.headline}</div>
-    ` : ''}
-
-    ${d.copy_1 ? `
-    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:.25rem;">
-      <i class="bi bi-check-circle me-1"></i>Variant 1 — bewezen aanpak
-    </div>
-    ${d.copy_1_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.35rem;">${d.copy_1_aanpak}</div>` : ''}
-    <div style="font-size:.8rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
-                background:rgba(236,253,245,.8);border-radius:8px;padding:.6rem .75rem;
-                border:1px solid rgba(167,243,208,.6);">${d.copy_1}</div>
-    ` : ''}
-
-    ${d.copy_2 ? `
-    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:.25rem;">
-      <i class="bi bi-flask me-1"></i>Variant 2 — testoptie
-    </div>
-    ${d.copy_2_aanpak ? `<div style="font-size:.7rem;color:#6b7280;font-style:italic;margin-bottom:.35rem;">${d.copy_2_aanpak}</div>` : ''}
-    <div style="font-size:.8rem;color:#374151;line-height:1.6;margin-bottom:.9rem;
-                background:rgba(245,243,255,.8);border-radius:8px;padding:.6rem .75rem;
-                border:1px solid rgba(196,181,253,.6);">${d.copy_2}</div>
-    ` : ''}
-
-    ${d.verbeterpunt ? `
-    <div style="background:rgba(255,251,235,.9);border:1px solid rgba(253,230,138,.7);
-                border-radius:8px;padding:.55rem .75rem;font-size:.78rem;color:#92400e;line-height:1.5;margin-bottom:.75rem;">
-      <strong style="font-size:.67rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;">
-        <i class="bi bi-lightbulb me-1"></i>Verbeterpunt
-      </strong>
-      ${d.verbeterpunt}
-    </div>
-    ` : ''}
-
-    <div style="padding-top:.5rem;border-top:1px solid rgba(0,0,0,.06);">
-      <button onclick="cpResetStatic()"
-              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
-                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;width:100%;justify-content:center;">
-        <i class="bi bi-arrow-repeat me-1"></i>Nieuwe afbeelding
-      </button>
-    </div>`;
-  el.style.display = 'block';
-}
-function cpShowError(msg) {
-  const el = document.getElementById('cp-static-result');
-  el.innerHTML = `
-    <div style="background:rgba(254,242,242,.9);border:1px solid rgba(254,202,202,.8);
-                border-radius:8px;padding:.65rem .85rem;font-size:.8rem;color:#dc2626;">
-      <i class="bi bi-exclamation-triangle me-1"></i>${msg}
-    </div>
-    <div style="margin-top:.6rem;">
-      <button onclick="cpResetStatic()"
-              style="background:rgba(241,245,249,.8);color:#64748b;border:1px solid rgba(0,0,0,.08);
-                     border-radius:8px;padding:.35rem .85rem;font-size:.75rem;cursor:pointer;">
-        Opnieuw proberen
-      </button>
-    </div>`;
-  el.style.display = 'block';
-  document.getElementById('cp-static-preview-area').style.display = 'block';
-}
 </script>
 </body>
 </html>
