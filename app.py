@@ -1491,11 +1491,9 @@ def generate_shoot_brief_async(client_id):
     )
 
     upload_id = session.get("upload_id")
-    last_saved_id = session.get("last_brief_upload_id")
-    if db.is_available() and upload_id and upload_id != last_saved_id:
+    if db.is_available():
         try:
             db.save_shoot_brief(client_id, upload_id, shoot_brief)
-            session["last_brief_upload_id"] = upload_id
         except Exception as e:
             logger.warning("Shoot brief save failed: %s", e)
 
