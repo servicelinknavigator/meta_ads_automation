@@ -924,6 +924,25 @@ def upload_delete(client_id, upload_id):
     return redirect(url_for("client_profile", client_id=client_id))
 
 
+@app.route("/clients/<int:client_id>/briefs/<int:brief_id>/pdf", methods=["GET"])
+@login_required
+def brief_pdf(client_id, brief_id):
+    client = db.get_client(client_id) if db.is_available() else None
+    briefs = db.get_shoot_briefs(client_id, limit=50) if db.is_available() else []
+    brief = next((b for b in briefs if b["id"] == brief_id), None)
+    if not brief:
+        flash("Shoot brief niet gevonden.", "warning")
+        return redirect(url_for("client_profile", client_id=client_id))
+    pdf_bytes = generate_shoot_brief_pdf(brief["brief_json"], client_name=client.get("name", "") if client else "")
+    safe_name = (client.get("name") or "shoot_brief").replace(" ", "_").lower() if client else "shoot_brief"
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"shoot_brief_{safe_name}_{brief['created_at'].strftime('%Y%m%d')}.pdf",
+    )
+
+
 @app.route("/clients/<int:client_id>/briefs/<int:brief_id>/delete", methods=["POST"])
 @login_required
 def brief_delete(client_id, brief_id):

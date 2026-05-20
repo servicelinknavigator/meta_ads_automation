@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
@@ -828,168 +828,6 @@
         </form>
       </div>
 
-      {% if uploads|length >= 2 %}
-      <form id="mergeForm" method="POST" action="/clients/{{ client.id }}/merge">
-        <div class="merge-bar" id="mergeBar" style="display:none;">
-          <span class="merge-bar-text"><i class="bi bi-layers me-2"></i><span id="mergeCount">0</span> uploads geselecteerd</span>
-          <button type="submit" class="btn-merge"><i class="bi bi-graph-up-arrow me-1"></i>Samenvoegen &amp; analyseren</button>
-        </div>
-      {% endif %}
-
-      <div class="card-sln mb-4">
-        {% if uploads %}
-        <table class="upload-table">
-          <thead>
-            <tr>
-              {% if uploads|length >= 2 %}<th style="width:36px;"></th>{% endif %}
-              <th>Periode</th>
-              <th class="text-end">Spend</th>
-              <th class="text-end">Resultaten</th>
-              <th class="text-end">{% if client.campaign_type != 'purchases' %}CPL{% else %}ROAS{% endif %}</th>
-              <th class="text-end">CTR</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for u in uploads %}
-            <tr onclick="loadUpload({{ u.id }})" style="cursor:pointer;">
-              {% if uploads|length >= 2 %}
-              <td onclick="event.stopPropagation();" style="padding:.4rem .5rem;">
-                <input type="checkbox" name="upload_ids" value="{{ u.id }}"
-                       class="merge-cb form-check-input" style="cursor:pointer;"
-                       onclick="event.stopPropagation();"
-                       onchange="updateMergeBar()">
-              </td>
-              {% endif %}
-              <td>
-                <div style="font-weight:600;font-size:.8rem;">
-                  {% if u.date_from %}{{ u.date_from }} – {{ u.date_to }}{% else %}{{ u.uploaded_at.strftime('%d %b %Y') }}{% endif %}
-                </div>
-                <div style="font-size:.7rem;color:#64748b;">{{ u.num_ads }} ads · {{ u.filename }}</div>
-              </td>
-              <td class="text-end" style="font-weight:600;">€{{ "%.0f"|format(u.total_spend) }}</td>
-              <td class="text-end">{{ u.total_results }}</td>
-              <td class="text-end">
-                {% if client.campaign_type != 'purchases' %}
-                  {% if u.avg_cpl %}
-                  <span style="color:{% if client.cpl_benchmark and u.avg_cpl <= client.cpl_benchmark %}#059669{% elif client.cpl_benchmark and u.avg_cpl > client.cpl_benchmark * 1.3 %}#dc2626{% else %}#0f172a{% endif %};font-weight:600;">€{{ u.avg_cpl }}</span>
-                  {% else %}—{% endif %}
-                {% else %}
-                  {{ u.avg_roas or '—' }}
-                {% endif %}
-              </td>
-              <td class="text-end" style="color:#64748b;">{{ u.avg_ctr }}%</td>
-              <td class="text-end" style="white-space:nowrap;">
-                <a href="/clients/{{ client.id }}/load/{{ u.id }}" class="btn-load" onclick="event.stopPropagation();">
-                  <i class="bi bi-play-fill me-1"></i>Laad
-                </a>
-                <button type="button"
-                        onclick="event.stopPropagation(); deleteUpload('/clients/{{ client.id }}/uploads/{{ u.id }}/delete')"
-                        style="background:none;border:none;color:#94a3b8;padding:3px 6px;cursor:pointer;font-size:.85rem;" title="Verwijderen">
-                  <i class="bi bi-trash3"></i>
-                </button>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div class="empty-note">
-          <i class="bi bi-upload" style="font-size:1.5rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
-          Nog geen uploads — gebruik het formulier hierboven.
-        </div>
-        {% endif %}
-      </div>
-
-      {% if uploads|length >= 2 %}
-      </form>
-      {% endif %}
-
-      <!-- Hook performance -->
-      {% if hook_perf %}
-      <div class="section-title"><i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i>Hook prestaties (alle uploads)</div>
-      <div class="card-sln mb-4">
-        <table class="hook-table">
-          <thead>
-            <tr>
-              <th>Hook type</th>
-              <th class="text-end">Uploads</th>
-              <th class="text-end">Ads</th>
-              <th class="text-end">Spend</th>
-              <th class="text-end">Resultaten</th>
-              <th class="text-end">Overall CPL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% set bench = (client.cpl_benchmark or 50)|float %}
-            {% for row in hook_perf %}
-            {% set cpl = row.overall_cpl|float if row.overall_cpl else 0 %}
-            <tr>
-              <td>
-                <span class="hook-pill" style="background:{% if cpl and cpl <= bench %}rgba(16,185,129,.15);color:#059669{% else %}rgba(100,116,139,.1);color:#64748b{% endif %};">
-                  {{ row.hook_type.replace('_',' ').title() }}
-                </span>
-              </td>
-              <td class="text-end" style="color:#64748b;">{{ row.upload_count }}</td>
-              <td class="text-end" style="color:#64748b;">{{ row.total_ads }}</td>
-              <td class="text-end" style="font-weight:600;">€{{ "%.0f"|format(row.total_spend|float) }}</td>
-              <td class="text-end">{{ row.total_results or 0 }}</td>
-              <td class="text-end">
-                {% if cpl %}
-                <strong style="color:{% if cpl <= bench %}#059669{% elif cpl <= bench * 1.5 %}#d97706{% else %}#dc2626{% endif %};">€{{ row.overall_cpl }}</strong>
-                {% else %}<span style="color:#64748b;">—</span>{% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      <!-- Creative content shortcut -->
-      <div class="section-title"><i class="bi bi-collection" style="color:#6366f1;"></i>Creative content</div>
-      <div class="card-sln mb-4">
-        <div style="padding:1rem;">
-          <div style="font-size:.82rem;color:#64748b;margin-bottom:.85rem;">
-            Scripts, headlines en ad copy's opgeslagen per advertentie.
-            Wordt automatisch meegestuurd als context naar de AI bij analyse en shoot briefs.
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ url_for('import_creatives_page', client_id=client.id) }}"
-               style="display:inline-flex;align-items:center;gap:.4rem;
-                      background:linear-gradient(135deg,rgba(6,13,26,.8),rgba(26,42,76,.75));
-                      color:#fff;padding:.45rem 1rem;border-radius:9px;font-size:.8rem;font-weight:600;
-                      text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.2);">
-              <i class="bi bi-upload"></i> Importeer / bekijk content
-            </a>
-            <a href="{{ url_for('template_videos') }}"
-               style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(219,234,254,.8);color:#1d4ed8;
-                      border:1px solid rgba(191,219,254,.8);padding:.45rem .85rem;border-radius:9px;
-                      font-size:.78rem;font-weight:600;text-decoration:none;">
-              <i class="bi bi-file-earmark-excel"></i> Video template
-            </a>
-            <a href="{{ url_for('template_statics') }}"
-               style="display:inline-flex;align-items:center;gap:.4rem;background:rgba(187,247,208,.7);color:#166534;
-                      border:1px solid rgba(187,247,208,.8);padding:.45rem .85rem;border-radius:9px;
-                      font-size:.78rem;font-weight:600;text-decoration:none;">
-              <i class="bi bi-file-earmark-excel"></i> Statics template
-            </a>
-          </div>
-          {% if pending_count %}
-          <div class="pending-box mt-3">
-            <div style="font-size:.78rem;font-weight:700;color:#c2410c;">
-              <i class="bi bi-exclamation-circle me-1"></i>
-              {{ pending_count }} ad(s) wachten op content
-            </div>
-            <a href="{{ url_for('new_ads_content', client_id=client.id) }}"
-               style="font-size:.75rem;color:#ea580c;font-weight:600;text-decoration:underline;">
-              Nu invullen →
-            </a>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-
       <!-- Shoot brief history -->
       <div class="section-title"><i class="bi bi-camera-fill" style="color:#ff5c2b;"></i>Shoot brief history</div>
       {% if shoot_briefs %}
@@ -1004,6 +842,15 @@
               </div>
             </div>
             <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
+              <a href="/clients/{{ client.id }}/briefs/{{ brief.id }}/pdf"
+                 style="display:inline-flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;
+                        color:#ff5c2b;border:1px solid rgba(255,92,43,.25);border-radius:7px;
+                        padding:3px 9px;text-decoration:none;background:rgba(255,92,43,.05);transition:all .15s;"
+                 onmouseover="this.style.background='rgba(255,92,43,.12)'"
+                 onmouseout="this.style.background='rgba(255,92,43,.05)'"
+                 title="Download als PDF">
+                <i class="bi bi-file-earmark-pdf" style="font-size:.8rem;"></i>PDF
+              </a>
               <form method="POST" action="/clients/{{ client.id }}/briefs/{{ brief.id }}/delete"
                     onsubmit="return confirm('Shoot brief verwijderen?')">
                 <button type="submit" style="background:none;border:none;padding:4px 6px;border-radius:6px;color:#94a3b8;cursor:pointer;line-height:1;transition:all .15s;"
