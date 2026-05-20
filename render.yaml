@@ -16,13 +16,16 @@ services:
       - key: META_AD_LIBRARY_TOKEN
         sync: false
       - key: CRON_SECRET
-        generateValue: true
+        value: "sln-daily-sync-v1"
       - key: TOKEN_ENCRYPTION_KEY
         sync: false
 
 crons:
   - name: daily-meta-sync
     schedule: "0 6 * * *"
+    envVars:
+      - key: CRON_SECRET
+        value: "sln-daily-sync-v1"
     command: >
       curl -s -X GET
       https://sln-meta-analyzer.onrender.com/sync-all
