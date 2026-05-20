@@ -993,22 +993,36 @@ def client_go(client_id, destination):
         return redirect(url_for("client_profile", client_id=client_id))
 
     name_overrides = _load_name_overrides()
-    _process_df(rows,
-                campaign_type_override=latest.get("campaign_type", ""),
-                date_from=latest.get("date_from") or "",
-                date_to=latest.get("date_to") or "",
-                name_overrides=name_overrides,
-                skip_db_save=True)
+    result = _process_df(rows,
+                         campaign_type_override=latest.get("campaign_type", ""),
+                         date_from=latest.get("date_from") or "",
+                         date_to=latest.get("date_to") or "",
+                         name_overrides=name_overrides,
+                         skip_db_save=True)
     session["upload_id"] = latest["id"]
 
+    if destination == "analyse":
+        if "error" in result:
+            flash(result["error"], "danger")
+            return redirect(url_for("client_profile", client_id=client_id))
+        thresholds = session.get("thresholds", {"winner": 25, "mid": 50, "preset": "auto"})
+        _client_obj = None
+        try:
+            _client_obj = db.get_client(client_id)
+        except Exception:
+            pass
+        return render_template("index.html", result=result, demo=False,
+                               thresholds=thresholds, active_client=_client_obj,
+                               unknown_ads=result.get("unknown_ads", []),
+                               tag_suggestions=result.get("tag_suggestions", {}))
+
     dest_map = {
-        "analyse":      url_for("index"),
         "creative":     url_for("creative"),
         "hooks":        url_for("hooks"),
         "shoot-brief":  url_for("hooks", mode="brief"),
         "export/pdf":   url_for("export_pdf"),
     }
-    return redirect(dest_map.get(destination, url_for("index")))
+    return redirect(dest_map.get(destination, url_for("client_profile", client_id=client_id)))
 
 
 @app.route("/clients/<int:client_id>/load/<int:upload_id>")
