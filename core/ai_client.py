@@ -33,6 +33,8 @@ def _extract_json(text: str) -> str:
 
 
 def call_json(prompt: str, system: str = _SLN_SYSTEM_JSON, max_tokens: int = 800) -> dict:
+    import logging as _log
+    _logger = _log.getLogger(__name__)
     try:
         model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
@@ -42,8 +44,15 @@ def call_json(prompt: str, system: str = _SLN_SYSTEM_JSON, max_tokens: int = 800
             system=system,
             messages=[{"role": "user", "content": prompt}],
         )
-        return json.loads(_extract_json(msg.content[0].text))
+        if msg.stop_reason == "max_tokens":
+            _logger.error("call_json: response truncated — max_tokens=%d is too low", max_tokens)
+            return {"_error": f"Response truncated (max_tokens={max_tokens})"}
+        raw = msg.content[0].text
+        _logger.debug("call_json OK | stop=%s | chars=%d", msg.stop_reason, len(raw))
+        return json.loads(_extract_json(raw))
     except Exception as e:
+        import traceback as _tb
+        _log.getLogger(__name__).error("call_json FAILED | %s\n%s", e, _tb.format_exc())
         return {"_error": str(e)}
 
 

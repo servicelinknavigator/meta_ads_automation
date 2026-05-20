@@ -426,9 +426,9 @@ Return ALLEEN dit JSON (geen tekst eromheen):
   }}
 }}"""
 
-    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=8000)
+    result = call_json(prompt, system=_SHOOT_SYSTEM, max_tokens=16000)
     if "_error" in result or "scripts" not in result:
-        logger.warning("Shoot brief AI call failed: %s", result.get("_error", "no 'scripts' key"))
+        logger.error("Shoot brief AI call failed: %s | keys=%s", result.get("_error", "no 'scripts' key"), list(result.keys()))
         return _fallback_brief(best_hook, best_format, second_hook, untested_hook, wild_hook,
                                hook_perf, fmt_perf, summary, top_ad, client_name)
 
