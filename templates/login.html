@@ -20,6 +20,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 1.5rem;
     }
     .login-card {
       background: rgba(255,255,255,.08);
@@ -76,11 +77,106 @@
       transform: translateY(-2px);
       box-shadow: 0 10px 28px rgba(255,92,43,.4), inset 0 1px 0 rgba(255,255,255,.25);
     }
+    .btn-secondary-login {
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.15);
+      width: 100%; padding: .65rem; border-radius: 12px;
+      font-weight: 600; font-size: .88rem;
+      margin-top: .75rem;
+      transition: all .2s;
+      cursor: pointer;
+    }
+    .btn-secondary-login:hover { background: rgba(255,255,255,.13); color: #fff; }
     .alert-danger {
       font-size: .82rem; border-radius: 10px;
       background: rgba(239,68,68,.15);
       border: 1px solid rgba(239,68,68,.25);
       color: #fca5a5;
+    }
+    .alert-warning {
+      font-size: .82rem; border-radius: 10px;
+      background: rgba(245,158,11,.13);
+      border: 1px solid rgba(245,158,11,.25);
+      color: #fcd34d;
+    }
+
+    /* ── Tabs ── */
+    .tab-btns { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .tab-btn {
+      flex: 1; padding: .55rem; border-radius: 10px;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06); color: rgba(255,255,255,.5);
+      transition: all .18s;
+    }
+    .tab-btn.active {
+      background: rgba(255,92,43,.18); border-color: rgba(255,92,43,.4);
+      color: #ff8c5a;
+    }
+
+    /* ── Transfer code display ── */
+    .xfer-success {
+      text-align: center;
+    }
+    .xfer-badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.3);
+      color: #6ee7b7; border-radius: 20px; padding: .3rem .8rem;
+      font-size: .75rem; font-weight: 600; margin-bottom: 1.2rem;
+    }
+    .xfer-code-box {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 16px;
+      padding: 1.5rem 1rem;
+      margin: 1rem 0;
+    }
+    .xfer-code-label { font-size: .7rem; font-weight: 600; color: rgba(255,255,255,.4); letter-spacing: .08em; text-transform: uppercase; margin-bottom: .5rem; }
+    .xfer-code {
+      font-size: 2.8rem; font-weight: 900; letter-spacing: .25em;
+      color: #fff; line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .xfer-timer { font-size: .75rem; color: rgba(255,255,255,.35); margin-top: .6rem; }
+    .xfer-timer span { color: #ff8c5a; font-weight: 700; }
+    .xfer-steps {
+      text-align: left;
+      background: rgba(255,255,255,.04);
+      border-radius: 12px;
+      padding: .9rem 1rem;
+      margin: 1rem 0;
+    }
+    .xfer-steps p { font-size: .78rem; color: rgba(255,255,255,.55); margin: 0 0 .3rem; }
+    .xfer-steps ol { font-size: .8rem; color: rgba(255,255,255,.7); margin: 0; padding-left: 1.2rem; }
+    .xfer-steps ol li { margin-bottom: .2rem; }
+    .btn-to-dashboard {
+      display: inline-block; text-decoration: none;
+      background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 12px; padding: .65rem 1.5rem;
+      font-size: .88rem; font-weight: 600; margin-top: .5rem;
+      transition: all .18s;
+    }
+    .btn-to-dashboard:hover { background: rgba(255,255,255,.16); color: #fff; }
+
+    /* ── Code input styling ── */
+    .code-input {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: .3em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Divider ── */
+    .or-divider {
+      display: flex; align-items: center; gap: .75rem;
+      margin: 1.25rem 0;
+      color: rgba(255,255,255,.2); font-size: .75rem;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(255,255,255,.1);
     }
   </style>
 </head>
@@ -90,21 +186,124 @@
     <div class="login-title">Meta Ads Analyzer</div>
     <div class="login-sub">SLN Solutions — intern dashboard</div>
 
+    {% if transfer_code %}
+    <!-- ── Na succesvol inloggen: toon overdrachtsCode voor thuisscherm-app ── -->
+    <div class="xfer-success">
+      <div class="xfer-badge"><i class="bi bi-check-circle-fill"></i> Ingelogd als {{ logged_in_username }}</div>
+
+      <div class="xfer-code-box">
+        <div class="xfer-code-label">App-code (5 min geldig)</div>
+        <div class="xfer-code" id="xferCode">{{ transfer_code }}</div>
+        <div class="xfer-timer">Verloopt over <span id="xferCountdown">5:00</span></div>
+      </div>
+
+      <div class="xfer-steps">
+        <p><i class="bi bi-info-circle me-1"></i>Om in te loggen in de thuisscherm-app:</p>
+        <ol>
+          <li>Open de SLN-app via je startscherm</li>
+          <li>Tik op <strong>Inloggen met code</strong></li>
+          <li>Voer bovenstaande 6 cijfers in</li>
+        </ol>
+      </div>
+
+      <a href="/clients" class="btn-to-dashboard">
+        <i class="bi bi-arrow-right me-1"></i>Doorgaan in Safari
+      </a>
+    </div>
+
+    <script>
+      // Countdown timer
+      let secs = 300;
+      const el = document.getElementById('xferCountdown');
+      const interval = setInterval(() => {
+        secs--;
+        if (secs <= 0) { clearInterval(interval); el.textContent = 'verlopen'; el.style.color='#ef4444'; return; }
+        const m = Math.floor(secs / 60), s = secs % 60;
+        el.textContent = m + ':' + String(s).padStart(2, '0');
+      }, 1000);
+    </script>
+
+    {% else %}
+    <!-- ── Normaal inlogscherm ── -->
+
     {% if error %}
-    <div class="alert alert-danger py-2"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+    <div class="alert alert-danger py-2 mb-3"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
     {% endif %}
 
-    <form method="POST" action="/login">
-      <div class="mb-3">
-        <label class="form-label">Gebruikersnaam</label>
-        <input type="text" name="username" class="form-control" placeholder="dominique of rick" autofocus required />
-      </div>
-      <div class="mb-1">
-        <label class="form-label">Wachtwoord</label>
-        <input type="password" name="password" class="form-control" placeholder="••••••••" required />
-      </div>
-      <button type="submit" class="btn-login">Inloggen <i class="bi bi-arrow-right ms-1"></i></button>
-    </form>
+    {% if code_error %}
+    <div class="alert alert-warning py-2 mb-3"><i class="bi bi-exclamation-triangle me-1"></i>{{ code_error }}</div>
+    {% endif %}
+
+    <!-- Tab-knoppen — zichtbaar via JS op basis van context -->
+    <div class="tab-btns" id="tabBtns" style="display:none;">
+      <button class="tab-btn" id="tabBtnCode" onclick="showTab('code')">
+        <i class="bi bi-grid-3x3 me-1"></i>Inloggen met code
+      </button>
+      <button class="tab-btn" id="tabBtnPw" onclick="showTab('pw')">
+        <i class="bi bi-lock me-1"></i>Wachtwoord
+      </button>
+    </div>
+
+    <!-- Code-invoer (voor PWA thuisscherm-app) -->
+    <div id="tabCode" style="display:none;">
+      <form method="POST" action="/login/code">
+        <div class="mb-3">
+          <label class="form-label">6-cijferige code (van Safari)</label>
+          <input type="text" name="code" class="form-control code-input"
+            placeholder="000000" maxlength="6" inputmode="numeric"
+            pattern="[0-9]{6}" autofocus autocomplete="one-time-code" required />
+        </div>
+        <button type="submit" class="btn-login">Code invoeren <i class="bi bi-arrow-right ms-1"></i></button>
+      </form>
+      <div class="or-divider">of</div>
+    </div>
+
+    <!-- Wachtwoord-login -->
+    <div id="tabPw">
+      <form method="POST" action="/login">
+        <div class="mb-3">
+          <label class="form-label">Gebruikersnaam</label>
+          <input type="text" name="username" class="form-control" placeholder="dominique of rick" required />
+        </div>
+        <div class="mb-1">
+          <label class="form-label">Wachtwoord</label>
+          <input type="password" name="password" class="form-control" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-login">Inloggen <i class="bi bi-arrow-right ms-1"></i></button>
+      </form>
+    </div>
+
+    <script>
+      function showTab(t) {
+        document.getElementById('tabCode').style.display = t === 'code' ? '' : 'none';
+        document.getElementById('tabPw').style.display   = t === 'pw'   ? '' : 'none';
+        document.getElementById('tabBtnCode').classList.toggle('active', t === 'code');
+        document.getElementById('tabBtnPw').classList.toggle('active',   t === 'pw');
+        if (t === 'code') {
+          const inp = document.querySelector('#tabCode input[name=code]');
+          if (inp) inp.focus();
+        } else {
+          const inp = document.querySelector('#tabPw input[name=username]');
+          if (inp) inp.focus();
+        }
+      }
+
+      // Detecteer PWA-modus (thuisscherm-app)
+      const isPWA = window.navigator.standalone === true
+                 || window.matchMedia('(display-mode: standalone)').matches;
+
+      if (isPWA) {
+        document.getElementById('tabBtns').style.display = 'flex';
+        // Toon standaard de code-tab in PWA
+        const hasCodeError = {{ 'true' if code_error else 'false' }};
+        showTab(hasCodeError ? 'code' : 'code');
+      } else {
+        // Safari/browser: toon wachtwoord direct, maar voeg "code"-link toe
+        document.getElementById('tabBtns').style.display = 'flex';
+        showTab('pw');
+      }
+    </script>
+    {% endif %}
   </div>
 </body>
 </html>
