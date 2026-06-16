@@ -49,30 +49,6 @@ _CREATIVE_CACHE: dict = {}
 _CREATIVE_CACHE_MAX = 120
 _CREATIVE_CACHE_LOCK = _threading.Lock()
 
-# ── PWA session-transfer codes (Safari → thuisscherm-app handoff) ──────────────
-import secrets as _secrets_mod
-from time import time as _time
-_XFER_CODES: dict[str, tuple[str, float]] = {}  # code -> (username, expires_ts)
-_XFER_CODES_LOCK = _threading.Lock()
-
-def _generate_xfer_code(username: str) -> str:
-    code = f"{_secrets_mod.randbelow(1000000):06d}"
-    exp = _time() + 300
-    with _XFER_CODES_LOCK:
-        stale = [k for k, (_, e) in _XFER_CODES.items() if e < _time()]
-        for k in stale:
-            del _XFER_CODES[k]
-        _XFER_CODES[code] = (username, exp)
-    return code
-
-def _redeem_xfer_code(code: str) -> str | None:
-    with _XFER_CODES_LOCK:
-        entry = _XFER_CODES.pop(code, None)
-    if not entry:
-        return None
-    username, exp = entry
-    return username if _time() <= exp else None
-
 
 def _cache_key(ad) -> str:
     s = f"{ad.ad_name}:{ad.campaign_name}:{ad.spend:.2f}:{ad.results}"
@@ -99,7 +75,7 @@ if not _flask_secret:
     _flask_secret = "dev-secret-change-me"
 app.secret_key = _flask_secret
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", 50)) * 1024 * 1024
-app.permanent_session_lifetime = timedelta(days=30)
+app.permanent_session_lifetime = timedelta(hours=4)
 
 if not os.getenv("TOKEN_ENCRYPTION_KEY"):
     logger.warning("TOKEN_ENCRYPTION_KEY not set — Meta OAuth tokens will be stored in plaintext!")
@@ -599,8 +575,7 @@ def login():
         if username in users and hmac.compare_digest(users[username], password):
             session.permanent = True
             session["username"] = username
-            xfer_code = _generate_xfer_code(username)
-            return render_template("login.html", error=None, transfer_code=xfer_code, logged_in_username=username)
+            return redirect(url_for("clients"))
         return render_template("login.html", error="Gebruikersnaam of wachtwoord onjuist.")
     return render_template("login.html", error=None)
 
@@ -609,20 +584,6 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
-
-
-@app.route("/login/code", methods=["POST"])
-def login_with_code():
-    if not _auth_enabled():
-        session["username"] = "dev"
-        return redirect(url_for("clients"))
-    code = request.form.get("code", "").strip().replace(" ", "")
-    username = _redeem_xfer_code(code)
-    if username:
-        session.permanent = True
-        session["username"] = username
-        return redirect(url_for("clients"))
-    return render_template("login.html", error=None, code_error="Ongeldige of verlopen code — genereer een nieuwe code in Safari.")
 
 
 # ── Client routes ──────────────────────────────────────────────────────────────
