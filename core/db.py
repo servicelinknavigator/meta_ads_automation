@@ -30,7 +30,17 @@ def _get_pool():
         url += f"{sep}sslmode=require"
     try:
         from psycopg2 import pool as pg_pool
-        _pool = pg_pool.ThreadedConnectionPool(2, 20, url)
+        _pool = pg_pool.ThreadedConnectionPool(
+            2, 20, url,
+            connect_timeout=10,
+            # Detect silently-dropped connections (e.g. Render spin-down,
+            # Supabase idle disconnects) quickly instead of hanging until
+            # the OS-level TCP timeout on the next query.
+            keepalives=1,
+            keepalives_idle=30,
+            keepalives_interval=10,
+            keepalives_count=3,
+        )
         _pool_error = ""
         logger.info("DB pool created OK")
         return _pool
@@ -46,12 +56,46 @@ def get_connection_error() -> str:
     return _pool_error
 
 
+def _reset_pool() -> None:
+    """Discard the current pool so the next request builds a fresh one."""
+    global _pool
+    if _pool is not None:
+        try:
+            _pool.closeall()
+        except Exception:
+            pass
+    _pool = None
+
+
+def _is_alive(conn) -> bool:
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.fetchone()
+        cur.close()
+        return True
+    except Exception:
+        return False
+
+
 @contextmanager
 def _conn():
     pool = _get_pool()
     if pool is None:
         raise RuntimeError(f"DB niet beschikbaar: {_pool_error or 'onbekende fout'}")
     conn = pool.getconn()
+    if not _is_alive(conn):
+        # Stale/dead connection (e.g. dropped by Supabase or Render spin-down).
+        # Discard it and the whole pool, then retry once with a fresh pool.
+        try:
+            pool.putconn(conn, close=True)
+        except Exception:
+            pass
+        _reset_pool()
+        pool = _get_pool()
+        if pool is None:
+            raise RuntimeError(f"DB niet beschikbaar: {_pool_error or 'onbekende fout'}")
+        conn = pool.getconn()
     try:
         yield conn
         conn.commit()
