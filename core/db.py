@@ -278,9 +278,8 @@ def get_clients() -> list[dict]:
         cur.close()
     for row in rows:
         totals = get_correct_totals(row["id"])
-        row["total_spend"]           = totals["total_spend"]
-        row["total_results"]         = totals["total_results"]
-        row["pending_content_count"] = get_pending_content_count(row["id"])
+        row["total_spend"]   = totals["total_spend"]
+        row["total_results"] = totals["total_results"]
     return rows
 
 
@@ -725,32 +724,6 @@ def bulk_upsert_ad_creatives(client_id: int, creatives: list[dict]) -> int:
                   headline_2, headline_3, ad_copy_1, ad_copy_2, ad_copy_3, afbeelding_pad))
         cur.close()
     return len(creatives)
-
-
-def get_pending_content_count(client_id: int) -> int:
-    """
-    Returns how many ad names in the latest upload have no creative content yet.
-    Used to show content-missing warnings on the profile and clients list.
-    """
-    try:
-        uploads = get_uploads(client_id)
-        if not uploads:
-            return 0
-        csv_text = get_upload_csv_content(uploads[0]["id"])
-        if not csv_text:
-            return 0
-        from core.csv_parser import parse_csv_string
-        rows = [r for r in parse_csv_string(csv_text)
-                if float(r.get("spend", 0) or 0) > 0]
-        ad_names = {r.get("ad_name", "") for r in rows
-                    if r.get("ad_name") and r.get("ad_name") != "Unknown"}
-        if not ad_names:
-            return 0
-        existing = get_ad_names_with_creatives(client_id)
-        return len(ad_names - existing)
-    except Exception as e:
-        logger.debug("get_pending_content_count failed for client %s: %s", client_id, e)
-        return 0
 
 
 def get_ad_names_with_creatives(client_id: int) -> set[str]:

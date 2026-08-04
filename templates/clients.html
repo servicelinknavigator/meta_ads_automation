@@ -354,11 +354,6 @@
           <span class="stat-chip blue">ROAS {{ c.roas_benchmark }}</span>
           {% endif %}
           <span class="stat-chip orange">{{ c.campaign_type }}</span>
-          {% if c.pending_content_count and c.pending_content_count > 0 %}
-          <span class="stat-chip" style="background:rgba(245,158,11,.12);color:#92400e;border-color:rgba(245,158,11,.3);">
-            <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>{{ c.pending_content_count }} zonder content
-          </span>
-          {% endif %}
         </div>
       </a>
     </div>
