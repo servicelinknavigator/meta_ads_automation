@@ -1,0 +1,25 @@
+{
+  "name": "SLN Meta Ads Analyzer",
+  "short_name": "SLN Ads",
+  "description": "SLN Solutions — intern dashboard voor Meta Ads analyse",
+  "start_url": "/clients",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "lang": "nl",
+  "theme_color": "#ff5c2b",
+  "background_color": "#060d1a",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

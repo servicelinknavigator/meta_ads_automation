@@ -9,7 +9,7 @@ import hmac
 from pathlib import Path
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, jsonify, send_from_directory, make_response
 from markupsafe import Markup, escape as html_escape
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -75,7 +75,7 @@ if not _flask_secret:
     _flask_secret = "dev-secret-change-me"
 app.secret_key = _flask_secret
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", 50)) * 1024 * 1024
-app.permanent_session_lifetime = timedelta(hours=4)
+app.permanent_session_lifetime = timedelta(days=30)
 
 if not os.getenv("TOKEN_ENCRYPTION_KEY"):
     logger.warning("TOKEN_ENCRYPTION_KEY not set — Meta OAuth tokens will be stored in plaintext!")
@@ -89,6 +89,23 @@ with app.app_context():
         db.init_schema()
     except Exception as e:
         logger.warning("DB init skipped: %s", e)
+
+
+# ── PWA (installeerbaar op thuisscherm) ─────────────────────────────────────────
+
+@app.route("/manifest.json")
+def pwa_manifest():
+    resp = make_response(send_from_directory("static", "manifest.json"))
+    resp.headers["Content-Type"] = "application/manifest+json"
+    return resp
+
+
+@app.route("/sw.js")
+def pwa_service_worker():
+    resp = make_response(send_from_directory("static/js", "sw.js"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Content-Type"] = "application/javascript"
+    return resp
 
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
