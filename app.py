@@ -83,12 +83,18 @@ if not os.getenv("TOKEN_ENCRYPTION_KEY"):
 UPLOAD_FOLDER = Path(__file__).parent / "uploads"
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 
-# Init DB schema on startup
-with app.app_context():
-    try:
-        db.init_schema()
-    except Exception as e:
-        logger.warning("DB init skipped: %s", e)
+# Init DB schema on startup — in de achtergrond, zodat de worker meteen
+# HTTP-verzoeken kan afhandelen i.p.v. te wachten tot de DB-pool klaar is
+# (die opzet kan enkele seconden duren, o.a. door de connect_timeout).
+def _init_db_background():
+    with app.app_context():
+        try:
+            db.init_schema()
+        except Exception as e:
+            logger.warning("DB init skipped: %s", e)
+
+
+_threading.Thread(target=_init_db_background, daemon=True).start()
 
 
 # ── PWA (installeerbaar op thuisscherm) ─────────────────────────────────────────
