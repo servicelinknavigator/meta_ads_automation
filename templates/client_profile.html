@@ -55,12 +55,10 @@
     }
     .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .sln-logo-icon {
-      width: 34px; height: 34px;
-      background: linear-gradient(135deg, #ff5c2b, #ff8c5a);
-      border-radius: 9px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 12px; color: #fff;
-      box-shadow: 0 4px 12px rgba(255,92,43,.35);
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 4px 16px var(--accent-glow);
     }
     .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.2; }
     .sln-logo-sub  { color: rgba(255,255,255,.4); font-size: 10px; }
@@ -411,7 +409,7 @@
 
 <nav class="sln-nav">
   <a class="sln-logo" href="/clients">
-    <div class="sln-logo-icon">SLN</div>
+    <img class="sln-logo-icon" src="/static/icons/icon-192.png" alt="SLN">
     <div>
       <div class="sln-logo-text">{{ client.name }}</div>
       <div class="sln-logo-sub">Klantprofiel</div>

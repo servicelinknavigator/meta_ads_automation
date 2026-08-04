@@ -25,7 +25,12 @@
 
     .sln-nav { background:rgba(6,13,26,.84); backdrop-filter:blur(28px) saturate(180%); border-bottom:1px solid rgba(255,255,255,.07); padding:0 2rem; height:58px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; }
     .sln-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-    .sln-logo-icon { width:34px; height:34px; background:linear-gradient(135deg,#ff5c2b,#ff8c5a); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; color:#fff; }
+    .sln-logo-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
     .sln-logo-text { color:#fff; font-weight:700; font-size:15px; }
     .btn-nav { background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); border:1px solid rgba(255,255,255,.14); padding:.35rem .9rem; border-radius:8px; font-size:.78rem; font-weight:500; text-decoration:none; transition:all .15s; }
     .btn-nav:hover { background:rgba(255,255,255,.14); color:#fff; }
@@ -61,7 +66,7 @@
 
 <nav class="sln-nav">
   <a href="{{ url_for('clients') }}" class="sln-logo">
-    <div class="sln-logo-icon">SLN</div>
+    <img class="sln-logo-icon" src="/static/icons/icon-192.png" alt="SLN">
     <div><div class="sln-logo-text">Meta Ads</div></div>
   </a>
   <div class="d-flex gap-2">

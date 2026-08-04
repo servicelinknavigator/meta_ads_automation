@@ -41,10 +41,8 @@
     .sln-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .sln-logo-icon {
       width: 36px; height: 36px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
       border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 13px; color: #fff;
+      object-fit: cover;
       box-shadow: 0 4px 16px var(--accent-glow);
     }
     .sln-logo-text { color: #fff; font-weight: 700; font-size: 15px; line-height: 1.2; }
@@ -238,7 +236,7 @@
 
 <nav class="sln-nav">
   <a class="sln-logo" href="/clients">
-    <div class="sln-logo-icon">SLN</div>
+    <img class="sln-logo-icon" src="/static/icons/icon-192.png" alt="SLN">
     <div>
       <div class="sln-logo-text">SLN Solutions</div>
       <div class="sln-logo-sub">Meta Ads Analyzer</div>
