@@ -198,12 +198,18 @@
     }
     .winner-header:hover { background: rgba(255,255,255,.4); }
     .winner-header.open  { background: rgba(255,255,255,.5); border-bottom: 1px solid rgba(0,0,0,.06); }
-    .winner-name { font-weight: 700; font-size: .95rem; color: #0f172a; }
+    .winner-name { font-weight: 700; font-size: .95rem; color: #0f172a; overflow-wrap: anywhere; }
     .winner-meta { font-size: .75rem; color: #64748b; margin-top: 2px; }
     .winner-metrics { display: flex; gap: 1.5rem; flex-shrink: 0; }
     .w-metric { text-align: right; }
     .w-metric-val   { font-size: .95rem; font-weight: 700; }
     .w-metric-label { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
+    @media (max-width: 700px) {
+      .winner-header { flex-wrap: wrap; row-gap: .6rem; }
+      .winner-header > div:last-child { flex-wrap: wrap; row-gap: .5rem; }
+      .winner-metrics { flex-wrap: wrap; gap: .9rem; }
+      .w-metric { text-align: left; }
+    }
     .winner-body { display: none; padding: 1.4rem; }
     .winner-body.open { display: block; }
 
@@ -228,6 +234,7 @@
     /* ── Decode grid ── */
     .decode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     @media (max-width: 768px) { .decode-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .decode-grid { grid-template-columns: 1fr; } }
     .decode-cell {
       background: rgba(255,255,255,.55);
       border: 1px solid rgba(0,0,0,.06);
@@ -328,6 +335,7 @@
     /* ── Axes grid ── */
     .axes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     @media (max-width: 768px) { .axes-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .axes-grid { grid-template-columns: 1fr; } }
     .axis-card { background: rgba(255,255,255,.55); border: 1px solid rgba(0,0,0,.06); border-radius: 10px; padding: .75rem .9rem; }
     .axis-label { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 6px; }
     .axis-idea  { font-size: .78rem; color: #0f172a; padding: 3px 0; display: flex; align-items: flex-start; gap: 5px; line-height: 1.4; }
@@ -411,6 +419,7 @@
       color: #94a3b8; font-size: .75rem; margin-top: 3rem;
     }
   </style>
+  {% include "_mobile_nav_fix.html" %}
 </head>
 <body>
 

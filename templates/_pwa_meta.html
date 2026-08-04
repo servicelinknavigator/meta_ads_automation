@@ -5,6 +5,11 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="/static/favicon.png" />
+  <style>
+    /* Voorkomt dat één te brede tabel/kaart de hele pagina breder maakt dan
+       het scherm, waardoor mobiele browsers uitzoomen en alles verschuift. */
+    html, body { max-width: 100vw; overflow-x: hidden; }
+  </style>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));

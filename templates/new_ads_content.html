@@ -100,7 +100,7 @@
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid rgba(0,0,0,.06);
     }
-    .ad-card-name { font-size: .9rem; font-weight: 700; color: #0f172a; }
+    .ad-card-name { font-size: .9rem; font-weight: 700; color: #0f172a; overflow-wrap: anywhere; }
     .ad-card-body { padding: 1.2rem; }
 
     /* ── Form elements ── */
@@ -188,6 +188,7 @@
     .alert-success { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.25); color: #065f46; }
     .alert-danger  { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.25); color: #991b1b; }
   </style>
+  {% include "_mobile_nav_fix.html" %}
 </head>
 <body>
 

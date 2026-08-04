@@ -54,7 +54,8 @@
     .btn-copy:hover { background:#fff; color:var(--accent); }
     .btn-copy.copied { background:#ecfdf5; color:#059669; border-color:#059669; }
 
-    .naam-badge { background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(255,92,43,.08)); border:1px solid rgba(99,102,241,.2); border-radius:10px; padding:.6rem 1rem; font-family:monospace; font-size:.9rem; font-weight:700; color:#1e3a8a; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+    .naam-badge { background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(255,92,43,.08)); border:1px solid rgba(99,102,241,.2); border-radius:10px; padding:.6rem 1rem; font-family:monospace; font-size:.9rem; font-weight:700; color:#1e3a8a; display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap: wrap; }
+    .naam-badge span { overflow-wrap: anywhere; min-width: 0; }
     .hook-pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.72rem; font-weight:600; }
     .hook-proof    { background:#eff6ff; color:#1d4ed8; }
     .hook-promise  { background:#f0fdf4; color:#15803d; }
@@ -69,6 +70,7 @@
     .btn-primary-sln:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,92,43,.4); }
     .alert-ai-error { background:#fef2f2; border:1px solid rgba(220,38,38,.2); border-radius:10px; padding:.8rem 1rem; color:#dc2626; font-size:.82rem; margin-bottom:1rem; }
   </style>
+  {% include "_mobile_nav_fix.html" %}
 </head>
 <body>
 
