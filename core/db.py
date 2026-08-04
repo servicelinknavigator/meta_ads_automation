@@ -56,54 +56,32 @@ def get_connection_error() -> str:
     return _pool_error
 
 
-def _reset_pool() -> None:
-    """Discard the current pool so the next request builds a fresh one."""
-    global _pool
-    if _pool is not None:
-        try:
-            _pool.closeall()
-        except Exception:
-            pass
-    _pool = None
-
-
-def _is_alive(conn) -> bool:
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT 1")
-        cur.fetchone()
-        cur.close()
-        return True
-    except Exception:
-        return False
-
-
 @contextmanager
 def _conn():
     pool = _get_pool()
     if pool is None:
         raise RuntimeError(f"DB niet beschikbaar: {_pool_error or 'onbekende fout'}")
     conn = pool.getconn()
-    if not _is_alive(conn):
-        # Stale/dead connection (e.g. dropped by Supabase or Render spin-down).
-        # Discard it and the whole pool, then retry once with a fresh pool.
-        try:
-            pool.putconn(conn, close=True)
-        except Exception:
-            pass
-        _reset_pool()
-        pool = _get_pool()
-        if pool is None:
-            raise RuntimeError(f"DB niet beschikbaar: {_pool_error or 'onbekende fout'}")
-        conn = pool.getconn()
+    bad_conn = False
     try:
         yield conn
         conn.commit()
-    except Exception:
-        conn.rollback()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        # Verbindingsfouten (bv. een stil weggevallen socket) mogen niet
+        # terug de pool in — anders krijgt de volgende request dezelfde
+        # kapotte connectie. Geen preventieve ping op elke checkout: dat
+        # verdubbelt het aantal roundtrips en maakt elke pagina merkbaar
+        # trager, terwijl connectieproblemen zeldzaam zijn.
+        from psycopg2 import Error as _PsycopgError
+        if isinstance(e, _PsycopgError):
+            bad_conn = True
         raise
     finally:
-        pool.putconn(conn)
+        pool.putconn(conn, close=bad_conn)
 
 
 def is_available() -> bool:
